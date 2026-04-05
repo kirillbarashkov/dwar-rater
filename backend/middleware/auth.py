@@ -18,7 +18,7 @@ if os.path.exists(users_file):
 else:
     admin_user = Config.ADMIN_USER
     admin_pass = Config.ADMIN_PASS
-    if admin_pass != 'admin' or not Config.AUTH_ENABLED:
+    if Config.AUTH_ENABLED:
         USERS[admin_user] = {
             'password_hash': hashlib.sha256(admin_pass.encode()).hexdigest(),
             'role': 'admin'
