@@ -166,3 +166,12 @@ body {
   font-size: 1.1rem;
   font-weight: 500;
 }
+
+.current-section {
+  max-width: 800px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}

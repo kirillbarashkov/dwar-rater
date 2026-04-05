@@ -1,0 +1,74 @@
+.current-character {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.cc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.cc-name {
+  color: var(--accent);
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.cc-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cc-meta span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+.cc-clan {
+  color: var(--accent) !important;
+  background: rgba(233, 69, 96, 0.1) !important;
+}
+
+.cc-stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cc-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.cc-stat-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cc-stat-value.winrate {
+  color: var(--green);
+}
+
+.cc-analyzed {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+  margin-bottom: 0;
+}

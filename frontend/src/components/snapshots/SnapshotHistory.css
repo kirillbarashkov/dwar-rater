@@ -1,0 +1,59 @@
+.snapshot-history {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.sh-title {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+}
+
+.sh-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.sh-search-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.sh-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.sh-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.sh-empty {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 20px;
+  font-size: 0.9rem;
+}
+
+.sh-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.sh-page-info {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
