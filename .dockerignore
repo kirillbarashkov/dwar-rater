@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+*.db
+instance/
+venv/
+.venv/
+.env
+users.json
+frontend/
