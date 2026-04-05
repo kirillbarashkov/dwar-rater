@@ -1,4 +1,5 @@
 import apiClient from './client';
+import type { User } from '../types/auth';
 
 export async function login(username: string, password: string) {
   const credentials = btoa(`${username}:${password}`);
@@ -13,6 +14,11 @@ export async function login(username: string, password: string) {
 export async function logout() {
   localStorage.removeItem('auth_credentials');
   localStorage.removeItem('auth_username');
+}
+
+export async function fetchUser(): Promise<User> {
+  const response = await apiClient.get('/api/me');
+  return response.data;
 }
 
 export function getStoredUsername(): string | null {

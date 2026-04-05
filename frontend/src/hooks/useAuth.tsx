@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import type { User, AuthContextType } from '../types/auth';
-import { login as apiLogin, logout as apiLogout, isAuthenticated, getStoredUsername } from '../api/auth';
+import { login as apiLogin, logout as apiLogout, isAuthenticated, fetchUser } from '../api/auth';
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -10,23 +10,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isAuthenticated()) {
-      const username = getStoredUsername();
-      setUser({
-        id: 0,
-        username: username || '',
-        role: 'user',
-      });
+      fetchUser()
+        .then(setUser)
+        .catch(() => {
+          apiLogout();
+          setUser(null);
+        })
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
     await apiLogin(username, password);
-    setUser({
-      id: 0,
-      username,
-      role: 'user',
-    });
+    const user = await fetchUser();
+    setUser(user);
   }, []);
 
   const logout = useCallback(() => {

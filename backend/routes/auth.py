@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from backend.middleware.auth import check_credentials, require_auth
 
 
@@ -13,3 +13,14 @@ def login():
     if not check_credentials(auth.username, auth.password):
         return jsonify({'error': 'Неверный логин или пароль'}), 401
     return jsonify({'status': 'ok'})
+
+
+@auth_bp.route('/api/me', methods=['GET'])
+@require_auth
+def me():
+    user = g.current_user
+    return jsonify({
+        'id': user.id,
+        'username': user.username,
+        'role': user.role,
+    })

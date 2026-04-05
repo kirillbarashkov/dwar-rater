@@ -1,12 +1,13 @@
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { Header } from './components/layout/Header';
 import { Button } from './components/ui/Button';
 import { Input } from './components/ui/Input';
-import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { ProtectedRoute } from './components/ui/ProtectedRoute';
 import './styles/globals.css';
 
-function LoginForm() {
+function LoginPage() {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -56,17 +57,7 @@ function LoginForm() {
   );
 }
 
-function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
-
-  if (!isAuthenticated) {
-    return <LoginForm />;
-  }
-
+function HomePage() {
   return (
     <div className="app">
       <Header />
@@ -80,5 +71,20 @@ function AppContent() {
 }
 
 export default function App() {
-  return <AppContent />;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }

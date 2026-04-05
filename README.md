@@ -110,6 +110,7 @@ export DATABASE_URL=postgresql://user:password@localhost:5432/dwar_rater
 | Метод | Путь | Описание |
 |---|---|---|
 | `POST` | `/api/login` | Проверка авторизации |
+| `GET` | `/api/me` | Данные текущего пользователя |
 | `GET` | `/api/health` | Проверка работоспособности |
 | `POST` | `/api/analyze` | Анализ персонажа |
 | `GET` | `/api/snapshots` | Список слепков |
