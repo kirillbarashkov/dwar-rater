@@ -1,0 +1,48 @@
+.medal-group {
+  margin-bottom: 24px;
+}
+
+.medal-group-title {
+  color: var(--accent);
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.medal-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.medal-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+
+.medal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.medal-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.medal-num {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.medal-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}

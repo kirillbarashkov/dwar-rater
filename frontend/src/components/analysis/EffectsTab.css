@@ -1,0 +1,89 @@
+.effect-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+
+.effect-card.effect-buff {
+  border-left: 3px solid var(--green);
+}
+
+.effect-card.effect-debuff {
+  border-left: 3px solid #dc3545;
+}
+
+.effect-card.effect-elixir {
+  border-left: 3px solid var(--blue);
+}
+
+.effect-card.effect-mount {
+  border-left: 3px solid var(--gold);
+}
+
+.effect-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.effect-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.effect-time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.effect-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.effect-skill {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+}
+
+.effect-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.effects-section {
+  margin-bottom: 24px;
+}
+
+.effects-section-title {
+  color: var(--accent);
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+}
+
+.effect-category {
+  margin-bottom: 16px;
+}
+
+.effect-category-title {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.effects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}

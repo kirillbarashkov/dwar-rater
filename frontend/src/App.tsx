@@ -8,7 +8,14 @@ import { Button } from './components/ui/Button';
 import { Input } from './components/ui/Input';
 import { ProtectedRoute } from './components/ui/ProtectedRoute';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
-import type { AnalysisResult } from './types/character';
+import { Tabs, TabPanel } from './components/ui/Tabs';
+import { CharacterHeader } from './components/analysis/CharacterHeader';
+import { StatsTab } from './components/analysis/StatsTab';
+import { EquipmentTab } from './components/analysis/EquipmentTab';
+import { EffectsTab } from './components/analysis/EffectsTab';
+import { RecordsTab } from './components/analysis/RecordsTab';
+import { MedalsTab } from './components/analysis/MedalsTab';
+import { OtherTab } from './components/analysis/OtherTab';
 import './styles/globals.css';
 
 function LoginPage() {
@@ -61,29 +68,41 @@ function LoginPage() {
   );
 }
 
-function AnalysisResultDisplay({ result }: { result: AnalysisResult }) {
+function AnalysisResultDisplay({ result }: { result: ReturnType<typeof useCharacterAnalysis>['result'] }) {
+  if (!result) return null;
+
+  const tabs = [
+    { key: 'stats', label: 'Характеристики' },
+    { key: 'equipment', label: 'Экипировка' },
+    { key: 'effects', label: 'Эффекты' },
+    { key: 'medals', label: 'Медали' },
+    { key: 'records', label: 'Рекорды' },
+    { key: 'other', label: 'Прочее' },
+  ];
+
   return (
     <div className="analysis-result">
-      <div className="result-header">
-        <h2>{result.name}</h2>
-        <div className="result-meta">
-          <span>{result.race}</span>
-          <span>{result.rank}</span>
-          {result.clan && <span>{result.clan}</span>}
-        </div>
-      </div>
-      <div className="result-stats">
-        <div className="stat-card">
-          <h3>Бои</h3>
-          <p>Побед: {result.wins}</p>
-          <p>Поражений: {result.losses}</p>
-          <p>Винрейт: {result.winrate}%</p>
-        </div>
-        <div className="stat-card">
-          <h3>Убийства</h3>
-          <p>{result.kills}</p>
-        </div>
-      </div>
+      <CharacterHeader character={result} />
+      <Tabs tabs={tabs} defaultTab="stats">
+        <TabPanel tabKey="stats" activeTab="stats">
+          <StatsTab character={result} />
+        </TabPanel>
+        <TabPanel tabKey="equipment" activeTab="equipment">
+          <EquipmentTab equipment={result.equipment_by_kind} sets={result.sets} />
+        </TabPanel>
+        <TabPanel tabKey="effects" activeTab="effects">
+          <EffectsTab tempEffects={result.temp_effects} permanentEffects={result.permanent_effects} />
+        </TabPanel>
+        <TabPanel tabKey="medals" activeTab="medals">
+          <MedalsTab medals={result.medals} />
+        </TabPanel>
+        <TabPanel tabKey="records" activeTab="records">
+          <RecordsTab records={result.combat_records} />
+        </TabPanel>
+        <TabPanel tabKey="other" activeTab="other">
+          <OtherTab character={result} />
+        </TabPanel>
+      </Tabs>
     </div>
   );
 }
