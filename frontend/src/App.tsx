@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useCharacterAnalysis } from './hooks/useCharacterAnalysis';
 import { Header } from './components/layout/Header';
@@ -20,6 +20,7 @@ import './styles/globals.css';
 
 function LoginPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -31,6 +32,7 @@ function LoginPage() {
     setIsLoading(true);
     try {
       await login(username, password);
+      navigate('/', { replace: true });
     } catch {
       setError('Неверный логин или пароль');
     } finally {
