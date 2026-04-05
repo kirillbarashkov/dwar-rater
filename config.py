@@ -20,6 +20,8 @@ class Config:
     RATE_LIMIT_MAX = int(os.environ.get('RATE_LIMIT_MAX', '30'))
     RATE_LIMIT_WINDOW = int(os.environ.get('RATE_LIMIT_WINDOW', '60'))
 
+    APP_HTTP_PORT = os.environ.get('APP_HTTP_PORT', '5000')
+
     # Auth
     AUTH_ENABLED = os.environ.get('AUTH_ENABLED', 'true').lower() == 'true'
     ADMIN_USER = os.environ.get('ADMIN_USER', 'admin')

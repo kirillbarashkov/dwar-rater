@@ -28,7 +28,7 @@ venv\Scripts\activate     # Windows
 pip install -r requirements.txt
 
 # Запуск
-python app.py
+python app.py # Предварительно необходимо сменить дефолтный пароль админа в config.py, иначе под ним не получится залогиниться
 ```
 
 Приложение запустится на `http://127.0.0.1:5000`.

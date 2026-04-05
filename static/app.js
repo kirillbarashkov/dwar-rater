@@ -160,7 +160,7 @@ document.getElementById('login-form').addEventListener('submit', async function(
             headers: { 'Authorization': authHeader }
         });
 
-        if (resp.status === 401) {
+        if (resp.status !== 200) {
             loginError.textContent = 'Неверный логин или пароль';
             loginError.classList.remove('hidden');
             authHeader = null;
