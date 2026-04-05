@@ -56,7 +56,22 @@ npm run dev
 
 Фронтенд запустится на `http://localhost:5173`. Запросы к `/api` автоматически проксируются на бэкенд (порт 5000).
 
-### Docker
+### Docker Compose (рекомендуется)
+
+Один запуск для всей инфраструктуры (бэкенд + фронтенд + PostgreSQL):
+
+```bash
+docker compose up -d
+```
+
+Сервисы:
+- **Бэкенд:** `http://localhost:5000`
+- **Фронтенд:** `http://localhost:5173`
+- **PostgreSQL:** `localhost:5432` (user: `dwar`, pass: `dwar_dev`, db: `dwar_rater`)
+
+Для использования PostgreSQL вместо SQLite, скопируйте `.env.example` в `.env` и раскомментируйте строку `DATABASE_URL`.
+
+### Docker (отдельный контейнер)
 
 ```bash
 docker build -t dwar-rater .
