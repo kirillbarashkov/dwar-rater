@@ -1,9 +1,9 @@
 import json
 from datetime import datetime
-from backend.models import db
-from backend.models.character_cache import CharacterCache
-from backend.models.character_snapshot import CharacterSnapshot
-from backend.models.analysis_log import AnalysisLog
+from models import db
+from models.character_cache import CharacterCache
+from models.character_snapshot import CharacterSnapshot
+from models.analysis_log import AnalysisLog
 
 CACHE_TTL_SECONDS = 3600
 

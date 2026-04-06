@@ -3,9 +3,9 @@ import hashlib
 import json
 from functools import wraps
 from flask import request, jsonify, g
-from backend.models import db
-from backend.models.user import User
-from backend.config import Config
+from models import db
+from models.user import User
+from config import Config
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

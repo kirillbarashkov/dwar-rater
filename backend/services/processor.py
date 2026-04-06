@@ -1,5 +1,5 @@
 import re
-from backend.utils.formatters import clean_html, fmt_num
+from utils.formatters import clean_html, fmt_num
 
 
 QUALITY_MAP = {

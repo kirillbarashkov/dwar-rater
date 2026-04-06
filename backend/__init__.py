@@ -3,11 +3,11 @@ import hashlib
 from flask import Flask, request, jsonify, abort, g
 from flask import render_template
 
-from backend.config import Config
-from backend.models import db
-from backend.models.user import User
-from backend.middleware.rate_limiter import check_rate_limit
-from backend.middleware.security import add_security_headers
+from config import Config
+from models import db
+from models.user import User
+from middleware.rate_limiter import check_rate_limit
+from middleware.security import add_security_headers
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,10 +23,10 @@ def create_app():
 
     db.init_app(app)
 
-    from backend.routes.auth import auth_bp
-    from backend.routes.analyze import analyze_bp
-    from backend.routes.snapshots import snapshots_bp
-    from backend.routes.health import health_bp
+    from routes.auth import auth_bp
+    from routes.analyze import analyze_bp
+    from routes.snapshots import snapshots_bp
+    from routes.health import health_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(analyze_bp)

@@ -2,7 +2,7 @@ import re
 import json
 from urllib.parse import urlparse
 import requests
-from backend.utils.formatters import clean_html
+from utils.formatters import clean_html
 
 
 EQUIPMENT_KINDS = {

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, g
-from backend.middleware.auth import check_credentials, require_auth
+from middleware.auth import check_credentials, require_auth
 
 
 auth_bp = Blueprint('auth', __name__)

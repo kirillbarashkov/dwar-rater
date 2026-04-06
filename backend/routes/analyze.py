@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify, g
-from backend.middleware.auth import require_auth
-from backend.services.parser import fetch_character_page, parse_character
-from backend.services.processor import process_character
-from backend.services.cache_service import get_cached_character, save_character_cache, create_snapshot, log_analysis
-from backend.utils.validators import validate_dwar_url
+from middleware.auth import require_auth
+from services.parser import fetch_character_page, parse_character
+from services.processor import process_character
+from services.cache_service import get_cached_character, save_character_cache, create_snapshot, log_analysis
+from utils.validators import validate_dwar_url
 from urllib.parse import urlparse, parse_qs
 
 
