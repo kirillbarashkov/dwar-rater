@@ -2,6 +2,7 @@ import os
 import hashlib
 from flask import Flask, request, jsonify, abort, g
 from flask import render_template
+from flask_cors import CORS, cross_origin
 
 from config import Config
 from models import db
@@ -20,6 +21,9 @@ def create_app():
         template_folder=os.path.join(BASE_DIR, 'templates'),
     )
     app.config.from_object(Config)
+    
+    # Разрешаем запросы с локального фронта
+    cors = CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
 
     db.init_app(app)
 
