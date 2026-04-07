@@ -1,5 +1,5 @@
-from datetime import datetime
-from backend.models import db
+from datetime import datetime, UTC
+from models import db
 
 
 class User(db.Model):
@@ -8,7 +8,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     role = db.Column(db.String(20), default='user')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(UTC))
 
     def __repr__(self):
         return f'<User {self.username}>'

@@ -2,12 +2,13 @@ import os
 import hashlib
 from flask import Flask, request, jsonify, abort, g
 from flask import render_template
+from flask_cors import CORS, cross_origin
 
-from backend.config import Config
-from backend.models import db
-from backend.models.user import User
-from backend.middleware.rate_limiter import check_rate_limit
-from backend.middleware.security import add_security_headers
+from config import Config
+from models import db
+from models.user import User
+from middleware.rate_limiter import check_rate_limit
+from middleware.security import add_security_headers
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,13 +21,16 @@ def create_app():
         template_folder=os.path.join(BASE_DIR, 'templates'),
     )
     app.config.from_object(Config)
+    
+    # Разрешаем запросы с локального фронта
+    cors = CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
 
     db.init_app(app)
 
-    from backend.routes.auth import auth_bp
-    from backend.routes.analyze import analyze_bp
-    from backend.routes.snapshots import snapshots_bp
-    from backend.routes.health import health_bp
+    from routes.auth import auth_bp
+    from routes.analyze import analyze_bp
+    from routes.snapshots import snapshots_bp
+    from routes.health import health_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(analyze_bp)
@@ -64,3 +68,9 @@ def create_app():
             db.session.commit()
 
     return app
+
+
+app = create_app()
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=app.config.get('APP_HTTP_PORT', 5000))

@@ -1,9 +1,9 @@
 import json
 from flask import Blueprint, request, jsonify, g
-from backend.middleware.auth import require_auth
-from backend.models.character_snapshot import CharacterSnapshot
-from backend.models import db
-from backend.services.cache_service import create_named_snapshot, log_analysis
+from middleware.auth import require_auth
+from models.character_snapshot import CharacterSnapshot
+from models import db
+from services.cache_service import create_named_snapshot, log_analysis
 
 
 snapshots_bp = Blueprint('snapshots', __name__)

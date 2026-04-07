@@ -1,5 +1,5 @@
 from datetime import datetime
-from backend.models import db
+from models import db
 
 
 class CharacterSnapshot(db.Model):

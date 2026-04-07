@@ -1,12 +1,12 @@
 services:
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     ports:
       - "5000:5000"
     environment:
-      - DATABASE_URL=sqlite:///instance/dwar_rater.db
+      - DATABASE_URL=sqlite:////app/instance/dwar_rater.db
       - AUTH_ENABLED=true
       - ADMIN_USER=admin
       - ADMIN_PASS=admin
