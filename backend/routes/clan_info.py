@@ -88,6 +88,7 @@ def get_clan_members(clan_id):
 
     members = ClanMemberInfo.query.filter_by(clan_id=clan_id).all()
     return jsonify([{
+        'id': m.id,
         'nick': m.nick,
         'game_rank': m.game_rank,
         'level': m.level,
@@ -97,3 +98,86 @@ def get_clan_members(clan_id):
         'join_date': m.join_date,
         'trial_until': m.trial_until,
     } for m in members])
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/members', methods=['POST'])
+def add_clan_member(clan_id):
+    data = request.json
+    required = ['nick', 'level', 'clan_role']
+    for field in required:
+        if field not in data:
+            return jsonify({'error': f'{field} обязателен'}), 400
+
+    member = ClanMemberInfo(
+        clan_id=clan_id,
+        nick=data['nick'],
+        game_rank=data.get('game_rank', ''),
+        level=data['level'],
+        profession=data.get('profession', ''),
+        profession_level=data.get('profession_level', 0),
+        clan_role=data['clan_role'],
+        join_date=data.get('join_date', ''),
+        trial_until=data.get('trial_until', ''),
+    )
+    db.session.add(member)
+    db.session.commit()
+
+    return jsonify({
+        'id': member.id,
+        'nick': member.nick,
+        'game_rank': member.game_rank,
+        'level': member.level,
+        'profession': member.profession,
+        'profession_level': member.profession_level,
+        'clan_role': member.clan_role,
+        'join_date': member.join_date,
+        'trial_until': member.trial_until,
+    }), 201
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/members/<int:member_id>', methods=['DELETE'])
+def delete_clan_member(clan_id, member_id):
+    member = ClanMemberInfo.query.filter_by(id=member_id, clan_id=clan_id).first()
+    if not member:
+        return jsonify({'error': 'Участник не найден'}), 404
+    db.session.delete(member)
+    db.session.commit()
+    return jsonify({'status': 'deleted'})
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/members/<int:member_id>', methods=['PUT'])
+def update_clan_member(clan_id, member_id):
+    member = ClanMemberInfo.query.filter_by(id=member_id, clan_id=clan_id).first()
+    if not member:
+        return jsonify({'error': 'Участник не найден'}), 404
+
+    data = request.json
+    if 'nick' in data:
+        member.nick = data['nick']
+    if 'game_rank' in data:
+        member.game_rank = data['game_rank']
+    if 'level' in data:
+        member.level = data['level']
+    if 'profession' in data:
+        member.profession = data['profession']
+    if 'profession_level' in data:
+        member.profession_level = data['profession_level']
+    if 'clan_role' in data:
+        member.clan_role = data['clan_role']
+    if 'join_date' in data:
+        member.join_date = data['join_date']
+    if 'trial_until' in data:
+        member.trial_until = data['trial_until']
+
+    db.session.commit()
+    return jsonify({
+        'id': member.id,
+        'nick': member.nick,
+        'game_rank': member.game_rank,
+        'level': member.level,
+        'profession': member.profession,
+        'profession_level': member.profession_level,
+        'clan_role': member.clan_role,
+        'join_date': member.join_date,
+        'trial_until': member.trial_until,
+    })

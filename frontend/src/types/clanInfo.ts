@@ -13,6 +13,7 @@ export interface ClanInfoData {
 }
 
 export interface ClanMemberData {
+  id?: number;
   nick: string;
   game_rank: string;
   level: number;
