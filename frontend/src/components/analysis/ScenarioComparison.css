@@ -1,0 +1,151 @@
+.scenario-comparison {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.sc-placeholder {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 20px;
+}
+
+.sc-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.sc-select {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.sc-result {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.sc-result-title {
+  color: var(--accent);
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+}
+
+.sc-gaps h4,
+.sc-recommended h4,
+.sc-medals h4 {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  margin-top: 16px;
+}
+
+.sc-gaps h4:first-child {
+  margin-top: 0;
+}
+
+.gap-item {
+  margin-bottom: 12px;
+}
+
+.gap-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.gap-stat {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.gap-values {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.gap-diff {
+  color: #dc3545;
+  margin-left: 6px;
+  font-weight: 600;
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-fill.complete {
+  background: var(--green);
+}
+
+.progress-fill.close {
+  background: var(--gold);
+}
+
+.progress-fill.far {
+  background: var(--accent);
+}
+
+.progress-pct {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.rec-item {
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+}
+
+.rec-slot {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.rec-quality {
+  color: var(--text-secondary);
+}
+
+.rec-stats {
+  color: var(--text-muted);
+}
+
+.medal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.medal-tag {
+  padding: 4px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}

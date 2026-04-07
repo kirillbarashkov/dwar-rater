@@ -117,6 +117,12 @@ export DATABASE_URL=postgresql://user:password@localhost:5432/dwar_rater
 | `GET` | `/api/snapshots/<id>` | Детали слепка |
 | `POST` | `/api/save-snapshot` | Сохранить слепок |
 | `DELETE` | `/api/snapshots/<id>` | Удалить слепок |
+| `GET` | `/api/scenarios` | Список сценариев прокачки |
+| `GET` | `/api/scenarios/<id>` | Детали сценария |
+| `POST` | `/api/scenarios` | Создать сценарий (admin) |
+| `PUT` | `/api/scenarios/<id>` | Обновить сценарий |
+| `DELETE` | `/api/scenarios/<id>` | Удалить сценарий |
+| `POST` | `/api/scenarios/<id>/compare` | Сравнить персонаж со сценарием |
 
 ## Структура проекта
 

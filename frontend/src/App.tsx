@@ -19,6 +19,7 @@ import { MedalsTab } from './components/analysis/MedalsTab';
 import { OtherTab } from './components/analysis/OtherTab';
 import { CurrentCharacter } from './components/snapshots/CurrentCharacter';
 import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
+import { ScenarioComparison } from './components/analysis/ScenarioComparison';
 import { saveSnapshot } from './api/snapshots';
 import type { AnalysisResult } from './types/character';
 import type { Snapshot } from './types/snapshot';
@@ -191,6 +192,10 @@ function HomePage() {
         )}
 
         <SnapshotHistory onLoad={handleLoadSnapshot} />
+
+        {currentResult && (
+          <ScenarioComparison character={currentResult} />
+        )}
 
         <Modal
           isOpen={showSaveModal}
