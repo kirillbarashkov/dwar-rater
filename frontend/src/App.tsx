@@ -21,6 +21,7 @@ import { CurrentCharacter } from './components/snapshots/CurrentCharacter';
 import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
 import { ScenarioComparison } from './components/analysis/ScenarioComparison';
 import { ImprovementTrackPanel } from './components/analysis/ImprovementTrack';
+import { ClanChat } from './components/chat/ClanChat';
 import { saveSnapshot } from './api/snapshots';
 import type { AnalysisResult } from './types/character';
 import type { Snapshot } from './types/snapshot';
@@ -127,6 +128,7 @@ function HomePage() {
   const [lastAnalyzed, setLastAnalyzed] = useState<Date | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [snapshotName, setSnapshotName] = useState('');
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     if (result) {
@@ -157,7 +159,7 @@ function HomePage() {
 
   return (
     <div className="app">
-      <Header />
+      <Header onToggleChat={() => setChatOpen(!chatOpen)} chatOpen={chatOpen} />
       <main className="main-content">
         <SearchBar onAnalyze={(url) => {
           analyze(url).then(() => {
@@ -223,6 +225,7 @@ function HomePage() {
           </div>
         </Modal>
       </main>
+      {chatOpen && <ClanChat onClose={() => setChatOpen(false)} />}
     </div>
   );
 }

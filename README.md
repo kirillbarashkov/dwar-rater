@@ -128,6 +128,16 @@ export DATABASE_URL=postgresql://user:password@localhost:5432/dwar_rater
 | `POST` | `/api/tracks/generate` | Сгенерировать трек из сценария |
 | `PUT` | `/api/tracks/<id>/step/<step_id>` | Отметить шаг как выполненный |
 | `DELETE` | `/api/tracks/<id>` | Удалить трек |
+| `GET` | `/api/clans` | Список кланов пользователя |
+| `POST` | `/api/clans` | Создать клан (admin) |
+| `GET` | `/api/clans/<id>/members` | Участники клана |
+| `POST` | `/api/clans/<id>/members` | Добавить участника |
+| `DELETE` | `/api/clans/<id>/members/<user_id>` | Удалить участника |
+| `GET` | `/api/clans/<id>/rooms` | Комнаты чата клана |
+| `POST` | `/api/clans/<id>/rooms` | Создать комнату |
+| `GET` | `/api/clans/<id>/rooms/<room_id>/messages` | История сообщений |
+| `POST` | `/api/clans/<id>/rooms/<room_id>/messages` | Отправить сообщение |
+| `DELETE` | `/api/clans/<id>/rooms/<room_id>/messages/<msg_id>` | Удалить сообщение |
 
 ## Структура проекта
 

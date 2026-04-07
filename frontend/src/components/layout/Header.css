@@ -1,57 +1,8 @@
-.app-header {
-  text-align: center;
-  padding: 30px 0 20px;
-  position: relative;
+.chat-toggle {
+  font-size: 1.1rem;
+  padding: 4px 8px;
 }
 
-.app-header h1 {
-  font-size: 2.2rem;
+.chat-toggle.active {
   color: var(--accent);
-  text-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
-}
-
-.subtitle {
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-  margin-top: 4px;
-}
-
-.header-actions {
-  position: absolute;
-  right: 0;
-  top: 30px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.username {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.role-badge {
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.role-admin {
-  background: var(--accent);
-  color: white;
-}
-
-.role-user {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-}
-
-.btn-sm {
-  padding: 4px 12px;
-  font-size: 0.8rem;
 }
