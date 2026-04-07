@@ -97,25 +97,25 @@ function AnalysisResultDisplay({ result }: { result: ReturnType<typeof useCharac
     <div className="analysis-result">
       <CharacterHeader character={result} />
       <Tabs tabs={tabs} defaultTab="stats">
-        <TabPanel tabKey="stats" activeTab="stats">
+        <TabPanel tabKey="stats">
           <StatsTab character={result} />
         </TabPanel>
-        <TabPanel tabKey="equipment" activeTab="equipment">
+        <TabPanel tabKey="equipment">
           <EquipmentTab equipment={result.equipment_by_kind} sets={result.sets} />
         </TabPanel>
-        <TabPanel tabKey="effects" activeTab="effects">
+        <TabPanel tabKey="effects">
           <EffectsTab tempEffects={result.temp_effects} permanentEffects={result.permanent_effects} />
         </TabPanel>
-        <TabPanel tabKey="medals" activeTab="medals">
+        <TabPanel tabKey="medals">
           <MedalsTab medals={result.medals} />
         </TabPanel>
-        <TabPanel tabKey="records" activeTab="records">
+        <TabPanel tabKey="records">
           <RecordsTab records={result.combat_records} />
         </TabPanel>
-        <TabPanel tabKey="other" activeTab="other">
+        <TabPanel tabKey="other">
           <OtherTab character={result} />
         </TabPanel>
-        <TabPanel tabKey="track" activeTab="track">
+        <TabPanel tabKey="track">
           <ImprovementTrackPanel character={result} />
         </TabPanel>
       </Tabs>

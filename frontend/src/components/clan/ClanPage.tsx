@@ -16,10 +16,10 @@ export function ClanPage({ clanId }: ClanPageProps) {
   return (
     <div className="clan-page">
       <Tabs tabs={tabs} defaultTab="info">
-        <TabPanel tabKey="info" activeTab="info">
+        <TabPanel tabKey="info">
           <ClanHeader clanId={clanId} />
         </TabPanel>
-        <TabPanel tabKey="members" activeTab="members">
+        <TabPanel tabKey="members">
           <ClanMembersTable clanId={clanId} />
         </TabPanel>
       </Tabs>
