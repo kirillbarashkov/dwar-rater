@@ -20,6 +20,7 @@ import { OtherTab } from './components/analysis/OtherTab';
 import { CurrentCharacter } from './components/snapshots/CurrentCharacter';
 import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
 import { ScenarioComparison } from './components/analysis/ScenarioComparison';
+import { ImprovementTrackPanel } from './components/analysis/ImprovementTrack';
 import { saveSnapshot } from './api/snapshots';
 import type { AnalysisResult } from './types/character';
 import type { Snapshot } from './types/snapshot';
@@ -87,6 +88,7 @@ function AnalysisResultDisplay({ result }: { result: ReturnType<typeof useCharac
     { key: 'medals', label: 'Медали' },
     { key: 'records', label: 'Рекорды' },
     { key: 'other', label: 'Прочее' },
+    { key: 'track', label: 'Трек улучшений' },
   ];
 
   return (
@@ -110,6 +112,9 @@ function AnalysisResultDisplay({ result }: { result: ReturnType<typeof useCharac
         </TabPanel>
         <TabPanel tabKey="other" activeTab="other">
           <OtherTab character={result} />
+        </TabPanel>
+        <TabPanel tabKey="track" activeTab="track">
+          <ImprovementTrackPanel character={result} />
         </TabPanel>
       </Tabs>
     </div>

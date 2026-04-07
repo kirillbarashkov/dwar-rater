@@ -123,6 +123,11 @@ export DATABASE_URL=postgresql://user:password@localhost:5432/dwar_rater
 | `PUT` | `/api/scenarios/<id>` | Обновить сценарий |
 | `DELETE` | `/api/scenarios/<id>` | Удалить сценарий |
 | `POST` | `/api/scenarios/<id>/compare` | Сравнить персонаж со сценарием |
+| `GET` | `/api/tracks` | Список треков улучшений |
+| `GET` | `/api/tracks/<id>` | Детали трека |
+| `POST` | `/api/tracks/generate` | Сгенерировать трек из сценария |
+| `PUT` | `/api/tracks/<id>/step/<step_id>` | Отметить шаг как выполненный |
+| `DELETE` | `/api/tracks/<id>` | Удалить трек |
 
 ## Структура проекта
 

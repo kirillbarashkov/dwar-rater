@@ -32,12 +32,14 @@ def create_app():
     from routes.snapshots import snapshots_bp
     from routes.health import health_bp
     from routes.scenarios import scenarios_bp
+    from routes.tracks import tracks_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(analyze_bp)
     app.register_blueprint(snapshots_bp)
     app.register_blueprint(health_bp)
     app.register_blueprint(scenarios_bp)
+    app.register_blueprint(tracks_bp)
 
     @app.route('/')
     def index():

@@ -1,0 +1,136 @@
+.improvement-track {
+  margin-top: 16px;
+}
+
+.it-title {
+  color: var(--accent);
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+}
+
+.it-generate {
+  display: flex;
+  gap: 8px;
+}
+
+.it-select {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.it-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.it-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.it-progress-bar {
+  width: 200px;
+  height: 10px;
+  background: var(--bg-secondary);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.it-progress-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.it-progress-pct {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  min-width: 40px;
+}
+
+.it-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.track-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  transition: opacity 0.2s ease;
+}
+
+.step-completed {
+  opacity: 0.6;
+}
+
+.step-checkbox {
+  margin-top: 4px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.step-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.step-priority {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #fff;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.step-type {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.step-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.step-title-done {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.step-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
