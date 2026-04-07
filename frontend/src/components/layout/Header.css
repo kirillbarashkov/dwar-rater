@@ -6,3 +6,13 @@
 .chat-toggle.active {
   color: var(--accent);
 }
+
+.clan-link {
+  font-size: 1.1rem;
+  padding: 4px 8px;
+  text-decoration: none;
+}
+
+.clan-link:hover {
+  color: var(--gold);
+}
