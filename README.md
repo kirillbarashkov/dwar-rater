@@ -128,6 +128,8 @@ export DATABASE_URL=postgresql://user:password@localhost:5432/dwar_rater
 | `POST` | `/api/tracks/generate` | Сгенерировать трек из сценария |
 | `PUT` | `/api/tracks/<id>/step/<step_id>` | Отметить шаг как выполненный |
 | `DELETE` | `/api/tracks/<id>` | Удалить трек |
+| `GET` | `/api/clan/<clan_id>/info` | Информация о клане |
+| `GET` | `/api/clan/<clan_id>/members` | Состав клана |
 | `GET` | `/api/clans` | Список кланов пользователя |
 | `POST` | `/api/clans` | Создать клан (admin) |
 | `GET` | `/api/clans/<id>/members` | Участники клана |

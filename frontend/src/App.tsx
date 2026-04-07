@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useCharacterAnalysis } from './hooks/useCharacterAnalysis';
 import { Header } from './components/layout/Header';
@@ -22,6 +22,7 @@ import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
 import { ScenarioComparison } from './components/analysis/ScenarioComparison';
 import { ImprovementTrackPanel } from './components/analysis/ImprovementTrack';
 import { ClanChat } from './components/chat/ClanChat';
+import { ClanPage } from './components/clan/ClanPage';
 import { saveSnapshot } from './api/snapshots';
 import type { AnalysisResult } from './types/character';
 import type { Snapshot } from './types/snapshot';
@@ -230,6 +231,11 @@ function HomePage() {
   );
 }
 
+function ClanPageWrapper() {
+  const { clanId } = useParams();
+  return <ClanPage clanId={Number(clanId) || 2315} />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -244,6 +250,14 @@ export default function App() {
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route
+          path="/clan/:clanId"
+          element={
+            <ProtectedRoute>
+              <ClanPageWrapper />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

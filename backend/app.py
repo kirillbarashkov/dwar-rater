@@ -34,6 +34,7 @@ def create_app():
     from routes.scenarios import scenarios_bp
     from routes.tracks import tracks_bp
     from routes.clans import clans_bp
+    from routes.clan_info import clan_info_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(analyze_bp)
@@ -42,6 +43,7 @@ def create_app():
     app.register_blueprint(scenarios_bp)
     app.register_blueprint(tracks_bp)
     app.register_blueprint(clans_bp)
+    app.register_blueprint(clan_info_bp)
 
     @app.route('/')
     def index():

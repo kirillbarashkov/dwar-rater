@@ -1,0 +1,128 @@
+.clan-members {
+  margin-top: 16px;
+}
+
+.cm-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cm-search,
+.cm-role-filter {
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.cm-search {
+  flex: 1;
+}
+
+.cm-search:focus,
+.cm-role-filter:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.cm-role-filter {
+  min-width: 200px;
+}
+
+.cm-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cm-table thead th {
+  text-align: left;
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--accent);
+}
+
+.cm-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
+}
+
+.cm-table tbody tr:hover {
+  background: var(--bg-card);
+}
+
+.cm-table td {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
+.cm-nick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cm-nick span:first-child {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cm-level {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.cm-game-rank {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.cm-prof {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: help;
+}
+
+.cm-role {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.cm-join {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.cm-trial {
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.cm-trial-badge {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.cm-empty,
+.cm-no-results {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 30px;
+  font-size: 0.95rem;
+}
