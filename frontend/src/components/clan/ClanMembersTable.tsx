@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ClanMemberData } from '../../types/clanInfo';
 import { getClanMembers, addClanMember, updateClanMember, deleteClanMember } from '../../api/clanInfo';
 import { Button } from '../ui/Button';
@@ -26,10 +27,13 @@ const GAME_RANKS = [
 const PROFESSIONS = ['Взломщик', 'Палач', 'Целитель'];
 
 export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
+  const navigate = useNavigate();
   const [members, setMembers] = useState<(ClanMemberData & { id?: number })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [levelMin, setLevelMin] = useState('');
+  const [levelMax, setLevelMax] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<(ClanMemberData & { id?: number }) | null>(null);
   const [form, setForm] = useState({ nick: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' });
@@ -55,9 +59,11 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
     return members.filter((m) => {
       if (roleFilter && m.clan_role !== roleFilter) return false;
       if (search && !m.nick.toLowerCase().includes(search.toLowerCase())) return false;
+      if (levelMin && m.level < parseInt(levelMin)) return false;
+      if (levelMax && m.level > parseInt(levelMax)) return false;
       return true;
     });
-  }, [members, roleFilter, search]);
+  }, [members, roleFilter, search, levelMin, levelMax]);
 
   const handleAdd = async () => {
     if (!form.nick || !form.clan_role || !form.level) return;
@@ -85,6 +91,11 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
       await deleteClanMember(clanId, member.id);
       setMembers((prev) => prev.filter((m) => m.id !== member.id));
     } catch { /* ignore */ }
+  };
+
+  const handleAnalyze = (nick: string) => {
+    const url = `https://w1.dwar.ru/user_info.php?nick=${encodeURIComponent(nick)}`;
+    navigate(`/?analyze=${encodeURIComponent(url)}`);
   };
 
   const openEdit = (m: ClanMemberData & { id?: number }) => {
@@ -152,6 +163,11 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
               <option key={role} value={role}>{role} ({members.filter((m) => m.clan_role === role).length})</option>
             ))}
           </select>
+          <div className="cm-level-filter">
+            <input className="cm-level-input" type="number" placeholder="Ур. от" value={levelMin} onChange={(e) => setLevelMin(e.target.value)} min="1" />
+            <span>—</span>
+            <input className="cm-level-input" type="number" placeholder="Ур. до" value={levelMax} onChange={(e) => setLevelMax(e.target.value)} min="1" />
+          </div>
         </div>
         <Button variant="primary" onClick={() => { setShowAddModal(true); setForm({ nick: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' }); }}>
           + Добавить
@@ -164,7 +180,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
             <th>Ник</th>
             <th>Роль</th>
             <th>Вступил</th>
-            <th style={{ width: '80px' }}></th>
+            <th style={{ width: '110px' }}></th>
           </tr>
         </thead>
         <tbody>
@@ -183,6 +199,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
                 {m.trial_until ? <span className="cm-trial-badge">Исп. до {m.trial_until}</span> : m.join_date}
               </td>
               <td className="cm-actions">
+                <button className="cm-btn-analyze" onClick={() => handleAnalyze(m.nick)} title="Анализировать">📊</button>
                 <button className="cm-btn-edit" onClick={() => openEdit(m)} title="Редактировать">✏️</button>
                 <button className="cm-btn-del" onClick={() => handleDelete(m)} title="Удалить">🗑️</button>
               </td>

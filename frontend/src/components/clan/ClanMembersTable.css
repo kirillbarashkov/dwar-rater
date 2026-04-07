@@ -6,6 +6,34 @@
   display: flex;
   gap: 12px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.cm-level-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cm-level-input {
+  width: 70px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.cm-level-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.cm-level-filter span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .cm-toolbar {
@@ -141,6 +169,7 @@
   justify-content: center;
 }
 
+.cm-btn-analyze,
 .cm-btn-edit,
 .cm-btn-del {
   background: none;
@@ -150,6 +179,10 @@
   padding: 4px;
   border-radius: 4px;
   transition: background 0.15s ease;
+}
+
+.cm-btn-analyze:hover {
+  background: rgba(51, 153, 0, 0.15);
 }
 
 .cm-btn-edit:hover {
