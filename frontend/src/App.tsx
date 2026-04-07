@@ -174,7 +174,7 @@ function HomePage() {
           analyze(url).then(() => {
             // result is updated by hook, handled below
           });
-        }} isLoading={isLoading} />
+        }} isLoading={isLoading} defaultUrl={searchParams.get('analyze') ? decodeURIComponent(searchParams.get('analyze')!) : ''} />
 
         {isLoading && <LoadingSpinner />}
 

@@ -1,14 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './SearchBar.css';
 
 interface SearchBarProps {
   onAnalyze: (url: string) => void;
   isLoading: boolean;
+  defaultUrl?: string;
 }
 
-export function SearchBar({ onAnalyze, isLoading }: SearchBarProps) {
+export function SearchBar({ onAnalyze, isLoading, defaultUrl }: SearchBarProps) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (defaultUrl) {
+      setUrl(defaultUrl);
+    }
+  }, [defaultUrl]);
 
   const ALLOWED_DOMAINS = ['w1.dwar.ru', 'w2.dwar.ru', 'w3.dwar.ru', 'w4.dwar.ru', 'dwar.ru'];
 

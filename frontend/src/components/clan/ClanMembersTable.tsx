@@ -32,8 +32,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('');
   const [search, setSearch] = useState('');
-  const [levelMin, setLevelMin] = useState('');
-  const [levelMax, setLevelMax] = useState('');
+  const [levelFilter, setLevelFilter] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<(ClanMemberData & { id?: number }) | null>(null);
   const [form, setForm] = useState({ nick: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' });
@@ -59,11 +58,10 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
     return members.filter((m) => {
       if (roleFilter && m.clan_role !== roleFilter) return false;
       if (search && !m.nick.toLowerCase().includes(search.toLowerCase())) return false;
-      if (levelMin && m.level < parseInt(levelMin)) return false;
-      if (levelMax && m.level > parseInt(levelMax)) return false;
+      if (levelFilter && m.level !== parseInt(levelFilter)) return false;
       return true;
     });
-  }, [members, roleFilter, search, levelMin, levelMax]);
+  }, [members, roleFilter, search, levelFilter]);
 
   const handleAdd = async () => {
     if (!form.nick || !form.clan_role || !form.level) return;
@@ -164,9 +162,12 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
             ))}
           </select>
           <div className="cm-level-filter">
-            <input className="cm-level-input" type="number" placeholder="Ур. от" value={levelMin} onChange={(e) => setLevelMin(e.target.value)} min="1" />
-            <span>—</span>
-            <input className="cm-level-input" type="number" placeholder="Ур. до" value={levelMax} onChange={(e) => setLevelMax(e.target.value)} min="1" />
+            <select className="cm-role-filter" value={levelFilter} onChange={(e) => setLevelFilter(e.target.value)}>
+              <option value="">Все уровни</option>
+              {Array.from(new Set(members.map((m) => m.level))).sort((a, b) => a - b).map((lvl) => (
+                <option key={lvl} value={lvl}>{lvl} ({members.filter((m) => m.level === lvl).length})</option>
+              ))}
+            </select>
           </div>
         </div>
         <Button variant="primary" onClick={() => { setShowAddModal(true); setForm({ nick: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' }); }}>
