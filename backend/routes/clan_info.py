@@ -67,27 +67,26 @@ def get_clan_members(clan_id):
         html, _ = fetch_clan_page(clan_id, mode='members')
         raw_members = parse_clan_members(html, clan_id)
 
-        ClanMemberInfo.query.filter_by(clan_id=clan_id).delete()
-
-        for m in raw_members:
-            member = ClanMemberInfo(
-                clan_id=clan_id,
-                nick=m['nick'],
-                game_rank=m.get('game_rank', ''),
-                level=m.get('level', 0),
-                profession=m.get('profession', ''),
-                profession_level=m.get('profession_level', 0),
-                clan_role=m.get('clan_role', ''),
-                join_date=m.get('join_date', ''),
-                trial_until=m.get('trial_until', ''),
-            )
-            db.session.add(member)
-        db.session.commit()
-
-        members = ClanMemberInfo.query.filter_by(clan_id=clan_id).all()
+        if len(raw_members) > 0:
+            ClanMemberInfo.query.filter_by(clan_id=clan_id).delete()
+            for m in raw_members:
+                member = ClanMemberInfo(
+                    clan_id=clan_id,
+                    nick=m['nick'],
+                    game_rank=m.get('game_rank', ''),
+                    level=m.get('level', 0),
+                    profession=m.get('profession', ''),
+                    profession_level=m.get('profession_level', 0),
+                    clan_role=m.get('clan_role', ''),
+                    join_date=m.get('join_date', ''),
+                    trial_until=m.get('trial_until', ''),
+                )
+                db.session.add(member)
+            db.session.commit()
     except Exception:
-        members = ClanMemberInfo.query.filter_by(clan_id=clan_id).all()
+        pass
 
+    members = ClanMemberInfo.query.filter_by(clan_id=clan_id).all()
     return jsonify([{
         'nick': m.nick,
         'game_rank': m.game_rank,
