@@ -92,7 +92,6 @@ function AnalysisResultDisplay({
 
   return (
     <div className="analysis-result">
-      <CharacterHeader character={result} />
       <div className="tab-panels">
         {activeTab === 'stats' && <StatsTab character={result} />}
         {activeTab === 'equipment' && <EquipmentTab equipment={result.equipment_by_kind} sets={result.sets} />}
@@ -183,16 +182,18 @@ function HomePage() {
 
           {currentResult && !isLoading && (
             <>
-              <div className="current-section">
-                <CurrentCharacter
-                  character={currentResult}
-                  lastAnalyzed={lastAnalyzed}
-                  onClear={() => { setCurrentResult(null); setLastAnalyzed(null); }}
-                />
-                <Button variant="secondary" onClick={() => setShowSaveModal(true)}>
+              <div className="current-actions">
+                <Button variant="primary" onClick={() => setShowSaveModal(true)}>
                   Сохранить слепок
                 </Button>
+                <Button variant="primary" onClick={() => { setCurrentResult(null); setLastAnalyzed(null); }}>
+                  Очистить
+                </Button>
               </div>
+              <CurrentCharacter
+                character={currentResult}
+                lastAnalyzed={lastAnalyzed}
+              />
               <AnalysisResultDisplay result={currentResult} activeTab={activeTab} />
             </>
           )}
