@@ -1,18 +1,16 @@
-.chat-toggle {
-  font-size: 1.1rem;
-  padding: 4px 8px;
+.header-actions {
+  display: flex;
+  align-items: center;
 }
 
-.chat-toggle.active {
-  color: var(--accent);
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.clan-link {
-  font-size: 1.1rem;
-  padding: 4px 8px;
-  text-decoration: none;
-}
-
-.clan-link:hover {
-  color: var(--gold);
+.username {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
 }

@@ -16,10 +16,21 @@ interface TabsProps {
   tabs: Tab[];
   children: ReactNode;
   defaultTab?: string;
+  activeTab?: string;
+  onTabChange?: (tabKey: string) => void;
 }
 
-export function Tabs({ tabs, children, defaultTab }: TabsProps) {
-  const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.key || '');
+export function Tabs({ tabs, children, defaultTab, activeTab: controlledTab, onTabChange }: TabsProps) {
+  const [internalTab, setInternalTab] = useState(defaultTab || tabs[0]?.key || '');
+  const activeTab = controlledTab ?? internalTab;
+
+  const handleTabClick = (key: string) => {
+    if (onTabChange) {
+      onTabChange(key);
+    } else {
+      setInternalTab(key);
+    }
+  };
 
   return (
     <TabsContext.Provider value={{ activeTab }}>
@@ -29,7 +40,7 @@ export function Tabs({ tabs, children, defaultTab }: TabsProps) {
             <button
               key={tab.key}
               className={`tab-button ${activeTab === tab.key ? 'tab-button-active' : ''}`}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabClick(tab.key)}
             >
               {tab.label}
             </button>

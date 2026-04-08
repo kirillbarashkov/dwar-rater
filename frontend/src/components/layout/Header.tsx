@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import './Header.css';
 
@@ -17,16 +16,6 @@ export function Header({ onToggleChat, chatOpen }: HeaderProps) {
       <div className="header-actions">
         {user && (
           <div className="user-info">
-            <Link to="/clan/2315" className="btn btn-ghost btn-sm clan-link" title="Орден Чести">
-              🛡️
-            </Link>
-            <button
-              className={`btn btn-ghost btn-sm chat-toggle ${chatOpen ? 'active' : ''}`}
-              onClick={onToggleChat}
-              title="Клановый чат"
-            >
-              💬
-            </button>
             <span className="username">{user.username}</span>
             <span className={`role-badge role-${user.role}`}>{user.role}</span>
             <button className="btn btn-ghost btn-sm" onClick={logout}>
