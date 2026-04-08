@@ -10,7 +10,6 @@ import { Input } from './components/ui/Input';
 import { Modal } from './components/ui/Modal';
 import { ProtectedRoute } from './components/ui/ProtectedRoute';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
-import { Tabs, TabPanel } from './components/ui/Tabs';
 import { CharacterHeader } from './components/analysis/CharacterHeader';
 import { StatsTab } from './components/analysis/StatsTab';
 import { EquipmentTab } from './components/analysis/EquipmentTab';
@@ -85,50 +84,24 @@ function LoginPage() {
 function AnalysisResultDisplay({
   result,
   activeTab,
-  onTabChange,
 }: {
   result: ReturnType<typeof useCharacterAnalysis>['result'];
   activeTab: string;
-  onTabChange: (tabKey: string) => void;
 }) {
   if (!result) return null;
-
-  const tabs = [
-    { key: 'stats', label: 'Характеристики' },
-    { key: 'equipment', label: 'Экипировка' },
-    { key: 'effects', label: 'Эффекты' },
-    { key: 'medals', label: 'Медали' },
-    { key: 'records', label: 'Рекорды' },
-    { key: 'other', label: 'Прочее' },
-    { key: 'track', label: 'Трек улучшений' },
-  ];
 
   return (
     <div className="analysis-result">
       <CharacterHeader character={result} />
-      <Tabs tabs={tabs} defaultTab="stats" activeTab={activeTab} onTabChange={onTabChange}>
-        <TabPanel tabKey="stats">
-          <StatsTab character={result} />
-        </TabPanel>
-        <TabPanel tabKey="equipment">
-          <EquipmentTab equipment={result.equipment_by_kind} sets={result.sets} />
-        </TabPanel>
-        <TabPanel tabKey="effects">
-          <EffectsTab tempEffects={result.temp_effects} permanentEffects={result.permanent_effects} />
-        </TabPanel>
-        <TabPanel tabKey="medals">
-          <MedalsTab medals={result.medals} />
-        </TabPanel>
-        <TabPanel tabKey="records">
-          <RecordsTab records={result.combat_records} />
-        </TabPanel>
-        <TabPanel tabKey="other">
-          <OtherTab character={result} />
-        </TabPanel>
-        <TabPanel tabKey="track">
-          <ImprovementTrackPanel character={result} />
-        </TabPanel>
-      </Tabs>
+      <div className="tab-panels">
+        {activeTab === 'stats' && <StatsTab character={result} />}
+        {activeTab === 'equipment' && <EquipmentTab equipment={result.equipment_by_kind} sets={result.sets} />}
+        {activeTab === 'effects' && <EffectsTab tempEffects={result.temp_effects} permanentEffects={result.permanent_effects} />}
+        {activeTab === 'medals' && <MedalsTab medals={result.medals} />}
+        {activeTab === 'records' && <RecordsTab records={result.combat_records} />}
+        {activeTab === 'other' && <OtherTab character={result} />}
+        {activeTab === 'track' && <ImprovementTrackPanel character={result} />}
+      </div>
     </div>
   );
 }
@@ -220,7 +193,7 @@ function HomePage() {
                   Сохранить слепок
                 </Button>
               </div>
-              <AnalysisResultDisplay result={currentResult} activeTab={activeTab} onTabChange={setActiveTab} />
+              <AnalysisResultDisplay result={currentResult} activeTab={activeTab} />
             </>
           )}
 
@@ -289,17 +262,6 @@ function ClanPageWrapper() {
         />
         <main className="main-content">
           <div className="clan-page-with-sidebar">
-            <div className="clan-page-tabs">
-              {clanTabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  className={`clan-tab-btn ${activeTab === tab.key ? 'active' : ''}`}
-                  onClick={() => setActiveTab(tab.key)}
-                >
-                  {tab.icon} {tab.label}
-                </button>
-              ))}
-            </div>
             <div className="clan-page-content">
               {activeTab === 'info' && <ClanHeader clanId={Number(clanId) || 2315} />}
               {activeTab === 'members' && <ClanMembersTable clanId={Number(clanId) || 2315} />}
