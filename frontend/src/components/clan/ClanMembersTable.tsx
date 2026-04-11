@@ -71,13 +71,26 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
       return true;
     });
 
-    if (sortConfig.key) {
+if (sortConfig.key) {
       result = [...result].sort((a, b) => {
         const aVal = a[sortConfig.key as keyof ClanMemberData];
         const bVal = b[sortConfig.key as keyof ClanMemberData];
         if (aVal == null || bVal == null) return 0;
         if (typeof aVal === 'number' && typeof bVal === 'number') {
           return sortConfig.dir === 'asc' ? aVal - bVal : bVal - aVal;
+        }
+        // Handle date sorting (DD.MM.YYYY format)
+        if (sortConfig.key === 'join_date' && aVal && bVal) {
+          const parseDate = (d: string) => {
+            const parts = d.split('.');
+            if (parts.length === 3) {
+              return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            }
+            return new Date(0);
+          };
+          const dateA = parseDate(aVal);
+          const dateB = parseDate(bVal);
+          return sortConfig.dir === 'asc' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
         }
         const aStr = String(aVal).toLowerCase();
         const bStr = String(bVal).toLowerCase();
