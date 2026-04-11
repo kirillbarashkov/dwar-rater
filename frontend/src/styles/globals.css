@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
+
 :root {
   --bg-primary: #0a0e14;
   --bg-secondary: #121824;
@@ -29,8 +31,6 @@
   --font-display: 'Rajdhani', sans-serif;
   --font-body: 'IBM Plex Sans', sans-serif;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
 
 * {
   margin: 0;

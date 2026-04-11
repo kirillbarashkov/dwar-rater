@@ -53,16 +53,15 @@ def parse_clan_info(html, clan_id):
 
 def parse_clan_members(html, clan_id):
     members = []
-
-    blocks = re.split(r'\n{2,}', html)
-
     current_member = {}
-    for line in html.split('\n'):
+    lines = html.split('\n')
+
+    for i, line in enumerate(lines):
         line = line.strip()
         if not line:
             continue
 
-        nick_match = re.search(r'(?:Герой|Властелин боя|Вершитель|Магистр войны|Повелитель|Полководец|Легендарный завоеватель|Военный эксперт|Мастер войны|Элитный воин|Гладиатор|Чемпион|Избранник богов|Триумфатор|Высший магистр|Глава Ордена|Зам\. Главы|Совесть|Рыцарь Ордена|Леди Ордена|ГардеМаринкА|Фея на метле|Лентяй|Пельмешка|Dead\'ok|Воевода|9-ть жЫзней\)|УлитЫчка\)|РудольФ|Сосиска)\s+([^\[]+)\[(\d+)\](?:([^<\n]*))?', line)
+        nick_match = re.search(r'(?:Герой.Властелин боя.Вершитель.Магистр войны.Повелитель.Полководец.Легендарный завоеватель.Военный эксперт.Мастер войны.Элитный воин.Гладиатор.Чемпион.Избранник богов.Триумфатор.Высший магистр)\s+([^\[]+)\[(\d+)\](?:([^<\n]*))?', line)
 
         if nick_match:
             if current_member.get('nick'):
@@ -84,27 +83,28 @@ def parse_clan_members(html, clan_id):
                 current_member['profession'] = prof_match.group(1).strip()
                 current_member['profession_level'] = int(prof_match.group(2))
 
-            rank_match = re.search(r'(Герой|Властелин боя|Вершитель|Магистр войны|Повелитель|Полководец|Легендарный завоеватель|Военный эксперт|Мастер войны|Элитный воин|Гладиатор|Чемпион|Избранник богов|Триумфатор|Высший магистр)', line)
+            rank_match = re.search(r'(Герой.Властелин боя.Вершитель.Магистр войны.Повелитель.Полководец.Легендарный завоеватель.Военный эксперт.Мастер войны.Элитный воин.Гладиатор.Чемпион.Избранник богов.Триумфатор.Высший магистр)', line)
             if rank_match:
                 current_member['game_rank'] = rank_match.group(1)
 
             continue
 
-        role_match = re.search(r'(Глава Ордена|Зам\. Главы|Совесть|Рыцарь Ордена|Леди Ордена|ГардеМаринкА|Фея на метле|Лентяй|Пельмешка|Dead\'ok|Воевода|9-ть жЫзней\)|УлитЫчка\)|РудольФ|Сосиска)', line)
+        role_match = re.search(r'(Глава Ордена|Зам\. Главы.|Совесть.|Рыцарь Ордена.|Леди Ордена.|ГардеМаринкА.|Фея на метле.|Лентяй.|Пельмешка.|Dead.ok.|Воевода.|9-ть жЫзней.).|УлитЫчка.).|РудольФ.|Сосиска.)', line)
         if role_match and current_member.get('nick'):
             current_member['clan_role'] = role_match.group(1)
             continue
 
         if current_member.get('nick'):
-            join_match = re.search(r'принят в клан\s+(\d{2}\.\d{2}\.\d{4})', line)
-            if join_match:
-                current_member['join_date'] = join_match.group(1)
-                continue
+            pos = html.find('принят в клан')
+            if pos >= 0:
+                segment = html[pos:pos+40]
+                join_match = re.search(r'(\d{2}\.\d{2}\.\d{4})', segment)
+                if join_match:
+                    current_member['join_date'] = join_match.group(1)
 
             trial_match = re.search(r'Исп\. срок до\s+(\d{2}\.\d{2}\.\d{4})', line)
             if trial_match:
                 current_member['trial_until'] = trial_match.group(1)
-                continue
 
     if current_member.get('nick'):
         members.append(current_member)

@@ -10,7 +10,6 @@ import { Input } from './components/ui/Input';
 import { Modal } from './components/ui/Modal';
 import { ProtectedRoute } from './components/ui/ProtectedRoute';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
-import { CharacterHeader } from './components/analysis/CharacterHeader';
 import { StatsTab } from './components/analysis/StatsTab';
 import { EquipmentTab } from './components/analysis/EquipmentTab';
 import { EffectsTab } from './components/analysis/EffectsTab';
@@ -155,7 +154,7 @@ function HomePage() {
 
   return (
     <div className="app">
-      <Header onToggleChat={handleToggleChat} chatOpen={chatOpen} />
+      <Header />
       <div className="app-layout">
         <Sidebar
           activeTab={currentResult ? activeTab : undefined}
@@ -251,7 +250,7 @@ function ClanPageWrapper() {
 
   return (
     <div className="app">
-      <Header onToggleChat={handleToggleChat} chatOpen={chatOpen} />
+      <Header />
       <div className="app-layout">
         <Sidebar
           tabs={clanTabs}

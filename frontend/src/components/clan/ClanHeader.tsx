@@ -47,9 +47,6 @@ export function ClanHeader({ clanId }: ClanHeaderProps) {
           )}
         </div>
       </div>
-      {info.description && (
-        <p className="clan-description">{info.description}</p>
-      )}
     </div>
   );
 }

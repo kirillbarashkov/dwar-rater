@@ -83,6 +83,28 @@
   border-bottom: 2px solid var(--accent);
 }
 
+.cm-number,
+.cm-table td.cm-number {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  width: 40px;
+  text-align: center;
+}
+
+.cm-sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+
+.cm-sortable:hover {
+  color: var(--accent);
+}
+
+.cm-actions-header {
+  text-align: center !important;
+}
+
 .cm-table tbody tr {
   border-bottom: 1px solid var(--border);
   transition: background 0.15s ease;
@@ -115,25 +137,28 @@
 }
 
 .cm-game-rank {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   padding: 2px 6px;
   border-radius: 3px;
   background: var(--bg-secondary);
+  border: 1px solid var(--border);
   color: var(--text-secondary);
+  margin-left: 8px;
 }
 
 .cm-prof {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
   font-size: 0.7rem;
-  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--prof-color, var(--bg-secondary));
+  color: #fff;
+  font-weight: 400;
   cursor: help;
+  margin-left: 8px;
+}
+
+.cm-prof:empty {
+  display: none;
 }
 
 .cm-role {
@@ -195,19 +220,103 @@
 
 .cm-form-label {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .cm-form-select {
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 0.9rem;
+  transition: var(--transition);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2390a0b0' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.cm-form-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.cm-form-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.cm-form-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.cm-form-row .cm-icon-select {
+  width: 60px;
+}
+
+.cm-form-row .cm-nick-input {
+  flex: 1;
+}
+
+.cm-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cm-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cm-form-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+@media (max-width: 480px) {
+  .cm-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .cm-modal-actions button {
+    width: 100%;
+  }
+
+.cm-form-grid {
+  grid-template-columns: 1fr !important;
+}
+
+.cm-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cm-filters {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.cm-toolbar {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.cm-search,
+.cm-role-filter {
+  min-width: 100%;
+}
 }
 
 .cm-form-select:focus {

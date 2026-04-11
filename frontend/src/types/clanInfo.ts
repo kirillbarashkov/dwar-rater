@@ -15,6 +15,7 @@ export interface ClanInfoData {
 export interface ClanMemberData {
   id?: number;
   nick: string;
+  icon?: string;
   game_rank: string;
   level: number;
   profession: string;

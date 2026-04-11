@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.clan_parser import fetch_clan_page, parse_clan_info, parse_clan_members
+from services.clan_parser import fetch_clan_page, parse_clan_info
 from models import db
 from models.clan_info import ClanInfo, ClanMemberInfo
 
@@ -61,35 +61,16 @@ def get_clan_info(clan_id):
     })
 
 
+# Import/reset endpoints removed - all member management now via UI
+
+
 @clan_info_bp.route('/api/clan/<int:clan_id>/members', methods=['GET'])
 def get_clan_members(clan_id):
-    try:
-        html, _ = fetch_clan_page(clan_id, mode='members')
-        raw_members = parse_clan_members(html, clan_id)
-
-        if len(raw_members) > 0:
-            ClanMemberInfo.query.filter_by(clan_id=clan_id).delete()
-            for m in raw_members:
-                member = ClanMemberInfo(
-                    clan_id=clan_id,
-                    nick=m['nick'],
-                    game_rank=m.get('game_rank', ''),
-                    level=m.get('level', 0),
-                    profession=m.get('profession', ''),
-                    profession_level=m.get('profession_level', 0),
-                    clan_role=m.get('clan_role', ''),
-                    join_date=m.get('join_date', ''),
-                    trial_until=m.get('trial_until', ''),
-                )
-                db.session.add(member)
-            db.session.commit()
-    except Exception:
-        pass
-
     members = ClanMemberInfo.query.filter_by(clan_id=clan_id).all()
     return jsonify([{
         'id': m.id,
         'nick': m.nick,
+        'icon': m.icon,
         'game_rank': m.game_rank,
         'level': m.level,
         'profession': m.profession,
@@ -111,6 +92,7 @@ def add_clan_member(clan_id):
     member = ClanMemberInfo(
         clan_id=clan_id,
         nick=data['nick'],
+        icon=data.get('icon', ''),
         game_rank=data.get('game_rank', ''),
         level=data['level'],
         profession=data.get('profession', ''),
@@ -125,6 +107,7 @@ def add_clan_member(clan_id):
     return jsonify({
         'id': member.id,
         'nick': member.nick,
+        'icon': member.icon,
         'game_rank': member.game_rank,
         'level': member.level,
         'profession': member.profession,
@@ -154,6 +137,8 @@ def update_clan_member(clan_id, member_id):
     data = request.json
     if 'nick' in data:
         member.nick = data['nick']
+    if 'icon' in data:
+        member.icon = data['icon']
     if 'game_rank' in data:
         member.game_rank = data['game_rank']
     if 'level' in data:
@@ -173,6 +158,7 @@ def update_clan_member(clan_id, member_id):
     return jsonify({
         'id': member.id,
         'nick': member.nick,
+        'icon': member.icon,
         'game_rank': member.game_rank,
         'level': member.level,
         'profession': member.profession,

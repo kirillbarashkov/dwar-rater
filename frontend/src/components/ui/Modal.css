@@ -1,5 +1,5 @@
 .modal-overlay {
-  position: fixed;
+  position: Fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -9,6 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
   z-index: 1000;
   animation: fadeIn 0.25s ease;
 }
@@ -16,14 +17,13 @@
 .modal-content {
   background: linear-gradient(145deg, var(--bg-card), var(--bg-secondary));
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: 
-    var(--shadow-lg),
-    0 0 60px rgba(0, 212, 170, 0.15);
-  width: 90%;
-  max-width: 500px;
-  max-height: 80vh;
-  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg), 0 0 60px rgba(0, 212, 170, 0.15);
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
   animation: modalSlide 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -39,53 +39,68 @@
 }
 
 .modal-header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 28px;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(180deg, var(--bg-secondary), var(--bg-card));
-  position: relative;
-}
-
-.modal-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent-subtle), transparent);
 }
 
 .modal-header h3 {
   color: var(--text-primary);
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 700;
   font-family: var(--font-display);
   margin: 0;
-  letter-spacing: 0.5px;
 }
 
 .modal-close {
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text-muted);
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   cursor: pointer;
-  padding: 8px 12px;
+  padding: 6px 10px;
   line-height: 1;
   transition: var(--transition);
-  border-radius: var(--radius);
+  border-radius: 8px;
 }
 
 .modal-close:hover {
   background: var(--red);
   color: white;
-  border-color: var(--red);
-  transform: rotate(90deg);
 }
 
 .modal-body {
-  padding: 28px;
+  flex: 1;
+  padding: 20px 24px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+@media (max-width: 520px) {
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-content {
+    max-width: 100%;
+    max-height: 85vh;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+  }
+
+  .modal-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .modal-body {
+    padding: 16px 20px;
+  }
 }

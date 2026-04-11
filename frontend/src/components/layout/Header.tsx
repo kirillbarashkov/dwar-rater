@@ -6,7 +6,7 @@ interface HeaderProps {
   chatOpen?: boolean;
 }
 
-export function Header({ onToggleChat, chatOpen }: HeaderProps) {
+export function Header({ onToggleChat: _onToggleChat, chatOpen: _chatOpen }: HeaderProps) {
   const { user, logout } = useAuth();
 
   return (

@@ -26,6 +26,14 @@ const GAME_RANKS = [
 
 const PROFESSIONS = ['Взломщик', 'Палач', 'Целитель'];
 
+const ICONS = ['⚔️', '🗡️', '🛡️', '⚖️', '🔥', '❄️', '⚡', '🌙', '☀️', '💀', '👑', '🎭', '🎯', '💎', '🔮', '🩸', '🪓', '🏹', '🪄', '⚓', '🪁', '🪃', '🎮', ''];
+
+const PROFESSION_COLORS: Record<string, string> = {
+  'Палач': '#b91c1c',
+  'Целитель': '#15803d',
+  'Взломщик': '#333333',
+};
+
 export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   const navigate = useNavigate();
   const [members, setMembers] = useState<(ClanMemberData & { id?: number })[]>([]);
@@ -35,7 +43,8 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   const [levelFilter, setLevelFilter] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<(ClanMemberData & { id?: number }) | null>(null);
-  const [form, setForm] = useState({ nick: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' });
+  const [form, setForm] = useState({ nick: '', icon: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' });
+  const [sortConfig, setSortConfig] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'nick', dir: 'asc' });
 
   useEffect(() => {
     loadMembers();
@@ -55,13 +64,36 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   }, [members]);
 
   const filtered = useMemo(() => {
-    return members.filter((m) => {
+    let result = members.filter((m) => {
       if (roleFilter && m.clan_role !== roleFilter) return false;
       if (search && !m.nick.toLowerCase().includes(search.toLowerCase())) return false;
       if (levelFilter && m.level !== parseInt(levelFilter)) return false;
       return true;
     });
-  }, [members, roleFilter, search, levelFilter]);
+
+    if (sortConfig.key) {
+      result = [...result].sort((a, b) => {
+        const aVal = a[sortConfig.key as keyof ClanMemberData];
+        const bVal = b[sortConfig.key as keyof ClanMemberData];
+        if (aVal == null || bVal == null) return 0;
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return sortConfig.dir === 'asc' ? aVal - bVal : bVal - aVal;
+        }
+        const aStr = String(aVal).toLowerCase();
+        const bStr = String(bVal).toLowerCase();
+        return sortConfig.dir === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+      });
+    }
+
+    return result;
+  }, [members, roleFilter, search, levelFilter, sortConfig]);
+
+  const handleSort = (key: string) => {
+    setSortConfig((prev) => ({
+      key,
+      dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc',
+    }));
+  };
 
   const handleAdd = async () => {
     if (!form.nick || !form.clan_role || !form.level) return;
@@ -69,7 +101,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
       const newMember = await addClanMember(clanId, form);
       setMembers((prev) => [...prev, newMember]);
       setShowAddModal(false);
-      setForm({ nick: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' });
+      setForm({ nick: '', icon: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' });
     } catch { /* ignore */ }
   };
 
@@ -100,6 +132,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
     setEditingMember(m);
     setForm({
       nick: m.nick,
+      icon: m.icon || '',
       game_rank: m.game_rank,
       level: m.level,
       profession: m.profession,
@@ -115,8 +148,21 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
 
   const formFields = (
     <>
-      <Input label="Ник" value={form.nick} onChange={(e) => setForm({ ...form, nick: e.target.value })} required />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div className="cm-form-row">
+        <div className="cm-icon-select">
+          <label className="cm-form-label">Иконка</label>
+          <select className="cm-form-select" value={form.icon || ''} onChange={(e) => setForm({ ...form, icon: e.target.value })}>
+            <option value="">—</option>
+            {ICONS.slice(0, -1).map((icon) => (
+              <option key={icon} value={icon}>{icon}</option>
+            ))}
+          </select>
+        </div>
+        <div className="cm-nick-input">
+          <Input label="Ник" value={form.nick} onChange={(e) => setForm({ ...form, nick: e.target.value })} required />
+        </div>
+      </div>
+      <div className="cm-form-grid">
         <div>
           <label className="cm-form-label">Ранг</label>
           <select className="cm-form-select" value={form.game_rank} onChange={(e) => setForm({ ...form, game_rank: e.target.value })}>
@@ -126,7 +172,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
         </div>
         <Input label="Уровень" type="number" value={form.level} onChange={(e) => setForm({ ...form, level: parseInt(e.target.value) || 1 })} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div className="cm-form-grid">
         <div>
           <label className="cm-form-label">Профессия</label>
           <select className="cm-form-select" value={form.profession} onChange={(e) => setForm({ ...form, profession: e.target.value })}>
@@ -134,7 +180,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
             {PROFESSIONS.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
-        {form.profession && <Input label="Ур. профессии" type="number" value={form.profession_level} onChange={(e) => setForm({ ...form, profession_level: parseInt(e.target.value) || 0 })} />}
+        {form.profession && <Input label="Ур." type="number" value={form.profession_level} onChange={(e) => setForm({ ...form, profession_level: parseInt(e.target.value) || 0 })} />}
       </div>
       <div>
         <label className="cm-form-label">Роль в клане</label>
@@ -143,9 +189,9 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
           {CLAN_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
         </select>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        <Input label="Дата вступления" value={form.join_date} onChange={(e) => setForm({ ...form, join_date: e.target.value })} placeholder="ДД.ММ.ГГГГ" />
-        <Input label="Исп. срок до" value={form.trial_until} onChange={(e) => setForm({ ...form, trial_until: e.target.value })} placeholder="ДД.ММ.ГГГГ" />
+      <div className="cm-form-grid">
+        <Input label="Вступил" value={form.join_date} onChange={(e) => setForm({ ...form, join_date: e.target.value })} placeholder="ДД.ММ.ГГГГ" />
+        <Input label="Исп. до" value={form.trial_until} onChange={(e) => setForm({ ...form, trial_until: e.target.value })} placeholder="ДД.ММ.ГГГГ" />
       </div>
     </>
   );
@@ -170,7 +216,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
             </select>
           </div>
         </div>
-        <Button variant="primary" onClick={() => { setShowAddModal(true); setForm({ nick: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' }); }}>
+        <Button variant="primary" onClick={() => { setShowAddModal(true); setForm({ nick: '', icon: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' }); }}>
           + Добавить
         </Button>
       </div>
@@ -178,26 +224,38 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
       <table className="cm-table">
         <thead>
           <tr>
-            <th>Ник</th>
-            <th>Роль</th>
-            <th>Вступил</th>
-            <th style={{ width: '110px' }}></th>
+            <th className="cm-number">#</th>
+            <th className="cm-sortable" onClick={() => handleSort('nick')}>
+              Ник {sortConfig.key === 'nick' && (sortConfig.dir === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cm-sortable" onClick={() => handleSort('clan_role')}>
+              Клановое звание {sortConfig.key === 'clan_role' && (sortConfig.dir === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cm-sortable" onClick={() => handleSort('join_date')}>
+              Вступил {sortConfig.key === 'join_date' && (sortConfig.dir === 'asc' ? '↑' : '↓')}
+            </th>
+            <th className="cm-actions-header">Действия</th>
           </tr>
         </thead>
         <tbody>
           {filtered.map((m, i) => (
             <tr key={m.id || i} className={m.trial_until ? 'cm-trial' : ''}>
+              <td className="cm-number">{i + 1}</td>
               <td className="cm-nick">
-                {m.profession && (
-                  <span className="cm-prof" title={`${m.profession}: ${m.profession_level}`}>{m.profession[0]}</span>
-                )}
+                {m.icon && <span className="cm-icon">{m.icon}</span>}
                 <span>{m.nick}</span>
                 <span className="cm-level">[{m.level}]</span>
                 {m.game_rank && <span className="cm-game-rank">{m.game_rank}</span>}
+                {m.profession && (
+                  <span className="cm-prof" style={{ '--prof-color': PROFESSION_COLORS[m.profession] || 'var(--bg-secondary)' } as React.CSSProperties} title={`${m.profession}: ${m.profession_level}`}>
+                    {m.profession}: {m.profession_level}
+                  </span>
+                )}
               </td>
               <td className="cm-role">{m.clan_role}</td>
               <td className="cm-join">
-                {m.trial_until ? <span className="cm-trial-badge">Исп. до {m.trial_until}</span> : m.join_date}
+                {m.join_date && <span>{m.join_date}</span>}
+                {m.trial_until && <span className="cm-trial-badge">Исп. до {m.trial_until}</span>}
               </td>
               <td className="cm-actions">
                 <button className="cm-btn-analyze" onClick={() => handleAnalyze(m.nick)} title="Анализировать">📊</button>
