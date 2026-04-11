@@ -58,6 +58,29 @@
   flex: 1;
 }
 
+.cm-search-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.cm-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.cm-search-clear:hover {
+  color: var(--text-primary);
+}
+
 .cm-search:focus,
 .cm-role-filter:focus {
   outline: none;

@@ -199,8 +199,11 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   return (
     <div className="clan-members">
       <div className="cm-toolbar">
-        <div className="cm-filters">
-          <input className="cm-search" placeholder="Поиск по нику..." value={search} onChange={(e) => setSearch(e.target.value)} />
+<div className="cm-filters">
+          <div className="cm-search-wrapper">
+            <input className="cm-search" placeholder="Поиск по нику..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            {search && <button className="cm-search-clear" onClick={() => setSearch('')}>×</button>}
+          </div>
           <select className="cm-role-filter" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
             <option value="">Все звания ({members.length})</option>
             {uniqueRoles.map((role) => (
