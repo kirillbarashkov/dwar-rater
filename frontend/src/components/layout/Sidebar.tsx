@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 
@@ -7,75 +8,116 @@ interface TabItem {
   icon: string;
 }
 
-interface SidebarProps {
-  tabs?: TabItem[];
-  activeTab?: string;
-  onTabChange?: (tabKey: string) => void;
-  chatOpen?: boolean;
-  onToggleChat?: () => void;
-  showTabs?: boolean;
+interface TabGroup {
+  key: string;
+  label: string;
+  icon: string;
+  children?: TabItem[];
 }
 
-const defaultTabs: TabItem[] = [
-  { key: 'stats', label: 'Характеристики', icon: '📊' },
-  { key: 'equipment', label: 'Экипировка', icon: '⚔️' },
-  { key: 'effects', label: 'Эффекты', icon: '✨' },
-  { key: 'medals', label: 'Медали', icon: '🏅' },
-  { key: 'records', label: 'Рекорды', icon: '📜' },
-  { key: 'other', label: 'Прочее', icon: '📋' },
+interface SidebarProps {
+  tabGroups?: TabGroup[];
+  activeTab?: string;
+  onTabChange?: (groupKey: string, tabKey: string) => void;
+  chatOpen?: boolean;
+  onToggleChat?: () => void;
+}
+
+// Default navigation structure
+const navGroups: TabGroup[] = [
+  { key: 'clan', label: 'Клан', icon: '🛡️', children: [
+    { key: 'info', label: 'Информация', icon: '🛡️' },
+    { key: 'members', label: 'Состав', icon: '👥' },
+    { key: 'hierarchy', label: 'Иерархия', icon: '⚖️' },
+  ]},
+  { key: 'analysis', label: 'Анализ персонажа', icon: '📊', children: [
+    { key: 'stats', label: 'Характеристики', icon: '📊' },
+    { key: 'equipment', label: 'Экипировка', icon: '⚔️' },
+    { key: 'effects', label: 'Эффекты', icon: '✨' },
+    { key: 'medals', label: 'Медали', icon: '🏅' },
+    { key: 'records', label: 'Рекорды', icon: '📜' },
+    { key: 'other', label: 'Прочее', icon: '📋' },
+  ]},
   { key: 'track', label: 'Трек улучшений', icon: '📈' },
+  { key: 'chat', label: 'Чат', icon: '💬' },
 ];
 
+
+
 export function Sidebar({
-  tabs = defaultTabs,
+  tabGroups = navGroups,
   activeTab,
   onTabChange,
   chatOpen = false,
   onToggleChat,
-  showTabs = false,
 }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [expandedGroup, setExpandedGroup] = useState<string>(() => 
+    location.pathname.startsWith('/clan') ? 'clan' : 'analysis'
+  );
   const isClanPage = location.pathname.startsWith('/clan');
+  const isAnalyzePage = location.pathname.startsWith('/analyze');
+
+  const handleGroupClick = (groupKey: string, children?: TabItem[]) => {
+    if (children && children.length > 0) {
+      const willExpand = expandedGroup !== groupKey;
+      setExpandedGroup(willExpand ? groupKey : '');
+      if (willExpand && groupKey === 'clan' && !isClanPage) {
+        navigate('/clan/2315');
+      } else if (willExpand && groupKey === 'analysis' && isClanPage) {
+        navigate('/');
+      }
+    } else if (groupKey === 'chat') {
+      onToggleChat?.();
+    } else if (groupKey === 'track') {
+      navigate('/');
+    }
+  };
+
+  const handleTabClick = (groupKey: string, tabKey: string) => {
+    setExpandedGroup(groupKey);
+    onTabChange?.(groupKey, tabKey);
+  };
 
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav">
         <div className="sidebar-section">
           <span className="sidebar-section-title">Навигация</span>
-          <button
-            className={`sidebar-item ${isClanPage ? 'active' : ''}`}
-            onClick={() => navigate('/clan/2315')}
-            title="Орден Чести"
-          >
-            <span className="sidebar-icon">🛡️</span>
-            <span>Клан</span>
-          </button>
-          <button
-            className={`sidebar-item ${chatOpen ? 'active' : ''}`}
-            onClick={onToggleChat}
-            title="Клановый чат"
-          >
-            <span className="sidebar-icon">💬</span>
-            <span>Чат</span>
-          </button>
+          {tabGroups.map((group) => {
+            const isActive = isClanPage && group.key === 'clan' || 
+                            (group.key === 'analysis' && isAnalyzePage) ||
+                            (group.key === 'chat' && chatOpen);
+            return (
+              <div key={group.key}>
+                <button
+                  className={`sidebar-item ${isActive || expandedGroup === group.key ? 'active' : ''}`}
+                  onClick={() => handleGroupClick(group.key, group.children)}
+                >
+                  <span className="sidebar-icon">{group.icon}</span>
+                  <span>{group.label}</span>
+                </button>
+                {group.children && (
+                  <div className={`sidebar-children ${expandedGroup === group.key ? '' : 'collapsed'}`}>
+                    <div>
+                    {group.children.map((tab) => (
+                      <button
+                        key={tab.key}
+                        className={`sidebar-item ${activeTab === tab.key ? 'active' : ''}`}
+                        onClick={() => handleTabClick(group.key, tab.key)}
+                      >
+                        <span className="sidebar-icon">{tab.icon}</span>
+                        <span>{tab.label}</span>
+                      </button>
+                    ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-
-        {showTabs && (
-          <div className="sidebar-section">
-            <span className="sidebar-section-title">Вкладки</span>
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                className={`sidebar-item ${activeTab === tab.key ? 'active' : ''}`}
-                onClick={() => onTabChange?.(tab.key)}
-              >
-                <span className="sidebar-icon">{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
       </nav>
     </aside>
   );

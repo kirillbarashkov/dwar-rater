@@ -88,8 +88,8 @@ if (sortConfig.key) {
             }
             return new Date(0);
           };
-          const dateA = parseDate(aVal);
-          const dateB = parseDate(bVal);
+          const dateA = parseDate(String(aVal));
+          const dateB = parseDate(String(bVal));
           return sortConfig.dir === 'asc' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
         }
         const aStr = String(aVal).toLowerCase();

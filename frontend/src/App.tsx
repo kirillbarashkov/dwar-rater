@@ -23,6 +23,7 @@ import { ImprovementTrackPanel } from './components/analysis/ImprovementTrack';
 import { ClanChat } from './components/chat/ClanChat';
 import { ClanHeader } from './components/clan/ClanHeader';
 import { ClanMembersTable } from './components/clan/ClanMembersTable';
+import { ClanHierarchy } from './components/clan/ClanHierarchy';
 import { saveSnapshot } from './api/snapshots';
 import type { AnalysisResult } from './types/character';
 import type { Snapshot } from './types/snapshot';
@@ -112,7 +113,13 @@ function HomePage() {
   const [snapshotName, setSnapshotName] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('stats');
+  const [, setActiveGroup] = useState('analysis');
   const [searchParams] = useSearchParams();
+
+  const handleTabChange = (groupKey: string, tabKey: string) => {
+    setActiveGroup(groupKey);
+    setActiveTab(tabKey);
+  };
 
   useEffect(() => {
     const analyzeUrl = searchParams.get('analyze');
@@ -156,12 +163,11 @@ function HomePage() {
     <div className="app">
       <Header />
       <div className="app-layout">
-        <Sidebar
-          activeTab={currentResult ? activeTab : undefined}
-          onTabChange={currentResult ? setActiveTab : undefined}
+<Sidebar
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
           chatOpen={chatOpen}
           onToggleChat={handleToggleChat}
-          showTabs={!!currentResult}
         />
         <main className="main-content">
           <SearchBar onAnalyze={(url) => {
@@ -240,31 +246,41 @@ function ClanPageWrapper() {
   const { clanId } = useParams();
   const [chatOpen, setChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
+  const [activeGroup, setActiveGroup] = useState('clan');
 
   const handleToggleChat = useCallback(() => setChatOpen((prev) => !prev), []);
 
-  const clanTabs = [
-    { key: 'info', label: 'Информация', icon: '🛡️' },
-    { key: 'members', label: 'Состав', icon: '👥' },
-  ];
+  const handleTabChange = (groupKey: string, tabKey: string) => {
+    setActiveGroup(groupKey);
+    setActiveTab(tabKey);
+  };
+
+  const renderContent = () => {
+    if (activeGroup === 'clan') {
+      switch (activeTab) {
+        case 'info': return <ClanHeader clanId={Number(clanId) || 2315} />;
+        case 'members': return <ClanMembersTable clanId={Number(clanId) || 2315} />;
+        case 'hierarchy': return <ClanHierarchy clanId={Number(clanId) || 2315} />;
+      }
+    }
+    return null;
+  };
 
   return (
     <div className="app">
       <Header />
       <div className="app-layout">
-        <Sidebar
-          tabs={clanTabs}
+<Sidebar
+          key={location.pathname}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           chatOpen={chatOpen}
           onToggleChat={handleToggleChat}
-          showTabs={true}
         />
         <main className="main-content">
           <div className="clan-page-with-sidebar">
             <div className="clan-page-content">
-              {activeTab === 'info' && <ClanHeader clanId={Number(clanId) || 2315} />}
-              {activeTab === 'members' && <ClanMembersTable clanId={Number(clanId) || 2315} />}
+              {renderContent()}
             </div>
           </div>
         </main>
