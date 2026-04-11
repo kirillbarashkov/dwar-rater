@@ -178,3 +178,16 @@
     padding: 24px;
   }
 }
+
+.current-character.collapsed .cc-stats,
+.current-character.collapsed .cc-analyzed {
+  display: none;
+}
+
+.current-character.collapsed {
+  padding: 16px 24px;
+}
+
+.current-character.collapsed .cc-name-row {
+  margin-bottom: 0;
+}

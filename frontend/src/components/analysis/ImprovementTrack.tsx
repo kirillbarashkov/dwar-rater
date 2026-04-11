@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ImprovementStep } from '../../types/track';
 import { generateTrack, updateStep } from '../../api/tracks';
 import type { AnalysisResult } from '../../types/character';
@@ -95,14 +95,16 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
     }
   };
 
+  useEffect(() => {
+    handleLoadScenarios();
+  }, []);
+
   if (!hasTrack) {
     return (
       <div className="improvement-track">
         <h3 className="it-title">Треп улучшений</h3>
         {scenarios.length === 0 ? (
-          <button className="btn btn-secondary" onClick={handleLoadScenarios}>
-            Загрузить сценарии
-          </button>
+          <p className="it-placeholder">Сценарии прокачки пока не созданы</p>
         ) : (
           <div className="it-generate">
             <select

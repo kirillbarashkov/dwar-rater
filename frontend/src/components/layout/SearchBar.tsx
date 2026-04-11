@@ -5,17 +5,23 @@ interface SearchBarProps {
   onAnalyze: (url: string) => void;
   isLoading: boolean;
   defaultUrl?: string;
+  compact?: boolean;
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
-export function SearchBar({ onAnalyze, isLoading, defaultUrl }: SearchBarProps) {
-  const [url, setUrl] = useState('');
+export function SearchBar({ onAnalyze, isLoading, defaultUrl, compact, value: externalValue, onChange: externalOnChange }: SearchBarProps) {
+  const [internalUrl, setInternalUrl] = useState('');
   const [error, setError] = useState('');
+  
+  const url = externalValue ?? internalUrl;
+  const setUrl = externalOnChange ?? setInternalUrl;
 
   useEffect(() => {
-    if (defaultUrl) {
+    if (defaultUrl && !externalValue) {
       setUrl(defaultUrl);
     }
-  }, [defaultUrl]);
+  }, [defaultUrl, externalValue]);
 
   const ALLOWED_DOMAINS = ['w1.dwar.ru', 'w2.dwar.ru', 'w3.dwar.ru', 'w4.dwar.ru', 'dwar.ru'];
 
@@ -53,7 +59,7 @@ export function SearchBar({ onAnalyze, isLoading, defaultUrl }: SearchBarProps) 
   };
 
   return (
-    <form className="search-bar" onSubmit={handleSubmit}>
+    <form className={`search-bar ${compact ? 'compact' : ''}`} onSubmit={handleSubmit}>
       <div className="search-input-wrapper">
         <input
           type="text"
@@ -65,9 +71,11 @@ export function SearchBar({ onAnalyze, isLoading, defaultUrl }: SearchBarProps) 
         />
         {error && <span className="search-error">{error}</span>}
       </div>
-      <button type="submit" className="btn btn-primary" disabled={isLoading}>
-        {isLoading ? 'Анализ...' : 'Анализировать'}
-      </button>
+      {!externalOnChange && (
+        <button type="submit" className="btn btn-primary" disabled={isLoading}>
+          {isLoading ? 'Анализ...' : 'Анализировать'}
+        </button>
+      )}
     </form>
   );
 }

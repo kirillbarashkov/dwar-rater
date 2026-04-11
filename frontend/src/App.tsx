@@ -4,7 +4,6 @@ import { useAuth } from './hooks/useAuth';
 import { useCharacterAnalysis } from './hooks/useCharacterAnalysis';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
-import { SearchBar } from './components/layout/SearchBar';
 import { Button } from './components/ui/Button';
 import { Input } from './components/ui/Input';
 import { Modal } from './components/ui/Modal';
@@ -17,6 +16,7 @@ import { RecordsTab } from './components/analysis/RecordsTab';
 import { MedalsTab } from './components/analysis/MedalsTab';
 import { OtherTab } from './components/analysis/OtherTab';
 import { CurrentCharacter } from './components/snapshots/CurrentCharacter';
+import { CharacterPanel } from './components/snapshots/CharacterPanel';
 import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
 import { ScenarioComparison } from './components/analysis/ScenarioComparison';
 import { ImprovementTrackPanel } from './components/analysis/ImprovementTrack';
@@ -84,10 +84,22 @@ function LoginPage() {
 function AnalysisResultDisplay({
   result,
   activeTab,
+  onLoadSnapshot,
 }: {
   result: ReturnType<typeof useCharacterAnalysis>['result'];
   activeTab: string;
+  onLoadSnapshot: (data: Snapshot & Record<string, unknown>) => void;
 }) {
+  if (activeTab === 'history') {
+    return (
+      <div className="analysis-result">
+        <div className="tab-panels">
+          <SnapshotHistory onLoad={onLoadSnapshot} />
+        </div>
+      </div>
+    );
+  }
+
   if (!result) return null;
 
   return (
@@ -115,10 +127,14 @@ function HomePage() {
   const [activeTab, setActiveTab] = useState('stats');
   const [, setActiveGroup] = useState('analysis');
   const [searchParams] = useSearchParams();
+  const [hasViewedStats, setHasViewedStats] = useState(false);
 
   const handleTabChange = (groupKey: string, tabKey: string) => {
     setActiveGroup(groupKey);
     setActiveTab(tabKey);
+    if (tabKey === 'stats') {
+      setHasViewedStats(true);
+    }
   };
 
   useEffect(() => {
@@ -169,12 +185,16 @@ function HomePage() {
           chatOpen={chatOpen}
           onToggleChat={handleToggleChat}
         />
-        <main className="main-content">
-          <SearchBar onAnalyze={(url) => {
-            analyze(url).then(() => {
-              // result is updated by hook, handled below
-            });
-          }} isLoading={isLoading} defaultUrl={searchParams.get('analyze') ? decodeURIComponent(searchParams.get('analyze')!) : ''} />
+<main className="main-content">
+          <CharacterPanel
+            character={currentResult || undefined}
+            lastAnalyzed={lastAnalyzed}
+            onAnalyze={(url) => analyze(url)}
+            isLoading={isLoading}
+            onSave={() => setShowSaveModal(true)}
+            onClear={() => { setCurrentResult(null); setLastAnalyzed(null); }}
+            defaultExpanded={activeTab === 'stats'}
+          />
 
           {isLoading && <LoadingSpinner />}
 
@@ -186,32 +206,10 @@ function HomePage() {
           )}
 
           {currentResult && !isLoading && (
-            <>
-              <div className="current-actions">
-                <Button variant="primary" onClick={() => setShowSaveModal(true)}>
-                  Сохранить слепок
-                </Button>
-                <Button variant="primary" onClick={() => { setCurrentResult(null); setLastAnalyzed(null); }}>
-                  Очистить
-                </Button>
-              </div>
-              <CurrentCharacter
-                character={currentResult}
-                lastAnalyzed={lastAnalyzed}
-              />
-              <AnalysisResultDisplay result={currentResult} activeTab={activeTab} />
-            </>
+            <AnalysisResultDisplay result={currentResult} activeTab={activeTab} onLoadSnapshot={handleLoadSnapshot} />
           )}
 
-          {!currentResult && !isLoading && !error && (
-            <p className="placeholder-text">
-              Введите ссылку на персонажа dwar.ru для анализа
-            </p>
-          )}
-
-          <SnapshotHistory onLoad={handleLoadSnapshot} />
-
-          {currentResult && (
+{currentResult && (
             <ScenarioComparison character={currentResult} />
           )}
 

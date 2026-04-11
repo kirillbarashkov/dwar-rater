@@ -37,6 +37,7 @@ const navGroups: TabGroup[] = [
     { key: 'medals', label: 'Медали', icon: '🏅' },
     { key: 'records', label: 'Рекорды', icon: '📜' },
     { key: 'other', label: 'Прочее', icon: '📋' },
+    { key: 'history', label: 'История слепков', icon: '💾' },
   ]},
   { key: 'track', label: 'Трек улучшений', icon: '📈' },
   { key: 'chat', label: 'Чат', icon: '💬' },

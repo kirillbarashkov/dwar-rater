@@ -2,6 +2,15 @@
   margin-top: 16px;
 }
 
+.it-placeholder {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  font-size: 0.9rem;
+}
+
 .it-title {
   color: var(--accent);
   font-size: 0.95rem;

@@ -4,11 +4,17 @@ import './CurrentCharacter.css';
 interface CurrentCharacterProps {
   character: AnalysisResult;
   lastAnalyzed: Date | null;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export function CurrentCharacter({ character, lastAnalyzed }: CurrentCharacterProps) {
+export function CurrentCharacter({ character, lastAnalyzed, collapsed, onToggleCollapse }: CurrentCharacterProps) {
   return (
-    <div className="current-character">
+    <div 
+      className={`current-character ${collapsed ? 'collapsed' : ''}`}
+      onClick={onToggleCollapse}
+      style={onToggleCollapse ? { cursor: 'pointer' } : undefined}
+    >
       <div className="cc-name-row">
         <h3 className="cc-name">{character.name}</h3>
         <div className="cc-meta">

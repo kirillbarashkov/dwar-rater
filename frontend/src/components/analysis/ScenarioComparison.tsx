@@ -58,11 +58,7 @@ export function ScenarioComparison({ character }: ScenarioComparisonProps) {
   };
 
   if (scenarios.length === 0) {
-    return (
-      <div className="scenario-comparison">
-        <p className="sc-placeholder">Сценарии прокачки пока не созданы</p>
-      </div>
-    );
+    return null;
   }
 
   return (

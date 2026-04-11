@@ -92,3 +92,26 @@
     width: 100%;
   }
 }
+
+.search-bar.compact {
+  margin-bottom: 20px;
+  gap: 12px;
+}
+
+.search-bar.compact::before {
+  bottom: -10px;
+}
+
+.search-bar.compact .search-input-wrapper {
+  display: none;
+}
+
+.search-bar.compact .btn {
+  padding: 12px 24px;
+  font-size: 0.9rem;
+}
+
+.search-bar.compact-mode-btn {
+  padding: 12px 24px !important;
+  font-size: 0.9rem !important;
+}
