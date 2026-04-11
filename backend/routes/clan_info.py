@@ -66,7 +66,7 @@ def get_clan_info(clan_id):
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members', methods=['GET'])
 def get_clan_members(clan_id):
-    members = ClanMemberInfo.query.filter_by(clan_id=clan_id).all()
+    members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).all()
     return jsonify([{
         'id': m.id,
         'nick': m.nick,
@@ -123,7 +123,7 @@ def delete_clan_member(clan_id, member_id):
     member = ClanMemberInfo.query.filter_by(id=member_id, clan_id=clan_id).first()
     if not member:
         return jsonify({'error': 'Участник не найден'}), 404
-    db.session.delete(member)
+    member.is_deleted = True
     db.session.commit()
     return jsonify({'status': 'deleted'})
 

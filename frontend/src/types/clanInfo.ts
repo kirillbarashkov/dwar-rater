@@ -23,6 +23,7 @@ export interface ClanMemberData {
   clan_role: string;
   join_date: string;
   trial_until: string;
+  is_deleted?: boolean;
 }
 
 export interface ClanHierarchyData {
