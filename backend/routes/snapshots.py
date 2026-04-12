@@ -30,7 +30,7 @@ def list_snapshots():
         'total': pagination.total,
         'page': pagination.page,
         'pages': pagination.pages,
-        'snapshots': [{
+'snapshots': [{
             'id': s.id,
             'nick': s.nick,
             'name': s.name,

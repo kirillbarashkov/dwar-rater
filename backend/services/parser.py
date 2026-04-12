@@ -85,7 +85,7 @@ def parse_character(html, session=None, nick=None):
         rows = re.findall(
             r'<tr[^>]*>\s*<td[^>]*>(.*?)</td>\s*<td[^>]*align="right"[^>]*>(.*?)</td>\s*</tr>',
             table_html, re.DOTALL
-        )
+)
         for label, value in rows:
             label = clean_html(label)
             value = clean_html(value)
@@ -103,6 +103,7 @@ def parse_character(html, session=None, nick=None):
         clan_info = {}
         for label, value in clan_rows:
             clan_info[clean_html(label)] = clean_html(value)
+        
         result['clan'] = clan_info
 
     prof_section = re.search(r'id="profession_info".*?<table[^>]*>(.*?)</table>', html, re.DOTALL)

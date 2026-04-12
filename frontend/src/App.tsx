@@ -15,7 +15,7 @@ import { EffectsTab } from './components/analysis/EffectsTab';
 import { RecordsTab } from './components/analysis/RecordsTab';
 import { MedalsTab } from './components/analysis/MedalsTab';
 import { OtherTab } from './components/analysis/OtherTab';
-import { CurrentCharacter } from './components/snapshots/CurrentCharacter';
+
 import { CharacterPanel } from './components/snapshots/CharacterPanel';
 import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
 import { ScenarioComparison } from './components/analysis/ScenarioComparison';
@@ -125,16 +125,13 @@ function HomePage() {
   const [snapshotName, setSnapshotName] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('stats');
-  const [, setActiveGroup] = useState('analysis');
+  const [_activeGroup, setActiveGroup] = useState('analysis');
   const [searchParams] = useSearchParams();
-  const [hasViewedStats, setHasViewedStats] = useState(false);
+  
 
   const handleTabChange = (groupKey: string, tabKey: string) => {
     setActiveGroup(groupKey);
     setActiveTab(tabKey);
-    if (tabKey === 'stats') {
-      setHasViewedStats(true);
-    }
   };
 
   useEffect(() => {
@@ -186,6 +183,7 @@ function HomePage() {
           onToggleChat={handleToggleChat}
         />
 <main className="main-content">
+          {activeTab !== 'history' && (
           <CharacterPanel
             character={currentResult || undefined}
             lastAnalyzed={lastAnalyzed}
@@ -195,6 +193,7 @@ function HomePage() {
             onClear={() => { setCurrentResult(null); setLastAnalyzed(null); }}
             defaultExpanded={activeTab === 'stats'}
           />
+          )}
 
           {isLoading && <LoadingSpinner />}
 
@@ -205,13 +204,11 @@ function HomePage() {
             </div>
           )}
 
-          {currentResult && !isLoading && (
+          {!isLoading && (
             <AnalysisResultDisplay result={currentResult} activeTab={activeTab} onLoadSnapshot={handleLoadSnapshot} />
           )}
 
-{currentResult && (
-            <ScenarioComparison character={currentResult} />
-          )}
+{currentResult && <ScenarioComparison character={currentResult} />}
 
           <Modal
             isOpen={showSaveModal}

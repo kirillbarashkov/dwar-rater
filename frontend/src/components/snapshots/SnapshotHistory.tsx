@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Snapshot } from '../../types/snapshot';
 import { getSnapshots } from '../../api/snapshots';
 import { SnapshotCard } from './SnapshotCard';
@@ -16,6 +16,12 @@ export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
+
+  useEffect(() => {
+    if (!hasFetched) {
+      loadSnapshots(1, '');
+    }
+  }, []);
 
   const loadSnapshots = async (p: number, s: string) => {
     setIsLoading(true);
@@ -61,7 +67,6 @@ export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
   if (!hasFetched) {
     return (
       <div className="snapshot-history">
-        <h3 className="sh-title">История слепков</h3>
         <button className="btn btn-secondary" onClick={() => loadSnapshots(1, '')}>
           Загрузить историю
         </button>
@@ -71,7 +76,6 @@ export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
 
   return (
     <div className="snapshot-history">
-      <h3 className="sh-title">История слепков</h3>
       <form className="sh-search" onSubmit={handleSearch}>
         <input
           type="text"
