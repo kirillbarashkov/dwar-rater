@@ -7,6 +7,7 @@ from flask_cors import CORS, cross_origin
 from config import Config
 from models import db
 from models.user import User
+from models.compare_character import CompareCharacter
 from middleware.rate_limiter import check_rate_limit
 from middleware.security import add_security_headers
 
@@ -35,6 +36,7 @@ def create_app():
     from routes.tracks import tracks_bp
     from routes.clans import clans_bp
     from routes.clan_info import clan_info_bp
+    from routes.compare import compare_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(analyze_bp)
@@ -44,6 +46,7 @@ def create_app():
     app.register_blueprint(tracks_bp)
     app.register_blueprint(clans_bp)
     app.register_blueprint(clan_info_bp)
+    app.register_blueprint(compare_bp)
 
     @app.route('/')
     def index():

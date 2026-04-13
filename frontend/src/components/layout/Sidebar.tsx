@@ -39,7 +39,10 @@ const navGroups: TabGroup[] = [
     { key: 'other', label: 'Прочее', icon: '📋' },
     { key: 'history', label: 'История слепков', icon: '💾' },
   ]},
-  { key: 'track', label: 'Трек улучшений', icon: '📈' },
+  { key: 'track', label: 'Трек улучшений', icon: '📈', children: [
+    { key: 'track', label: 'Трек', icon: '📈' },
+    { key: 'compare', label: 'Сравнить персонажей', icon: '⚖️' },
+  ]},
   { key: 'chat', label: 'Чат', icon: '💬' },
 ];
 
@@ -68,7 +71,10 @@ export function Sidebar({
         navigate('/clan/2315');
       } else if (willExpand && groupKey === 'analysis' && isClanPage) {
         navigate('/');
+      } else if (willExpand && groupKey === 'track') {
+        navigate('/');
       }
+      onTabChange?.(groupKey, children[0].key);
     } else if (groupKey === 'chat') {
       onToggleChat?.();
     } else if (groupKey === 'track') {

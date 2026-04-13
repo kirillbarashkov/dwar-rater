@@ -11,6 +11,7 @@ interface CharacterPanelProps {
   isLoading: boolean;
   onSave: () => void;
   onClear: () => void;
+  onAddToCompare: () => void;
   defaultExpanded?: boolean;
 }
 
@@ -21,6 +22,7 @@ export function CharacterPanel({
   isLoading,
   onSave, 
   onClear, 
+  onAddToCompare, 
   defaultExpanded = true 
 }: CharacterPanelProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -58,6 +60,13 @@ export function CharacterPanel({
             disabled={!character}
           >
             Сохранить слепок
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={onAddToCompare}
+            disabled={!character}
+          >
+            Добавить к сравнению
           </Button>
           <Button 
             variant="primary" 

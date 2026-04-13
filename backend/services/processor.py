@@ -114,7 +114,7 @@ def process_character(raw_data):
                 'description': closed_info.get('description', ''),
                 'premium_level': closed_info.get('premium_level', ''),
             }
-        }
+}
 
     stats = raw_data['stats']
     wins = int(stats.get('Побед', 0))
@@ -134,6 +134,22 @@ def process_character(raw_data):
         kind = item.get('kind', 'Другое')
         if kind not in equipment_by_kind:
             equipment_by_kind[kind] = []
+
+        rune_val = clean_html(item.get('enchant', {}).get('value', '')) if 'enchant' in item else ''
+        rune2_val = clean_html(item.get('enchant2', {}).get('value', '')) if 'enchant2' in item else ''
+        runic_val = clean_html(item.get('enchant3', {}).get('value', '')) if 'enchant3' in item else ''
+        
+        enchant5 = item.get('enchant5', {})
+        enchant5_desc = enchant5.get('description', '') if enchant5 else ''
+        if enchant5 and enchant5_desc == 'Пластина':
+            plate_val = clean_html(enchant5.get('value', ''))
+        else:
+            plate_val = ''
+        
+        lacquer_val = clean_html(item.get('enchant4', {}).get('value', '')) if 'enchant4' in item else ''
+        other_val = clean_html(item.get('enchant_mod', {}).get('value', '')) if 'enchant_mod' in item else ''
+        symbol_vals = [clean_html(s.get('value', '')) for s in item.get('symbols', [])]
+
         equipment_by_kind[kind].append({
             'title': item.get('title', ''),
             'quality': QUALITY_MAP.get(item.get('quality', '0'), QUALITY_MAP['0']),
@@ -144,6 +160,14 @@ def process_character(raw_data):
             'skills_e': format_skills(item.get('skills_e', [])),
             'enchants': format_enchants(item),
             'set': clean_html(item.get('set', {}).get('value', '')) if 'set' in item else '',
+            'rune': rune_val,
+            'rune2': rune2_val,
+            'runicSetting': runic_val,
+            'plate': plate_val,
+            'lacquer': lacquer_val,
+            'other': other_val,
+            'symbols': symbol_vals,
+            'other': '',
         })
 
     sets = {}

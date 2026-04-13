@@ -11,7 +11,57 @@
 .sh-search {
   display: flex;
   gap: 8px;
+  flex: 1;
+}
+
+.sh-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sh-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sh-select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.sh-select-all-label input {
+  width: 16px;
+  height: 16px;
+  -webkit-appearance: none;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sh-select-all-label input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.sh-select-all-label input:checked::after {
+  content: '✓';
+  color: white;
+  font-size: 11px;
 }
 
 .sh-search-input {
@@ -54,4 +104,15 @@
 .sh-page-info {
   color: var(--text-secondary);
   font-size: 0.85rem;
+}
+
+.modal-delete-confirm p {
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.modal-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }

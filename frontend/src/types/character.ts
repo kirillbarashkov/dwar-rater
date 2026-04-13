@@ -24,6 +24,14 @@ export interface EquipmentItem {
   skills_e: Skill[];
   enchants: Enchant[];
   set: string;
+  rune: string;
+  rune2: string;
+  runicSetting: string;
+  plate: string;
+  lacquer: string;
+  enhancement: string;
+  symbols: string[];
+  other: string;
 }
 
 export interface Medal {

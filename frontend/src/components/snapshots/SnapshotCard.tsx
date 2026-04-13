@@ -5,9 +5,11 @@ interface SnapshotCardProps {
   snapshot: Snapshot;
   onLoad: (id: number) => void;
   onDelete: (id: number) => void;
+  selected?: boolean;
+  onSelect?: (id: number) => void;
 }
 
-export function SnapshotCard({ snapshot, onLoad, onDelete }: SnapshotCardProps) {
+export function SnapshotCard({ snapshot, onLoad, onDelete, selected, onSelect }: SnapshotCardProps) {
   const date = new Date(snapshot.analyzed_at);
   const formatted = date.toLocaleDateString('ru-RU', {
     day: '2-digit',
@@ -17,8 +19,26 @@ export function SnapshotCard({ snapshot, onLoad, onDelete }: SnapshotCardProps) 
     minute: '2-digit',
   });
 
+  const handleCardClick = () => {
+    if (onSelect) {
+      onSelect(snapshot.id);
+    }
+  };
+
   return (
-    <div className="snapshot-card">
+    <div 
+      className={`snapshot-card ${selected ? 'selected' : ''} ${onSelect ? 'selectable' : ''}`}
+      onClick={handleCardClick}
+    >
+      {onSelect && (
+        <input
+          type="checkbox"
+          className="sc-checkbox"
+          checked={selected || false}
+          onChange={() => onSelect(snapshot.id)}
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
       <div className="sc-info">
         <h4 className="sc-name">{snapshot.name}</h4>
         <div className="sc-meta">

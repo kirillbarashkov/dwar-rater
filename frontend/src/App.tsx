@@ -9,6 +9,7 @@ import { Input } from './components/ui/Input';
 import { Modal } from './components/ui/Modal';
 import { ProtectedRoute } from './components/ui/ProtectedRoute';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { ToastProvider, showToast } from './components/ui/Toast';
 import { StatsTab } from './components/analysis/StatsTab';
 import { EquipmentTab } from './components/analysis/EquipmentTab';
 import { EffectsTab } from './components/analysis/EffectsTab';
@@ -20,11 +21,13 @@ import { CharacterPanel } from './components/snapshots/CharacterPanel';
 import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
 import { ScenarioComparison } from './components/analysis/ScenarioComparison';
 import { ImprovementTrackPanel } from './components/analysis/ImprovementTrack';
+import { CharacterComparison } from './components/analysis/CharacterComparison';
 import { ClanChat } from './components/chat/ClanChat';
 import { ClanHeader } from './components/clan/ClanHeader';
 import { ClanMembersTable } from './components/clan/ClanMembersTable';
 import { ClanHierarchy } from './components/clan/ClanHierarchy';
 import { saveSnapshot } from './api/snapshots';
+import { addCompareCharacter } from './api/compare';
 import type { AnalysisResult } from './types/character';
 import type { Snapshot } from './types/snapshot';
 import './styles/globals.css';
@@ -90,11 +93,12 @@ function AnalysisResultDisplay({
   activeTab: string;
   onLoadSnapshot: (data: Snapshot & Record<string, unknown>) => void;
 }) {
-  if (activeTab === 'history') {
+  if (activeTab === 'history' || activeTab === 'compare') {
     return (
       <div className="analysis-result">
         <div className="tab-panels">
-          <SnapshotHistory onLoad={onLoadSnapshot} />
+          {activeTab === 'history' && <SnapshotHistory onLoad={onLoadSnapshot} />}
+          {activeTab === 'compare' && <CharacterComparison />}
         </div>
       </div>
     );
@@ -165,8 +169,19 @@ function HomePage() {
       });
       setShowSaveModal(false);
       setSnapshotName('');
-    } catch {
+} catch {
       // ignore
+    }
+  };
+
+  const handleAddToCompare = async () => {
+    if (!currentResult) return;
+    try {
+      await addCompareCharacter(currentResult.name, currentResult);
+      showToast(`Персонаж "${currentResult.name}" добавлен к сравнению`, 'success');
+    } catch (err) {
+      console.error('Add to compare error:', err);
+      showToast('Ошибка при добавлении к сравнению', 'error');
     }
   };
 
@@ -183,7 +198,7 @@ function HomePage() {
           onToggleChat={handleToggleChat}
         />
 <main className="main-content">
-          {activeTab !== 'history' && (
+          {activeTab !== 'history' && activeTab !== 'track' && activeTab !== 'compare' && (
           <CharacterPanel
             character={currentResult || undefined}
             lastAnalyzed={lastAnalyzed}
@@ -191,6 +206,7 @@ function HomePage() {
             isLoading={isLoading}
             onSave={() => setShowSaveModal(true)}
             onClear={() => { setCurrentResult(null); setLastAnalyzed(null); }}
+            onAddToCompare={handleAddToCompare}
             defaultExpanded={activeTab === 'stats'}
           />
           )}
@@ -287,7 +303,7 @@ function ClanPageWrapper() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+<BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
@@ -308,6 +324,7 @@ export default function App() {
           }
         />
       </Routes>
+      <ToastProvider />
     </BrowserRouter>
   );
 }
