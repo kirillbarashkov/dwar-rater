@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from services.clan_parser import fetch_clan_page, parse_clan_info
 from models import db
 from models.clan_info import ClanInfo, ClanMemberInfo, ClanHierarchy
+from middleware.auth import require_auth
 
 
 clan_info_bp = Blueprint('clan_info', __name__)
@@ -50,6 +51,8 @@ def get_clan_info(clan_id):
         'clan_id': cached.clan_id,
         'name': cached.name,
         'logo_url': cached.logo_url,
+        'logo_big': cached.logo_big,
+        'logo_small': cached.logo_small,
         'description': cached.description,
         'leader_nick': cached.leader_nick,
         'leader_rank': cached.leader_rank,
@@ -57,6 +60,72 @@ def get_clan_info(clan_id):
         'clan_level': cached.clan_level,
         'step': cached.step,
         'talents': cached.talents,
+        'total_players': cached.total_players,
+        'current_players': cached.current_players,
+        'council': cached.get_council(),
+        'clan_structure': cached.get_clan_structure(),
+        'updated_at': cached.updated_at.isoformat() if cached.updated_at else '',
+    })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/info', methods=['PUT'])
+def update_clan_info(clan_id):
+    cached = ClanInfo.query.filter_by(clan_id=clan_id).first()
+    if not cached:
+        return jsonify({'error': 'Клан не найден'}), 404
+
+    data = request.json
+
+    if 'name' in data:
+        cached.name = data['name']
+    if 'logo_url' in data:
+        cached.logo_url = data['logo_url']
+    if 'logo_big' in data:
+        cached.logo_big = data['logo_big']
+    if 'logo_small' in data:
+        cached.logo_small = data['logo_small']
+    if 'description' in data:
+        cached.description = data['description']
+    if 'leader_nick' in data:
+        cached.leader_nick = data['leader_nick']
+    if 'leader_rank' in data:
+        cached.leader_rank = data['leader_rank']
+    if 'clan_rank' in data:
+        cached.clan_rank = data['clan_rank']
+    if 'clan_level' in data:
+        cached.clan_level = data['clan_level']
+    if 'step' in data:
+        cached.step = data['step']
+    if 'talents' in data:
+        cached.talents = data['talents']
+    if 'total_players' in data:
+        cached.total_players = data['total_players']
+    if 'current_players' in data:
+        cached.current_players = data['current_players']
+    if 'council' in data:
+        cached.set_council(data['council'])
+    if 'clan_structure' in data:
+        cached.set_clan_structure(data['clan_structure'])
+
+    db.session.commit()
+
+    return jsonify({
+        'clan_id': cached.clan_id,
+        'name': cached.name,
+        'logo_url': cached.logo_url,
+        'logo_big': cached.logo_big,
+        'logo_small': cached.logo_small,
+        'description': cached.description,
+        'leader_nick': cached.leader_nick,
+        'leader_rank': cached.leader_rank,
+        'clan_rank': cached.clan_rank,
+        'clan_level': cached.clan_level,
+        'step': cached.step,
+'talents': cached.talents,
+        'total_players': cached.total_players,
+        'current_players': cached.current_players,
+        'council': cached.get_council(),
+        'clan_structure': cached.get_clan_structure(),
         'updated_at': cached.updated_at.isoformat() if cached.updated_at else '',
     })
 
@@ -116,6 +185,90 @@ def add_clan_member(clan_id):
         'join_date': member.join_date,
         'trial_until': member.trial_until,
     }), 201
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/members/import', methods=['POST'])
+@require_auth
+def import_clan_members(clan_id):
+    from flask import g
+    
+    if not g.current_user or g.current_user.role != 'admin':
+        return jsonify({'error': 'Только администратор может импортировать участников'}), 403
+    
+    data = request.json
+    members_data = data.get('members', [])
+    overwrite = data.get('overwrite', False)
+    
+    if not isinstance(members_data, list):
+        return jsonify({'error': 'members должен быть массивом'}), 400
+    
+    if overwrite:
+        ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).update({'is_deleted': True})
+    
+    success = 0
+    failed = 0
+    errors = []
+    skipped = 0
+    
+    for i, member_data in enumerate(members_data):
+        try:
+            nick = member_data.get('nick', '').strip()
+            if not nick:
+                errors.append(f'Строка {i + 1}: пустой ник')
+                failed += 1
+                continue
+            
+            level = member_data.get('level', 1)
+            if isinstance(level, str):
+                try:
+                    level = int(level)
+                except ValueError:
+                    level = 1
+            
+            clan_role = member_data.get('clan_role', 'Рыцарь Ордена')
+            
+            existing = ClanMemberInfo.query.filter_by(clan_id=clan_id, nick=nick, is_deleted=False).first()
+            
+            if existing:
+                if overwrite:
+                    existing.is_deleted = False
+                    existing.game_rank = member_data.get('game_rank', '')
+                    existing.level = level
+                    existing.profession = member_data.get('profession', '')
+                    existing.profession_level = member_data.get('profession_level', 0)
+                    existing.clan_role = clan_role
+                    existing.join_date = member_data.get('join_date', '')
+                    existing.trial_until = member_data.get('trial_until', '')
+                    success += 1
+                else:
+                    skipped += 1
+            else:
+                member = ClanMemberInfo(
+                    clan_id=clan_id,
+                    nick=nick,
+                    icon=member_data.get('icon', ''),
+                    game_rank=member_data.get('game_rank', ''),
+                    level=level,
+                    profession=member_data.get('profession', ''),
+                    profession_level=member_data.get('profession_level', 0),
+                    clan_role=clan_role,
+                    join_date=member_data.get('join_date', ''),
+                    trial_until=member_data.get('trial_until', ''),
+                )
+                db.session.add(member)
+                success += 1
+        except Exception as e:
+            errors.append(f'Строка {i + 1}: {str(e)}')
+            failed += 1
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': success,
+        'skipped': skipped,
+        'failed': failed,
+        'errors': errors,
+    })
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members/<int:member_id>', methods=['DELETE'])

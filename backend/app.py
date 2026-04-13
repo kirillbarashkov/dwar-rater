@@ -1,4 +1,9 @@
 import os
+from dotenv import load_dotenv
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
 import hashlib
 from flask import Flask, request, jsonify, abort, g
 from flask import render_template
@@ -10,9 +15,6 @@ from models.user import User
 from models.compare_character import CompareCharacter
 from middleware.rate_limiter import check_rate_limit
 from middleware.security import add_security_headers
-
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def create_app():

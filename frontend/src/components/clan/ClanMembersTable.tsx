@@ -1,7 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ClanMemberData } from '../../types/clanInfo';
-import { getClanMembers, addClanMember, updateClanMember, deleteClanMember } from '../../api/clanInfo';
+import { getClanMembers, addClanMember, updateClanMember, deleteClanMember, importClanMembers } from '../../api/clanInfo';
+import { useAuth } from '../../hooks/useAuth';
+import { parseMembersFile } from '../../utils/parseMembers';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -36,6 +38,8 @@ const PROFESSION_COLORS: Record<string, string> = {
 
 export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [members, setMembers] = useState<(ClanMemberData & { id?: number })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('');
@@ -43,6 +47,13 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   const [levelFilter, setLevelFilter] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<(ClanMemberData & { id?: number }) | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importedMembers, setImportedMembers] = useState<Partial<ClanMemberData>[]>([]);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [importSkipped, setImportSkipped] = useState(0);
+  const [overwriteExisting, setOverwriteExisting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [form, setForm] = useState({ nick: '', icon: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' });
   const [sortConfig, setSortConfig] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'nick', dir: 'asc' });
 
@@ -156,8 +167,89 @@ if (sortConfig.key) {
     });
   };
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const file = files.find(f => f.name.endsWith('.txt') || f.name.endsWith('.csv') || f.name.endsWith('.json') || f.name.endsWith('.md'));
+    
+    if (!file) {
+      setImportErrors(['Поддерживаются только файлы .txt, .csv, .json, .md']);
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const { members: parsed, errors } = parseMembersFile(text);
+      setImportedMembers(parsed);
+      setImportErrors(errors);
+    } catch (err) {
+      setImportErrors([`Ошибка чтения файла: ${err}`]);
+    }
+  }, []);
+
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const { members: parsed, errors } = parseMembersFile(text);
+      setImportedMembers(parsed);
+      setImportErrors(errors);
+    } catch (err) {
+      setImportErrors([`Ошибка чтения файла: ${err}`]);
+    }
+  }, []);
+
+  const handleImportConfirm = async () => {
+    if (importedMembers.length === 0) return;
+    setIsImporting(true);
+    try {
+      const result = await importClanMembers(clanId, importedMembers, overwriteExisting);
+      if (result.success > 0) {
+        loadMembers();
+        setShowImportModal(false);
+        setImportedMembers([]);
+        setImportErrors([]);
+        setOverwriteExisting(false);
+      }
+      if (result.skipped > 0) {
+        setImportSkipped(result.skipped);
+      }
+      if (result.errors.length > 0) {
+        setImportErrors(result.errors);
+      }
+    } catch (err) {
+      setImportErrors([`Ошибка импорта: ${err}`]);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const openImportModal = () => {
+    setImportedMembers([]);
+    setImportErrors([]);
+    setImportSkipped(0);
+    setOverwriteExisting(false);
+    setShowImportModal(true);
+  };
+
   if (isLoading) return <LoadingSpinner />;
-  if (members.length === 0) return <p className="cm-empty">Участники не найдены</p>;
 
   const formFields = (
     <>
@@ -235,6 +327,11 @@ if (sortConfig.key) {
         <Button variant="primary" onClick={() => { setShowAddModal(true); setForm({ nick: '', icon: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' }); }}>
           + Добавить
         </Button>
+        {isAdmin && (
+          <Button variant="secondary" onClick={openImportModal}>
+            Импорт
+          </Button>
+        )}
       </div>
 
       <table className="cm-table">
@@ -298,6 +395,71 @@ if (sortConfig.key) {
         <div className="cm-modal-actions">
           <Button variant="ghost" onClick={() => setEditingMember(null)}>Отмена</Button>
           <Button variant="primary" onClick={handleEdit}>Сохранить</Button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showImportModal} onClose={() => setShowImportModal(false)} title="Импорт участников" wide>
+        <div className="cm-import">
+          <div
+            className={`cm-dropzone ${isDragging ? 'dragging' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="cm-dropzone-content">
+              <span className="cm-dropzone-icon">📁</span>
+              <p>Перетащите файл сюда</p>
+              <p className="cm-dropzone-hint">или</p>
+              <label className="cm-file-btn">
+                Выберите файл
+                <input type="file" accept=".txt,.csv,.json,.md" onChange={handleFileSelect} style={{ display: 'none' }} />
+              </label>
+            </div>
+          </div>
+
+          {importErrors.length > 0 && (
+            <div className="cm-import-errors">
+              {importErrors.map((err, i) => (
+                <p key={i} className="cm-import-error">{err}</p>
+              ))}
+            </div>
+          )}
+
+          {importedMembers.length > 0 && (
+            <div className="cm-import-preview">
+              <h4>Найдено участников: {importedMembers.length}</h4>
+              <div className="cm-import-list">
+                {importedMembers.slice(0, 10).map((m, i) => (
+                  <div key={i} className="cm-import-item">
+                    <span className="cm-import-nick">{m.nick}</span>
+                    <span className="cm-import-level">[{m.level}]</span>
+                    <span className="cm-import-role">{m.clan_role}</span>
+                  </div>
+                ))}
+                {importedMembers.length > 10 && (
+                  <p className="cm-import-more">...и ещё {importedMembers.length - 10}</p>
+                )}
+              </div>
+              <label className="cm-import-overwrite">
+                <input
+                  type="checkbox"
+                  checked={overwriteExisting}
+                  onChange={(e) => setOverwriteExisting(e.target.checked)}
+                />
+                Перезаписать существующие данные
+              </label>
+              {importSkipped > 0 && (
+                <p className="cm-import-skipped">Пропущено дубликатов: {importSkipped}</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="cm-modal-actions">
+          <Button variant="ghost" onClick={() => setShowImportModal(false)}>Отмена</Button>
+          <Button variant="primary" onClick={handleImportConfirm} disabled={importedMembers.length === 0 || isImporting}>
+            {isImporting ? 'Импорт...' : `Импортировать (${importedMembers.length})`}
+          </Button>
         </div>
       </Modal>
     </div>

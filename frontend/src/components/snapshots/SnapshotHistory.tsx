@@ -160,10 +160,10 @@ export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
             />
             Выбрать все
           </label>
-          <Button variant="ghost" size="sm" onClick={handleGroupDeleteClick} disabled={selectedIds.size === 0}>
+          <Button variant="ghost" size="small" onClick={handleGroupDeleteClick} disabled={selectedIds.size === 0}>
             Удалить выбранные ({selectedIds.size})
           </Button>
-          <Button variant="danger" size="sm" onClick={() => setDeleteId(-1)}>
+          <Button variant="danger" size="small" onClick={() => setDeleteId(-1)}>
             Удалить все
           </Button>
         </div>

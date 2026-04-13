@@ -23,7 +23,7 @@ import { ScenarioComparison } from './components/analysis/ScenarioComparison';
 import { ImprovementTrackPanel } from './components/analysis/ImprovementTrack';
 import { CharacterComparison } from './components/analysis/CharacterComparison';
 import { ClanChat } from './components/chat/ClanChat';
-import { ClanHeader } from './components/clan/ClanHeader';
+import { ClanOverview } from './components/clan/ClanOverview';
 import { ClanMembersTable } from './components/clan/ClanMembersTable';
 import { ClanHierarchy } from './components/clan/ClanHierarchy';
 import { saveSnapshot } from './api/snapshots';
@@ -129,12 +129,10 @@ function HomePage() {
   const [snapshotName, setSnapshotName] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('stats');
-  const [_activeGroup, setActiveGroup] = useState('analysis');
-  const [searchParams] = useSearchParams();
+const [searchParams] = useSearchParams();
   
 
-  const handleTabChange = (groupKey: string, tabKey: string) => {
-    setActiveGroup(groupKey);
+  const handleTabChange = (_groupKey: string, tabKey: string) => {
     setActiveTab(tabKey);
   };
 
@@ -266,10 +264,14 @@ function ClanPageWrapper() {
     setActiveTab(tabKey);
   };
 
+  const handleSwitchTab = useCallback((tab: string) => {
+    setActiveTab(tab);
+  }, []);
+
   const renderContent = () => {
     if (activeGroup === 'clan') {
       switch (activeTab) {
-        case 'info': return <ClanHeader clanId={Number(clanId) || 2315} />;
+        case 'info': return <ClanOverview clanId={Number(clanId) || 2315} onSwitchTab={handleSwitchTab} />;
         case 'members': return <ClanMembersTable clanId={Number(clanId) || 2315} />;
         case 'hierarchy': return <ClanHierarchy clanId={Number(clanId) || 2315} />;
       }
@@ -281,8 +283,7 @@ function ClanPageWrapper() {
     <div className="app">
       <Header />
       <div className="app-layout">
-<Sidebar
-          key={location.pathname}
+        <Sidebar
           activeTab={activeTab}
           onTabChange={handleTabChange}
           chatOpen={chatOpen}

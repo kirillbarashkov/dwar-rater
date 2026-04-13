@@ -1,13 +1,27 @@
 import pytest
 import sys
 import os
-import hashlib
+import bcrypt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import middleware.auth
+middleware.auth._cached_users = None
 
 from app import create_app
 from models import db
 from models.user import User
+from config import Config
+
+
+@pytest.fixture(autouse=True)
+def reset_config():
+    Config.ADMIN_USER = 'admin'
+    Config.ADMIN_PASS = 'testpass'
+    Config.AUTH_ENABLED = True
+    middleware.auth._cached_users = None
+    yield
+    middleware.auth._cached_users = None
 
 
 @pytest.fixture
@@ -15,28 +29,37 @@ def app():
     os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
     os.environ['AUTH_ENABLED'] = 'true'
     os.environ['ADMIN_USER'] = 'admin'
-    os.environ['ADMIN_PASS'] = 'admin'
+    os.environ['ADMIN_PASS'] = 'testpass'
     os.environ['RATE_LIMIT_MAX'] = '100'
     os.environ['RATE_LIMIT_WINDOW'] = '60'
+    os.environ['SECRET_KEY'] = 'test-secret-key'
+    
+    Config.ADMIN_USER = 'admin'
+    Config.ADMIN_PASS = 'testpass'
+    Config.AUTH_ENABLED = True
+    middleware.auth._cached_users = None
+    
     app = create_app()
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
     with app.app_context():
         db.create_all()
-        admin = User(
-            username='admin',
-            password_hash=hashlib.sha256('admin'.encode()).hexdigest(),
-            role='admin'
-        )
-        user = User(
-            username='testuser',
-            password_hash=hashlib.sha256('testpass'.encode()).hexdigest(),
-            role='user'
-        )
-        db.session.add(admin)
-        db.session.add(user)
+        if not User.query.filter_by(username='admin').first():
+            admin = User(
+                username='admin',
+                password_hash=bcrypt.hashpw('testpass'.encode(), bcrypt.gensalt()).decode('utf-8'),
+                role='admin'
+            )
+            db.session.add(admin)
+        if not User.query.filter_by(username='testuser').first():
+            user = User(
+                username='testuser',
+                password_hash=bcrypt.hashpw('testpass'.encode(), bcrypt.gensalt()).decode('utf-8'),
+                role='user'
+            )
+            db.session.add(user)
         db.session.commit()
     yield app
+    
     with app.app_context():
         db.drop_all()
 
@@ -48,7 +71,7 @@ def client(app):
 
 @pytest.fixture
 def admin_auth():
-    return ('admin', 'admin')
+    return ('admin', 'testpass')
 
 
 @pytest.fixture

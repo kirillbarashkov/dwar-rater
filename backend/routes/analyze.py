@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, g
 from middleware.auth import require_auth
 from services.parser import fetch_character_page, parse_character
 from services.processor import process_character
-from services.cache_service import get_cached_character, save_character_cache, create_snapshot, log_analysis
+from services.cache_service import get_cached_character, save_character_cache, log_analysis
 from utils.validators import validate_dwar_url
 from urllib.parse import urlparse, parse_qs
 
@@ -42,8 +42,7 @@ def analyze():
 
         processed = process_character(raw)
         user_id = g.current_user.id if g.current_user else None
-        snapshot_id = create_snapshot(processed, user_id=user_id)
-        log_analysis(user_id, nick, url, snapshot_id=snapshot_id)
+        log_analysis(user_id, nick, url)
 
         return jsonify(processed)
     except Exception as e:

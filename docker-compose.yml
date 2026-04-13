@@ -5,11 +5,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5000:5000"
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=sqlite:////app/instance/dwar_rater.db
-      - AUTH_ENABLED=true
-      - ADMIN_USER=admin
-      - ADMIN_PASS=admin
+      - AUTH_ENABLED=${AUTH_ENABLED:-true}
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASS=${ADMIN_PASS}
     volumes:
       - sqlite_data:/app/instance
     restart: unless-stopped
@@ -36,15 +38,17 @@ services:
     image: postgres:16-alpine
     ports:
       - "5432:5432"
+    env_file:
+      - .env
     environment:
-      - POSTGRES_DB=dwar_rater
-      - POSTGRES_USER=dwar
-      - POSTGRES_PASSWORD=dwar_dev
+      - POSTGRES_DB=${POSTGRES_DB:-dwar_rater}
+      - POSTGRES_USER=${POSTGRES_USER:-dwar}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dwar -d dwar_rater"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dwar} -d ${POSTGRES_DB:-dwar_rater}"]
       interval: 10s
       timeout: 5s
       retries: 5

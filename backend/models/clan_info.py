@@ -1,4 +1,5 @@
 import re
+import json
 from datetime import datetime
 from models import db
 
@@ -9,6 +10,8 @@ class ClanInfo(db.Model):
     clan_id = db.Column(db.Integer, unique=True, nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False)
     logo_url = db.Column(db.String(300), default='')
+    logo_big = db.Column(db.String(300), default='')
+    logo_small = db.Column(db.String(300), default='')
     description = db.Column(db.Text, default='')
     leader_nick = db.Column(db.String(100), default='')
     leader_rank = db.Column(db.String(100), default='')
@@ -16,7 +19,29 @@ class ClanInfo(db.Model):
     clan_level = db.Column(db.Integer, default=0)
     step = db.Column(db.Integer, default=0)
     talents = db.Column(db.Integer, default=0)
+    total_players = db.Column(db.Integer, default=0)
+    current_players = db.Column(db.Integer, default=0)
+    council = db.Column(db.Text, default='[]')
+    clan_structure = db.Column(db.Text, default='{}')
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def get_council(self):
+        try:
+            return json.loads(self.council)
+        except:
+            return []
+
+    def set_council(self, value):
+        self.council = json.dumps(value, ensure_ascii=False)
+
+    def get_clan_structure(self):
+        try:
+            return json.loads(self.clan_structure)
+        except:
+            return {}
+
+    def set_clan_structure(self, value):
+        self.clan_structure = json.dumps(value, ensure_ascii=False)
 
     def __repr__(self):
         return f'<ClanInfo {self.name}>'

@@ -27,32 +27,7 @@ interface StructGroup {
   slots: StructSlot[];
 }
 
-function detectCombatStyle(char: AnalysisResult): string {
-  const equip = char.equipment_by_kind || {};
-  const mainWeapon = equip['Основное'] || [];
-  const shield = equip['Легкий щит'] || [];
-  
-  const mainCount = mainWeapon.filter(item => item.title && item.title !== '-').length;
-  const hasShield = shield.some(item => item.title && item.title !== '-');
-  
-  const mainStats = char.main_stats || {};
-  const strength = parseInt((mainStats['Сила'] || '0').replace(/\s/g, '')) || 0;
-  const agility = parseInt((mainStats['Ловкость'] || '0').replace(/\s/g, '')) || 0;
-  
-  if (mainCount === 0) return 'unknown';
-  
-  if (mainCount === 1 && !hasShield) {
-    return 'костолом';
-  }
-  
-  if (agility > strength * 1.2) {
-    return 'ловкач';
-  }
-  
-  return 'тяжеловес';
-}
-
-function getFieldValue(char: AnalysisResult, slotKey: string, fieldKey: string, isStyle: boolean = false, combatStyle?: string): string {
+function getFieldValue(char: AnalysisResult, slotKey: string, fieldKey: string, isStyle: boolean = false): string {
   if (!char.equipment_by_kind) return '-';
   
   const kindMap: Record<string, string> = {
@@ -71,8 +46,6 @@ function getFieldValue(char: AnalysisResult, slotKey: string, fieldKey: string, 
   
   const kind = kindMap[slotKey] || slotKey;
   const equip = char.equipment_by_kind || {};
-  
-  const styleSets = ['Мрачная жатва', 'Триумф', 'Неистовство', 'Стиль'];
   
   const isMainWeapon = slotKey === 'weapon_main';
   const isAdditionalWeapon = slotKey === 'weapon_add';
@@ -397,7 +370,7 @@ export function CharacterComparison() {
                             <td className="cell-label">{field.label}</td>
                             {compareChars.map((c, i) => (
                               <td key={i} className="cell-value">
-                                {c.data ? getFieldValue(c.data, slot.key, field.key, group.key === 'style', detectCombatStyle(c.data)) : '-'}
+                                {c.data ? getFieldValue(c.data, slot.key, field.key, group.key === 'style') : '-'}
                               </td>
                             ))}
                           </tr>
