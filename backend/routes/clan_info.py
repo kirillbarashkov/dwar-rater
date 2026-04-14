@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from services.clan_parser import fetch_clan_page, parse_clan_info
+from services.data_logger import data_logger
 from models import db
 from models.clan_info import ClanInfo, ClanMemberInfo, ClanHierarchy
 from middleware.auth import require_auth
@@ -16,9 +17,13 @@ def get_clan_info(clan_id):
         html, _ = fetch_clan_page(clan_id, mode='news')
         data = parse_clan_info(html, clan_id)
 
+        actual_member_count = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).count()
+
         if cached:
             cached.name = data['name']
             cached.logo_url = data.get('logo_url', '')
+            cached.logo_big = data.get('logo_big', '')
+            cached.logo_small = data.get('logo_small', '')
             cached.description = data.get('description', '')
             cached.leader_nick = data.get('leader_nick', '')
             cached.leader_rank = data.get('leader_rank', '')
@@ -26,11 +31,14 @@ def get_clan_info(clan_id):
             cached.clan_level = data.get('clan_level', 0)
             cached.step = data.get('step', 0)
             cached.talents = data.get('talents', 0)
+            cached.current_players = actual_member_count
         else:
             cached = ClanInfo(
                 clan_id=clan_id,
                 name=data['name'],
                 logo_url=data.get('logo_url', ''),
+                logo_big=data.get('logo_big', ''),
+                logo_small=data.get('logo_small', ''),
                 description=data.get('description', ''),
                 leader_nick=data.get('leader_nick', ''),
                 leader_rank=data.get('leader_rank', ''),
@@ -38,6 +46,7 @@ def get_clan_info(clan_id):
                 clan_level=data.get('clan_level', 0),
                 step=data.get('step', 0),
                 talents=data.get('talents', 0),
+                current_players=actual_member_count,
             )
             db.session.add(cached)
         db.session.commit()
@@ -193,17 +202,23 @@ def import_clan_members(clan_id):
     from flask import g
     
     if not g.current_user or g.current_user.role != 'admin':
+        data_logger.warning(f'[IMPORT] Unauthorized import attempt for clan {clan_id}')
         return jsonify({'error': 'Только администратор может импортировать участников'}), 403
     
     data = request.json
     members_data = data.get('members', [])
     overwrite = data.get('overwrite', False)
     
+    data_logger.info(f'[IMPORT] Starting import for clan {clan_id}, members count: {len(members_data)}, overwrite: {overwrite}')
+    
     if not isinstance(members_data, list):
+        data_logger.warning(f'[IMPORT] Invalid data format for clan {clan_id}')
         return jsonify({'error': 'members должен быть массивом'}), 400
     
     if overwrite:
+        old_count = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).count()
         ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).update({'is_deleted': True})
+        data_logger.info(f'[IMPORT] Soft-deleted {old_count} existing members for clan {clan_id}')
     
     success = 0
     failed = 0
@@ -240,6 +255,7 @@ def import_clan_members(clan_id):
                     existing.join_date = member_data.get('join_date', '')
                     existing.trial_until = member_data.get('trial_until', '')
                     success += 1
+                    data_logger.debug(f'[IMPORT] Updated member: {nick} (level {level})')
                 else:
                     skipped += 1
             else:
@@ -257,11 +273,16 @@ def import_clan_members(clan_id):
                 )
                 db.session.add(member)
                 success += 1
+                data_logger.debug(f'[IMPORT] Added new member: {nick} (level {level})')
         except Exception as e:
             errors.append(f'Строка {i + 1}: {str(e)}')
             failed += 1
+            data_logger.error(f'[IMPORT] Error on member {i + 1}: {str(e)}')
     
     db.session.commit()
+    
+    final_count = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).count()
+    data_logger.info(f'[IMPORT] Completed for clan {clan_id}: success={success}, skipped={skipped}, failed={failed}, final_count={final_count}')
     
     return jsonify({
         'success': success,
@@ -275,9 +296,12 @@ def import_clan_members(clan_id):
 def delete_clan_member(clan_id, member_id):
     member = ClanMemberInfo.query.filter_by(id=member_id, clan_id=clan_id).first()
     if not member:
+        data_logger.warning(f'[DELETE] Member {member_id} not found in clan {clan_id}')
         return jsonify({'error': 'Участник не найден'}), 404
+    member_nick = member.nick
     member.is_deleted = True
     db.session.commit()
+    data_logger.info(f'[DELETE] Soft-deleted member {member_nick} (id={member_id}) from clan {clan_id}')
     return jsonify({'status': 'deleted'})
 
 

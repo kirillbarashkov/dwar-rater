@@ -23,8 +23,20 @@ def parse_clan_info(html, clan_id):
     name_match = re.search(r'<div class="h-txt">\s*(.*?)\s*</div>', html)
     result['name'] = clean_html(name_match.group(1)) if name_match else ''
 
-    logo_match = re.search(r'<img src="([^"]*clan_logos/[^"]+)"', html)
-    result['logo_url'] = logo_match.group(1) if logo_match else ''
+    logo_match = re.search(r'<img[^>]+src="([^"]*(?:clan_logos|data/clans/)[^"]+)"', html)
+    if logo_match:
+        logo_path = logo_match.group(1)
+        result['logo_url'] = logo_path
+        if '/m/' in logo_path:
+            result['logo_big'] = logo_path.replace('/m/', '/l/').replace('_m.', '_l.')
+            result['logo_small'] = logo_path.replace('/m/', '/s/').replace('_m.', '_s.')
+        else:
+            result['logo_big'] = logo_path
+            result['logo_small'] = logo_path
+    else:
+        result['logo_url'] = ''
+        result['logo_big'] = ''
+        result['logo_small'] = ''
 
     desc_match = re.search(r'<table class="coll w100 p6v p10h p2v brd2-all">\s*<tbody>\s*<tr class="bg_l">\s*<td[^>]*>(.*?)</td>', html, re.DOTALL)
     if desc_match:
@@ -47,6 +59,11 @@ def parse_clan_info(html, clan_id):
     talents_match = re.search(r'Развитие талантов клана:\s*(\d+)', html)
     if talents_match:
         result['talents'] = int(talents_match.group(1))
+
+    members_count_match = re.search(r'Участников:\s*<b>\s*(\d+)\s*/\s*(\d+)', html)
+    if members_count_match:
+        result['current_players'] = int(members_count_match.group(1))
+        result['total_players'] = int(members_count_match.group(2))
 
     return result
 

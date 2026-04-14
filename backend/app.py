@@ -70,7 +70,32 @@ def create_app():
         return add_security_headers(response)
 
     with app.app_context():
+        from services.data_logger import data_logger
+        import logging
+        
+        instance_dir = os.path.join(BASE_DIR, 'backend', 'instance')
+        if not os.path.exists(instance_dir):
+            os.makedirs(instance_dir)
+            data_logger.info(f'Created instance directory: {instance_dir}')
+        
+        db_path = db.engine.url.database
+        db_exists = os.path.exists(db_path)
+        db_size = os.path.getsize(db_path) if db_exists else 0
+        
+        data_logger.info('=== APPLICATION STARTUP ===')
+        data_logger.info(f'Database path: {os.path.abspath(db_path)}')
+        data_logger.info(f'Database exists: {db_exists}')
+        data_logger.info(f'Database size: {db_size / 1024 / 1024:.2f} MB')
+        data_logger.info(f'DATABASE_URL: {Config.DATABASE_URL}')
+        
         db.create_all()
+        
+        from models.clan_info import ClanMemberInfo, ClanInfo
+        member_count = ClanMemberInfo.query.filter_by(is_deleted=False).count()
+        clan_count = ClanInfo.query.count()
+        data_logger.info(f'Database state: {clan_count} clans, {member_count} active members')
+        data_logger.info('=== STARTUP COMPLETE ===')
+        data_logger.info('')
         if not User.query.filter_by(username=Config.ADMIN_USER).first():
             admin = User(
                 username=Config.ADMIN_USER,
