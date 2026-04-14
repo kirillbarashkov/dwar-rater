@@ -3,8 +3,8 @@ import type { EquipmentItem } from '../../types/character';
 import './EquipmentTab.css';
 
 interface EquipmentTabProps {
-  equipment: Record<string, EquipmentItem[]>;
-  sets: Record<string, string[]>;
+  equipment?: Record<string, EquipmentItem[]>;
+  sets?: Record<string, string[]>;
 }
 
 interface EquipSection {
@@ -62,7 +62,8 @@ function ItemCard({ item }: { item: EquipmentItem }) {
   );
 }
 
-function mapToSections(equipment: Record<string, EquipmentItem[]>): Map<EquipSection, EquipmentItem[]> {
+function mapToSections(equipment: Record<string, EquipmentItem[]> | undefined): Map<EquipSection, EquipmentItem[]> {
+  if (!equipment) return new Map();
   const result = new Map<EquipSection, EquipmentItem[]>();
   const misc: EquipmentItem[] = [];
   

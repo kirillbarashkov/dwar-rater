@@ -5,7 +5,8 @@ interface StatsTabProps {
   character: AnalysisResult;
 }
 
-function StatGroup({ title, stats }: { title: string; stats: Record<string, string> }) {
+function StatGroup({ title, stats }: { title: string; stats?: Record<string, string> }) {
+  if (!stats) return null;
   const entries = Object.entries(stats);
   if (entries.length === 0) return null;
 
