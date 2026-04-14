@@ -51,17 +51,3 @@ export interface ClanMemberData {
   trial_until: string;
   is_deleted?: boolean;
 }
-
-export interface ClanHierarchyData {
-  id?: number;
-  role_name: string;
-  level: number;
-  color: string;
-  icon: string;
-  sort_order: number;
-  can_invite: boolean;
-  can_kick: boolean;
-  can_edit: boolean;
-  can_analyze: boolean;
-  min_level: number;
-}

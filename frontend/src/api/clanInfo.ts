@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { ClanInfoData, ClanMemberData, ClanHierarchyData } from '../types/clanInfo';
+import type { ClanInfoData, ClanMemberData } from '../types/clanInfo';
 
 export async function getClanInfo(clanId: number): Promise<ClanInfoData> {
   const response = await apiClient.get(`/api/clan/${clanId}/info`);
@@ -37,26 +37,7 @@ export interface ImportResult {
   errors: string[];
 }
 
-export async function importClanMembers(clanId: number, members: Partial<ClanMemberData>[], overwrite: boolean = false): Promise<ImportResult> {
-  const response = await apiClient.post(`/api/clan/${clanId}/members/import`, { members, overwrite });
+export async function importClanMembers(clanId: number, members: Partial<ClanMemberData>[], overwrite: boolean = false, clanInfo?: Partial<ClanInfoData>): Promise<ImportResult> {
+  const response = await apiClient.post(`/api/clan/${clanId}/members/import`, { members, overwrite, clanInfo });
   return response.data;
-}
-
-export async function getClanHierarchy(clanId: number): Promise<ClanHierarchyData[]> {
-  const response = await apiClient.get(`/api/clan/${clanId}/hierarchy`);
-  return response.data;
-}
-
-export async function addClanHierarchy(clanId: number, data: Partial<ClanHierarchyData> & { role_name: string }): Promise<ClanHierarchyData> {
-  const response = await apiClient.post(`/api/clan/${clanId}/hierarchy`, data);
-  return response.data;
-}
-
-export async function updateClanHierarchy(clanId: number, roleId: number, data: Partial<ClanHierarchyData>): Promise<ClanHierarchyData> {
-  const response = await apiClient.put(`/api/clan/${clanId}/hierarchy/${roleId}`, data);
-  return response.data;
-}
-
-export async function deleteClanHierarchy(clanId: number, roleId: number): Promise<void> {
-  await apiClient.delete(`/api/clan/${clanId}/hierarchy/${roleId}`);
 }

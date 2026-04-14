@@ -25,7 +25,6 @@ import { CharacterComparison } from './components/analysis/CharacterComparison';
 import { ClanChat } from './components/chat/ClanChat';
 import { ClanOverview } from './components/clan/ClanOverview';
 import { ClanMembersTable } from './components/clan/ClanMembersTable';
-import { ClanHierarchy } from './components/clan/ClanHierarchy';
 import { saveSnapshot } from './api/snapshots';
 import { addCompareCharacter } from './api/compare';
 import type { AnalysisResult } from './types/character';
@@ -273,7 +272,6 @@ function ClanPageWrapper() {
       switch (activeTab) {
         case 'info': return <ClanOverview clanId={Number(clanId) || 2315} onSwitchTab={handleSwitchTab} />;
         case 'members': return <ClanMembersTable clanId={Number(clanId) || 2315} />;
-        case 'hierarchy': return <ClanHierarchy clanId={Number(clanId) || 2315} />;
       }
     }
     return null;

@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from services.clan_parser import fetch_clan_page, parse_clan_info
 from services.data_logger import data_logger
 from models import db
-from models.clan_info import ClanInfo, ClanMemberInfo, ClanHierarchy
+from models.clan_info import ClanInfo, ClanMemberInfo
 from middleware.auth import require_auth
 
 
@@ -21,9 +21,10 @@ def get_clan_info(clan_id):
 
         if cached:
             cached.name = data['name']
-            cached.logo_url = data.get('logo_url', '')
-            cached.logo_big = data.get('logo_big', '')
-            cached.logo_small = data.get('logo_small', '')
+            if not cached.logo_big and data.get('logo_url'):
+                cached.logo_url = data.get('logo_url', '')
+                cached.logo_big = data.get('logo_big', '')
+                cached.logo_small = data.get('logo_small', '')
             cached.description = data.get('description', '')
             cached.leader_nick = data.get('leader_nick', '')
             cached.leader_rank = data.get('leader_rank', '')
@@ -207,13 +208,44 @@ def import_clan_members(clan_id):
     
     data = request.json
     members_data = data.get('members', [])
+    clan_info_data = data.get('clanInfo')
     overwrite = data.get('overwrite', False)
     
-    data_logger.info(f'[IMPORT] Starting import for clan {clan_id}, members count: {len(members_data)}, overwrite: {overwrite}')
+    data_logger.info(f'[IMPORT] Starting import for clan {clan_id}, members count: {len(members_data)}, overwrite: {overwrite}, hasClanInfo: {clan_info_data is not None}')
     
     if not isinstance(members_data, list):
         data_logger.warning(f'[IMPORT] Invalid data format for clan {clan_id}')
         return jsonify({'error': 'members должен быть массивом'}), 400
+    
+    if clan_info_data:
+        clan = ClanInfo.query.filter_by(clan_id=clan_id).first()
+        if not clan:
+            clan = ClanInfo(clan_id=clan_id, name='Орден Чести')
+            db.session.add(clan)
+        
+        if clan_info_data.get('logo_big'):
+            clan.logo_big = clan_info_data['logo_big']
+        if clan_info_data.get('logo_small'):
+            clan.logo_small = clan_info_data['logo_small']
+        if clan_info_data.get('clan_rank'):
+            clan.clan_rank = clan_info_data['clan_rank']
+        if clan_info_data.get('clan_level'):
+            clan.clan_level = clan_info_data['clan_level']
+        if clan_info_data.get('step'):
+            clan.step = clan_info_data['step']
+        if clan_info_data.get('talents'):
+            clan.talents = clan_info_data['talents']
+        if clan_info_data.get('total_players'):
+            clan.total_players = clan_info_data['total_players']
+        if clan_info_data.get('current_players'):
+            clan.current_players = clan_info_data['current_players']
+        if clan_info_data.get('clan_structure'):
+            data_logger.info(f'[IMPORT] Setting clan structure')
+            clan.set_clan_structure(clan_info_data['clan_structure'])
+        else:
+            data_logger.warning(f'[IMPORT] No clan_structure in clanInfo: {list(clan_info_data.keys())}')
+        
+        data_logger.info(f'[IMPORT] Updated clan info for clan {clan_id}')
     
     if overwrite:
         old_count = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).count()
@@ -340,119 +372,7 @@ def update_clan_member(clan_id, member_id):
         'level': member.level,
         'profession': member.profession,
         'profession_level': member.profession_level,
-'clan_role': member.clan_role,
+        'clan_role': member.clan_role,
         'join_date': member.join_date,
         'trial_until': member.trial_until,
     })
-
-
-# === Clan Hierarchy API ===
-
-@clan_info_bp.route('/api/clan/<int:clan_id>/hierarchy', methods=['GET'])
-def get_clan_hierarchy(clan_id):
-    roles = ClanHierarchy.query.filter_by(clan_id=clan_id).order_by(ClanHierarchy.sort_order).all()
-    return jsonify([{
-        'id': r.id,
-        'role_name': r.role_name,
-        'level': r.level,
-        'color': r.color,
-        'icon': r.icon,
-        'sort_order': r.sort_order,
-        'can_invite': r.can_invite,
-        'can_kick': r.can_kick,
-        'can_edit': r.can_edit,
-        'can_analyze': r.can_analyze,
-        'min_level': r.min_level,
-    } for r in roles])
-
-
-@clan_info_bp.route('/api/clan/<int:clan_id>/hierarchy', methods=['POST'])
-def add_clan_hierarchy(clan_id):
-    data = request.json
-    if not data.get('role_name'):
-        return jsonify({'error': 'role_name обязателен'}), 400
-
-    role = ClanHierarchy(
-        clan_id=clan_id,
-        role_name=data['role_name'],
-        level=data.get('level', 0),
-        color=data.get('color', '#00d4aa'),
-        icon=data.get('icon', ''),
-        sort_order=data.get('sort_order', 0),
-        can_invite=data.get('can_invite', False),
-        can_kick=data.get('can_kick', False),
-        can_edit=data.get('can_edit', False),
-        can_analyze=data.get('can_analyze', True),
-        min_level=data.get('min_level', 0),
-    )
-    db.session.add(role)
-    db.session.commit()
-
-    return jsonify({
-        'id': role.id,
-        'role_name': role.role_name,
-        'level': role.level,
-        'color': role.color,
-        'icon': role.icon,
-        'sort_order': role.sort_order,
-        'can_invite': role.can_invite,
-        'can_kick': role.can_kick,
-        'can_edit': role.can_edit,
-        'can_analyze': role.can_analyze,
-        'min_level': role.min_level,
-    }), 201
-
-
-@clan_info_bp.route('/api/clan/<int:clan_id>/hierarchy/<int:role_id>', methods=['PUT'])
-def update_clan_hierarchy(clan_id, role_id):
-    role = ClanHierarchy.query.filter_by(id=role_id, clan_id=clan_id).first()
-    if not role:
-        return jsonify({'error': 'Роль не найдена'}), 404
-
-    data = request.json
-    if 'role_name' in data:
-        role.role_name = data['role_name']
-    if 'level' in data:
-        role.level = data['level']
-    if 'color' in data:
-        role.color = data['color']
-    if 'icon' in data:
-        role.icon = data['icon']
-    if 'sort_order' in data:
-        role.sort_order = data['sort_order']
-    if 'can_invite' in data:
-        role.can_invite = data['can_invite']
-    if 'can_kick' in data:
-        role.can_kick = data['can_kick']
-    if 'can_edit' in data:
-        role.can_edit = data['can_edit']
-    if 'can_analyze' in data:
-        role.can_analyze = data['can_analyze']
-    if 'min_level' in data:
-        role.min_level = data['min_level']
-
-    db.session.commit()
-    return jsonify({
-        'id': role.id,
-        'role_name': role.role_name,
-        'level': role.level,
-        'color': role.color,
-        'icon': role.icon,
-        'sort_order': role.sort_order,
-        'can_invite': role.can_invite,
-        'can_kick': role.can_kick,
-        'can_edit': role.can_edit,
-        'can_analyze': role.can_analyze,
-        'min_level': role.min_level,
-    })
-
-
-@clan_info_bp.route('/api/clan/<int:clan_id>/hierarchy/<int:role_id>', methods=['DELETE'])
-def delete_clan_hierarchy(clan_id, role_id):
-    role = ClanHierarchy.query.filter_by(id=role_id, clan_id=clan_id).first()
-    if not role:
-        return jsonify({'error': 'Роль не найдена'}), 404
-
-    db.session.delete(role)
-    db.session.commit()
-    return jsonify({'status': 'deleted'})
