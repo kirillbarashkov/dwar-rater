@@ -94,3 +94,36 @@ export async function exportTreasuryOperations(clanId: number): Promise<Treasury
   const response = await apiClient.get(`/api/clan/${clanId}/treasury/export`);
   return response.data;
 }
+
+export interface BackupFile {
+  filename: string;
+  size: number;
+  modified: string;
+}
+
+export interface SaveBackupResult {
+  success: boolean;
+  filename: string;
+  operations_count: number;
+  message: string;
+}
+
+export async function saveTreasuryBackup(clanId: number): Promise<SaveBackupResult> {
+  const response = await apiClient.post(`/api/clan/${clanId}/treasury/backup`, {});
+  return response.data;
+}
+
+export async function listTreasuryBackups(clanId: number): Promise<{ backups: BackupFile[] }> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury/backups`);
+  return response.data;
+}
+
+export async function getTreasuryBackup(clanId: number, filename: string): Promise<TreasuryExportData> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury/backup/${filename}`);
+  return response.data;
+}
+
+export async function restoreTreasuryBackup(clanId: number, filename: string): Promise<{ success: boolean; imported: number; message: string }> {
+  const response = await apiClient.post(`/api/clan/${clanId}/treasury/backup/restore`, { filename });
+  return response.data;
+}

@@ -407,6 +407,151 @@ def export_treasury_operations(clan_id):
     return jsonify(export_data)
 
 
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/backup', methods=['POST'])
+def save_treasury_backup(clan_id):
+    import os
+    from flask import current_app
+    
+    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).all()
+    
+    export_data = {
+        'version': 1,
+        'exported_at': datetime.utcnow().isoformat(),
+        'clan_id': clan_id,
+        'operations_count': len(operations),
+        'operations': [
+            {
+                'id': op.id,
+                'date': op.date,
+                'nick': op.nick,
+                'operation_type': op.operation_type,
+                'object_name': op.object_name,
+                'quantity': op.quantity,
+                'created_at': op.created_at.isoformat() if op.created_at else None,
+            }
+            for op in operations
+        ]
+    }
+    
+    backup_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'backup')
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    filename = f'treasury-{clan_id}-{datetime.utcnow().strftime("%Y%m%d-%H%M%S")}.json'
+    filepath = os.path.join(backup_dir, filename)
+    
+    import json
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(export_data, f, ensure_ascii=False, indent=2)
+    
+    data_logger.info(f'[TREASURY] Backup saved to {filepath}')
+    
+    return jsonify({
+        'success': True,
+        'filename': filename,
+        'operations_count': len(operations),
+        'message': f'Бэкап сохранён: {filename}',
+    })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/backups', methods=['GET'])
+def list_treasury_backups(clan_id):
+    import os
+    import glob
+    
+    backup_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'backup')
+    pattern = os.path.join(backup_dir, f'treasury-{clan_id}-*.json')
+    files = glob.glob(pattern)
+    
+    backups = []
+    for filepath in sorted(files, key=os.path.getmtime, reverse=True):
+        filename = os.path.basename(filepath)
+        stat = os.stat(filepath)
+        backups.append({
+            'filename': filename,
+            'size': stat.st_size,
+            'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+        })
+    
+    return jsonify({'backups': backups})
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/backup/<filename>', methods=['GET'])
+def get_treasury_backup(clan_id, filename):
+    import os
+    import re
+    
+    if not re.match(r'^treasury-\d+-\d{8}-\d{6}\.json$', filename):
+        return jsonify({'error': 'Invalid filename'}), 400
+    
+    backup_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'backup')
+    filepath = os.path.join(backup_dir, filename)
+    
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'Backup not found'}), 404
+    
+    import json
+    with open(filepath, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    return jsonify(data)
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/backup/restore', methods=['POST'])
+@require_auth
+def restore_treasury_backup(clan_id):
+    from flask import g
+    
+    if not g.current_user or g.current_user.role != 'admin':
+        return jsonify({'error': 'Только администратор может восстанавливать бэкапы'}), 403
+    
+    data = request.json
+    filename = data.get('filename')
+    
+    if not filename:
+        return jsonify({'error': 'Filename required'}), 400
+    
+    import os
+    import re
+    
+    if not re.match(r'^treasury-\d+-\d{8}-\d{6}\.json$', filename):
+        return jsonify({'error': 'Invalid filename'}), 400
+    
+    backup_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'backup')
+    filepath = os.path.join(backup_dir, filename)
+    
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'Backup not found'}), 404
+    
+    import json
+    with open(filepath, 'r', encoding='utf-8') as f:
+        backup_data = json.load(f)
+    
+    TreasuryOperation.query.filter_by(clan_id=clan_id).delete()
+    
+    imported = 0
+    for op in backup_data.get('operations', []):
+        treasury_op = TreasuryOperation(
+            clan_id=clan_id,
+            date=op.get('date', ''),
+            nick=op.get('nick', ''),
+            operation_type=op.get('operation_type', ''),
+            object_name=op.get('object_name', ''),
+            quantity=op.get('quantity', 0),
+        )
+        db.session.add(treasury_op)
+        imported += 1
+    
+    db.session.commit()
+    
+    data_logger.info(f'[TREASURY] Restored {imported} operations from {filename}')
+    
+    return jsonify({
+        'success': True,
+        'imported': imported,
+        'message': f'Восстановлено {imported} операций из {filename}',
+    })
+
+
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury', methods=['GET'])
 def get_treasury_operations(clan_id):
     operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).limit(500).all()

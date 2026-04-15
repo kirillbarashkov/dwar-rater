@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { getTreasuryOperations, importTreasuryOperations, exportTreasuryOperations, type TreasuryExportData } from '../../api/clanInfo';
+import { getTreasuryOperations, importTreasuryOperations } from '../../api/clanInfo';
 import type { TreasuryOperationData } from '../../types/clanInfo';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { Button } from '../ui/Button';
+import { BackupPicker } from './BackupPicker';
 import {
   parseTreasuryOperations,
   TREASURY_WEB_URL,
@@ -51,8 +52,8 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
-  const [showBackup, setShowBackup] = useState(false);
-  const [backupData, setBackupData] = useState('');
+  const [showBackupPicker, setShowBackupPicker] = useState(false);
+  const [backupPickerMode, setBackupPickerMode] = useState<'save' | 'restore'>('save');
 
   const { searchNick, searchType, searchObject, filterPeriod, rangeStart, rangeEnd, selectedDate } = filters;
 
@@ -155,77 +156,14 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
     setFilters((prev) => ({ ...prev, selectedDate: null }));
   };
 
-  const handleExportBackup = async () => {
-    try {
-      const data = await exportTreasuryOperations(clanId);
-      const jsonStr = JSON.stringify(data, null, 2);
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `treasury-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      setMessage({ type: 'success', text: `Экспортировано ${data.operations_count} операций` });
-    } catch {
-      setMessage({ type: 'error', text: 'Ошибка при экспорте данных' });
-    }
+  const handleShowBackupPicker = (mode: 'save' | 'restore') => {
+    setBackupPickerMode(mode);
+    setShowBackupPicker(true);
   };
 
-  const handleImportBackup = async () => {
-    if (!backupData.trim()) {
-      setMessage({ type: 'error', text: 'Вставьте данные для импорта' });
-      return;
-    }
-
-    let parsed: TreasuryExportData;
-    try {
-      parsed = JSON.parse(backupData);
-    } catch {
-      setMessage({ type: 'error', text: 'Неверный формат JSON' });
-      return;
-    }
-
-    if (!parsed.operations || !Array.isArray(parsed.operations)) {
-      setMessage({ type: 'error', text: 'Неверная структура данных' });
-      return;
-    }
-
-    setIsImporting(true);
-    setMessage(null);
-
-    try {
-      const operations = parsed.operations.map(op => ({
-        date: op.date,
-        nick: op.nick,
-        operation_type: op.operation_type,
-        object_name: op.object_name,
-        quantity: op.quantity,
-      }));
-
-      const result = await importTreasuryOperations(clanId, operations, true);
-
-      if (result.success) {
-        setMessage({
-          type: 'success',
-          text: `Импортировано ${result.imported}, обновлено ${result.updated} операций`,
-        });
-        setBackupData('');
-        setShowBackup(false);
-        await loadOperations();
-      } else {
-        setMessage({ type: 'error', text: result.message || 'Ошибка при импорте' });
-      }
-    } catch (err) {
-      setMessage({
-        type: 'error',
-        text: `Ошибка при импорте: ${err instanceof Error ? err.message : String(err)}`,
-      });
-    } finally {
-      setIsImporting(false);
-    }
+  const handleBackupSuccess = (message: string) => {
+    setMessage({ type: 'success', text: message });
+    loadOperations();
   };
 
   const uniqueTypes = useMemo(() => {
@@ -383,11 +321,11 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
       <header className="treasury-header">
         <h2 className="treasury-title">Казна</h2>
         <div className="treasury-header-actions">
-          <Button variant="secondary" size="small" onClick={() => setShowBackup(!showBackup)}>
-            {showBackup ? 'Отмена' : 'Восстановить из резервной копии'}
-          </Button>
-          <Button variant="secondary" size="small" onClick={handleExportBackup}>
+          <Button variant="secondary" size="small" onClick={() => handleShowBackupPicker('save')}>
             Экспорт
+          </Button>
+          <Button variant="secondary" size="small" onClick={() => handleShowBackupPicker('restore')}>
+            Восстановить
           </Button>
           <Button variant="secondary" size="small" onClick={() => setShowImport(!showImport)}>
             {showImport ? 'Отмена' : 'Импорт из HTML'}
@@ -399,31 +337,6 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
         <div className={`treasury-message treasury-message-${message.type}`} role="alert">
           {message.text}
         </div>
-      )}
-
-      {showBackup && (
-        <section className="treasury-import" aria-label="Восстановление из резервной копии">
-          <div className="treasury-import-instructions">
-            <h3>Восстановление из резервной копии:</h3>
-            <ol>
-              <li>Экспортируйте данные с помощью кнопки &quot;Экспорт&quot;</li>
-              <li>Сохраните файл в надёжное место</li>
-              <li>При необходимости восстановления, вставьте содержимое JSON файла в поле ниже</li>
-              <li>Все текущие данные будут заменены</li>
-            </ol>
-          </div>
-          <textarea
-            className="treasury-html-input"
-            value={backupData}
-            onChange={(e) => setBackupData(e.target.value)}
-            placeholder="Вставьте JSON данные резервной копии..."
-            rows={10}
-            aria-label="Данные резервной копии"
-          />
-          <Button variant="primary" onClick={handleImportBackup} disabled={isImporting || !backupData.trim()}>
-            {isImporting ? 'Импорт...' : 'Восстановить'}
-          </Button>
-        </section>
       )}
 
       {showImport && (
@@ -714,6 +627,14 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
           </div>
         </>
       ) : null}
+
+      <BackupPicker
+        isOpen={showBackupPicker}
+        onClose={() => setShowBackupPicker(false)}
+        clanId={clanId}
+        mode={backupPickerMode}
+        onSuccess={handleBackupSuccess}
+      />
     </div>
   );
 }
