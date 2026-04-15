@@ -152,7 +152,7 @@
   color: var(--text-secondary);
 }
 
-.treasury-import-instructions h4 {
+.treasury-import-instructions h3 {
   margin: 0 0 8px 0;
   font-size: 14px;
   color: var(--text-primary);
