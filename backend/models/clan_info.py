@@ -66,3 +66,20 @@ class ClanMemberInfo(db.Model):
     
     def __repr__(self):
         return f'<ClanMemberInfo {self.nick}>'
+
+
+class TreasuryOperation(db.Model):
+    __tablename__ = 'treasury_operations'
+    id = db.Column(db.Integer, primary_key=True)
+    clan_id = db.Column(db.Integer, db.ForeignKey('clan_info.clan_id'), nullable=False, index=True)
+    date = db.Column(db.String(20), default='')
+    nick = db.Column(db.String(100), default='')
+    operation_type = db.Column(db.String(100), default='')
+    object_name = db.Column(db.String(200), default='')
+    quantity = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    clan = db.relationship('ClanInfo', foreign_keys=[clan_id], primaryjoin='TreasuryOperation.clan_id == ClanInfo.clan_id')
+
+    def __repr__(self):
+        return f'<TreasuryOperation {self.date} {self.nick}>'

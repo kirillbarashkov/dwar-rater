@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { ClanInfoData, ClanMemberData } from '../types/clanInfo';
+import type { ClanInfoData, ClanMemberData, TreasuryOperationData } from '../types/clanInfo';
 
 export async function getClanInfo(clanId: number): Promise<ClanInfoData> {
   const response = await apiClient.get(`/api/clan/${clanId}/info`);
@@ -39,5 +39,36 @@ export interface ImportResult {
 
 export async function importClanMembers(clanId: number, members: Partial<ClanMemberData>[], overwrite: boolean = false, clanInfo?: Partial<ClanInfoData>): Promise<ImportResult> {
   const response = await apiClient.post(`/api/clan/${clanId}/members/import`, { members, overwrite, clanInfo });
+  return response.data;
+}
+
+export interface TreasuryFetchResult {
+  success: boolean;
+  imported: number;
+  message: string;
+  error?: string;
+}
+
+export async function getTreasuryOperations(clanId: number): Promise<TreasuryOperationData[]> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury`);
+  return response.data;
+}
+
+export async function fetchTreasuryOperations(clanId: number): Promise<TreasuryFetchResult> {
+  const response = await apiClient.post(`/api/clan/${clanId}/treasury`, {});
+  return response.data;
+}
+
+export async function importTreasuryOperations(
+  clanId: number, 
+  operations: Array<{
+    date: string;
+    nick: string;
+    operation_type: string;
+    object_name: string;
+    quantity: number;
+  }>
+): Promise<{ success: boolean; imported: number; updated: number; message: string }> {
+  const response = await apiClient.post(`/api/clan/${clanId}/treasury/import`, { operations });
   return response.data;
 }

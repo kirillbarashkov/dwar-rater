@@ -28,6 +28,7 @@ const navGroups: TabGroup[] = [
   { key: 'clan', label: 'Клан', icon: '🛡️', children: [
     { key: 'info', label: 'Информация', icon: '🛡️' },
     { key: 'members', label: 'Состав', icon: '👥' },
+    { key: 'treasury', label: 'Казна', icon: '💰' },
   ]},
   { key: 'analysis', label: 'Анализ персонажа', icon: '📊', children: [
     { key: 'stats', label: 'Характеристики', icon: '📊' },

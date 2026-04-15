@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
-from services.clan_parser import fetch_clan_page, parse_clan_info
+from services.clan_parser import fetch_clan_page, parse_clan_info, fetch_clan_treasury_report, parse_clan_treasury_operations
 from services.data_logger import data_logger
 from models import db
-from models.clan_info import ClanInfo, ClanMemberInfo
+from models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation
 from middleware.auth import require_auth
 
 
@@ -376,3 +376,140 @@ def update_clan_member(clan_id, member_id):
         'join_date': member.join_date,
         'trial_until': member.trial_until,
     })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury', methods=['GET'])
+def get_treasury_operations(clan_id):
+    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).limit(500).all()
+    return jsonify([{
+        'id': op.id,
+        'date': op.date,
+        'nick': op.nick,
+        'operation_type': op.operation_type,
+        'object_name': op.object_name,
+        'quantity': op.quantity,
+    } for op in operations])
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/import', methods=['POST'])
+@require_auth
+def import_treasury_operations(clan_id):
+    from flask import g
+    
+    if not g.current_user or g.current_user.role != 'admin':
+        data_logger.warning(f'[TREASURY] Unauthorized import attempt for clan {clan_id}')
+        return jsonify({'error': 'Только администратор может импортировать казну'}), 403
+    
+    data = request.json
+    operations_data = data.get('operations', [])
+    
+    data_logger.info(f'[TREASURY] Importing {len(operations_data)} operations for clan {clan_id}')
+    
+    imported = 0
+    updated = 0
+    
+    for op in operations_data:
+        try:
+            date = op.get('date', '')
+            nick = op.get('nick', '')
+            operation_type = op.get('operation_type', '')
+            object_name = op.get('object_name', '')
+            quantity = op.get('quantity', 0)
+            
+            existing = TreasuryOperation.query.filter_by(
+                clan_id=clan_id,
+                date=date,
+                nick=nick,
+                operation_type=operation_type,
+                object_name=object_name,
+            ).first()
+            
+            if existing:
+                existing.quantity = quantity
+                updated += 1
+            else:
+                treasury_op = TreasuryOperation(
+                    clan_id=clan_id,
+                    date=date,
+                    nick=nick,
+                    operation_type=operation_type,
+                    object_name=object_name,
+                    quantity=quantity,
+                )
+                db.session.add(treasury_op)
+                imported += 1
+        except Exception as e:
+            data_logger.error(f'[TREASURY] Error importing operation: {str(e)}')
+    
+    db.session.commit()
+    
+    final_count = TreasuryOperation.query.filter_by(clan_id=clan_id).count()
+    data_logger.info(f'[TREASURY] Import completed for clan {clan_id}: added={imported}, updated={updated}, total={final_count}')
+    
+    return jsonify({
+        'success': True,
+        'imported': imported,
+        'updated': updated,
+        'message': f'Импортировано {imported}, обновлено {updated}',
+    })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury', methods=['POST'])
+@require_auth
+def fetch_treasury_operations(clan_id):
+    from flask import g
+    
+    if not g.current_user or g.current_user.role != 'admin':
+        data_logger.warning(f'[TREASURY] Unauthorized fetch attempt for clan {clan_id}')
+        return jsonify({'error': 'Только администратор может обновлять казну'}), 403
+    
+    data_logger.info(f'[TREASURY] Starting treasury fetch for clan {clan_id}')
+    
+    try:
+        html, _ = fetch_clan_treasury_report()
+        
+        data_logger.info(f'[TREASURY] Received HTML length: {len(html)}')
+        
+        if 'single_top_redirect' in html or 'index.php' in html:
+            data_logger.warning(f'[TREASURY] Site requires authentication, got redirect page')
+            return jsonify({
+                'success': False,
+                'error': 'Требуется авторизация на w1.dwar.ru',
+                'message': 'Для импорта казны необходимо войти в игру через браузер и предоставить cookies сессии.',
+            }), 200
+        
+        operations = parse_clan_treasury_operations(html)
+        
+        data_logger.info(f'[TREASURY] Parsed {len(operations)} operations from page')
+        
+        old_count = TreasuryOperation.query.filter_by(clan_id=clan_id).count()
+        TreasuryOperation.query.filter_by(clan_id=clan_id).delete()
+        
+        for op in operations:
+            treasury_op = TreasuryOperation(
+                clan_id=clan_id,
+                date=op.get('date', ''),
+                nick=op.get('nick', ''),
+                operation_type=op.get('type', ''),
+                object_name=op.get('object', ''),
+                quantity=op.get('quantity', 0),
+            )
+            db.session.add(treasury_op)
+        
+        db.session.commit()
+        
+        final_count = TreasuryOperation.query.filter_by(clan_id=clan_id).count()
+        data_logger.info(f'[TREASURY] Completed for clan {clan_id}: old={old_count}, new={final_count}')
+        
+        return jsonify({
+            'success': True,
+            'imported': final_count,
+            'message': f'Импортировано {final_count} операций',
+        })
+    except Exception as e:
+        data_logger.error(f'[TREASURY] Error fetching treasury for clan {clan_id}: {str(e)}')
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': 'Ошибка при импорте. Возможно, требуется авторизация на сайте.',
+        }), 500

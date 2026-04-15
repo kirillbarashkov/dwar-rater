@@ -51,3 +51,12 @@ export interface ClanMemberData {
   trial_until: string;
   is_deleted?: boolean;
 }
+
+export interface TreasuryOperationData {
+  id: number;
+  date: string;
+  nick: string;
+  operation_type: string;
+  object_name: string;
+  quantity: number;
+}
