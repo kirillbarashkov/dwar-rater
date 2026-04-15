@@ -328,30 +328,34 @@
 .treasury-date-range {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.treasury-date-range-label {
-  display: flex;
-  align-items: center;
   gap: 6px;
-  font-size: 13px;
-  color: var(--text-secondary);
 }
 
-.treasury-date-range-label span {
+.treasury-date-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .treasury-date-input {
-  width: 130px;
-  padding: 4px 8px;
-  font-size: 13px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  width: 140px;
 }
 
-.treasury-date-range-separator {
+.treasury-date-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.treasury-date-separator {
   color: var(--text-muted);
   user-select: none;
+  font-size: 0.9rem;
 }
 
 .treasury-clear-filters {

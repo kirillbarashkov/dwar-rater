@@ -374,9 +374,9 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
               </div>
 
               {filterPeriod === 'range' && (
-                <div className="treasury-date-range">
-                  <label className="treasury-date-range-label">
-                    <span>От:</span>
+                <>
+                  <label className="treasury-date-range">
+                    <span className="treasury-date-label">От</span>
                     <input
                       type="date"
                       className="treasury-date-input"
@@ -385,9 +385,9 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
                       aria-label="Дата начала"
                     />
                   </label>
-                  <span className="treasury-date-range-separator" aria-hidden="true">—</span>
-                  <label className="treasury-date-range-label">
-                    <span>До:</span>
+                  <span className="treasury-date-separator" aria-hidden="true">—</span>
+                  <label className="treasury-date-range">
+                    <span className="treasury-date-label">До</span>
                     <input
                       type="date"
                       className="treasury-date-input"
@@ -396,7 +396,7 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
                       aria-label="Дата окончания"
                     />
                   </label>
-                </div>
+                </>
               )}
 
               <div className="treasury-filter-group">
