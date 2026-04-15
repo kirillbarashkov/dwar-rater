@@ -41,11 +41,6 @@ interface RawMember {
 
 const DEFAULT_CLAN_ROLE = 'Рыцарь Ордена';
 
-interface ClanStructureMember {
-  nick: string;
-  description: string;
-}
-
 function parseClanInfo(content: string): ClanInfoData | undefined {
   const lines = content.split(/\r?\n/);
   const result: ClanInfoData = {};
@@ -75,22 +70,22 @@ function parseClanInfo(content: string): ClanInfoData | undefined {
       result.logo_big = trimmed.replace('- Лого (big):', '').trim();
     }
     
-    const levelMatch = trimmed.match(/^\- Уровень клана:\s*(\d+)/);
+    const levelMatch = trimmed.match(/^- Уровень клана:\s*(\d+)/);
     if (levelMatch) {
       result.clan_level = parseInt(levelMatch[1], 10);
     }
     
-    const stepMatch = trimmed.match(/^\- Ступень клана:\s*(\d+)/);
+    const stepMatch = trimmed.match(/^- Ступень клана:\s*(\d+)/);
     if (stepMatch) {
       result.step = parseInt(stepMatch[1], 10);
     }
     
-    const talentsMatch = trimmed.match(/^\- Развитие талантов клана:\s*(\d+)/);
+    const talentsMatch = trimmed.match(/^- Развитие талантов клана:\s*(\d+)/);
     if (talentsMatch) {
       result.talents = parseInt(talentsMatch[1], 10);
     }
     
-    const rankMatch = trimmed.match(/^\- Звание клана:\s*(.+)/);
+    const rankMatch = trimmed.match(/^- Звание клана:\s*(.+)/);
     if (rankMatch) {
       result.clan_rank = rankMatch[1].trim();
     }
@@ -125,7 +120,6 @@ function parseClanStructure(text: string): ClanStructure | undefined {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   
   let pendingSection = '';
-  let pendingLine = '';
   
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
@@ -138,25 +132,21 @@ function parseClanStructure(text: string): ClanStructure | undefined {
     
     if (trimmed.includes('Зам.главы') || trimmed.includes('Зам. Главы')) {
       pendingSection = 'deputy';
-      pendingLine = '';
       continue;
     }
     
     if (trimmed.includes('Совет клана')) {
       pendingSection = 'council';
-      pendingLine = '';
       continue;
     }
     
     if (trimmed.includes('Воевода')) {
       pendingSection = 'commander';
-      pendingLine = '';
       continue;
     }
     
     if (trimmed.includes('Члены клана')) {
       pendingSection = 'members';
-      pendingLine = '';
       continue;
     }
     
@@ -255,7 +245,7 @@ function parseMarkdownTable(content: string): ParseResult {
       continue;
     }
 
-    if (line.match(/^[\|\s-]+$/)) continue;
+    if (line.match(/^[|\s-]+$/)) continue;
 
     const parts = parseMarkdownTableLine(line);
 
