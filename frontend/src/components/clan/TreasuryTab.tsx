@@ -211,10 +211,25 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
         break;
       case 'range':
         if (rangeStart) {
-          result = result.filter((op) => op.date >= rangeStart);
+          const startParts = rangeStart.split('-').map(Number);
+          const startDate = new Date(startParts[0], startParts[1] - 1, startParts[2]);
+          result = result.filter((op) => {
+            const parsed = parseDate(op.date);
+            if (!parsed) return false;
+            const opDate = new Date(parsed.year, parsed.month - 1, parsed.day);
+            return opDate >= startDate;
+          });
         }
         if (rangeEnd) {
-          result = result.filter((op) => op.date <= rangeEnd);
+          const endParts = rangeEnd.split('-').map(Number);
+          const endDate = new Date(endParts[0], endParts[1] - 1, endParts[2]);
+          endDate.setHours(23, 59, 59);
+          result = result.filter((op) => {
+            const parsed = parseDate(op.date);
+            if (!parsed) return false;
+            const opDate = new Date(parsed.year, parsed.month - 1, parsed.day);
+            return opDate <= endDate;
+          });
         }
         break;
     }
@@ -359,25 +374,29 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
               </div>
 
               {filterPeriod === 'range' && (
-                <>
-                  <input
-                    type="date"
-                    className="treasury-date-input"
-                    value={rangeStart}
-                    onChange={(e) => setFilters((prev) => ({ ...prev, rangeStart: e.target.value }))}
-                    placeholder="От"
-                    aria-label="Дата начала"
-                  />
-                  <span aria-hidden="true">—</span>
-                  <input
-                    type="date"
-                    className="treasury-date-input"
-                    value={rangeEnd}
-                    onChange={(e) => setFilters((prev) => ({ ...prev, rangeEnd: e.target.value }))}
-                    placeholder="До"
-                    aria-label="Дата окончания"
-                  />
-                </>
+                <div className="treasury-date-range">
+                  <label className="treasury-date-range-label">
+                    <span>От:</span>
+                    <input
+                      type="date"
+                      className="treasury-date-input"
+                      value={rangeStart}
+                      onChange={(e) => setFilters((prev) => ({ ...prev, rangeStart: e.target.value }))}
+                      aria-label="Дата начала"
+                    />
+                  </label>
+                  <span className="treasury-date-range-separator" aria-hidden="true">—</span>
+                  <label className="treasury-date-range-label">
+                    <span>До:</span>
+                    <input
+                      type="date"
+                      className="treasury-date-input"
+                      value={rangeEnd}
+                      onChange={(e) => setFilters((prev) => ({ ...prev, rangeEnd: e.target.value }))}
+                      aria-label="Дата окончания"
+                    />
+                  </label>
+                </div>
               )}
 
               <div className="treasury-filter-group">

@@ -325,8 +325,33 @@
   min-width: 120px;
 }
 
+.treasury-date-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.treasury-date-range-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.treasury-date-range-label span {
+  white-space: nowrap;
+}
+
 .treasury-date-input {
   width: 130px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.treasury-date-range-separator {
+  color: var(--text-muted);
+  user-select: none;
 }
 
 .treasury-clear-filters {
