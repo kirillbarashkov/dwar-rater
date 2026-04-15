@@ -378,6 +378,34 @@ def update_clan_member(clan_id, member_id):
     })
 
 
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/export', methods=['GET'])
+def export_treasury_operations(clan_id):
+    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).all()
+    
+    export_data = {
+        'version': 1,
+        'exported_at': datetime.utcnow().isoformat(),
+        'clan_id': clan_id,
+        'operations_count': len(operations),
+        'operations': [
+            {
+                'id': op.id,
+                'date': op.date,
+                'nick': op.nick,
+                'operation_type': op.operation_type,
+                'object_name': op.object_name,
+                'quantity': op.quantity,
+                'created_at': op.created_at.isoformat() if op.created_at else None,
+            }
+            for op in operations
+        ]
+    }
+    
+    data_logger.info(f'[TREASURY] Exported {len(operations)} operations for clan {clan_id}')
+    
+    return jsonify(export_data)
+
+
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury', methods=['GET'])
 def get_treasury_operations(clan_id):
     operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).limit(500).all()
@@ -464,34 +492,6 @@ def import_treasury_operations(clan_id):
         'skipped': skipped,
         'message': f'Импортировано {imported}, обновлено {updated}',
     })
-
-
-@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/export', methods=['GET'])
-def export_treasury_operations(clan_id):
-    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).all()
-    
-    export_data = {
-        'version': 1,
-        'exported_at': datetime.utcnow().isoformat(),
-        'clan_id': clan_id,
-        'operations_count': len(operations),
-        'operations': [
-            {
-                'id': op.id,
-                'date': op.date,
-                'nick': op.nick,
-                'operation_type': op.operation_type,
-                'object_name': op.object_name,
-                'quantity': op.quantity,
-                'created_at': op.created_at.isoformat() if op.created_at else None,
-            }
-            for op in operations
-        ]
-    }
-    
-    data_logger.info(f'[TREASURY] Exported {len(operations)} operations for clan {clan_id}')
-    
-    return jsonify(export_data)
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury', methods=['POST'])
