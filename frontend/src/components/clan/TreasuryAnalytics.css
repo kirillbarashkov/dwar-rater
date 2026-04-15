@@ -1,0 +1,257 @@
+.treasury-analytics {
+  padding: 16px;
+}
+
+.treasury-analytics-header {
+  margin-bottom: 16px;
+}
+
+.treasury-analytics-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.treasury-analytics-filters {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+.ta-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.ta-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ta-filter-group label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ta-filter-group select,
+.ta-filter-group input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.ta-filter-group select:focus,
+.ta-filter-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.ta-filter-group select {
+  min-width: 120px;
+}
+
+.ta-filter-group input {
+  min-width: 100px;
+}
+
+.ta-filter-group input::placeholder {
+  color: var(--text-muted);
+}
+
+.ta-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ta-month-nav span {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  min-width: 100px;
+  text-align: center;
+}
+
+.ta-month-nav button {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.ta-month-nav button:hover {
+  border-color: var(--accent);
+}
+
+.ta-date-range {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ta-date-range span {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ta-date-range input {
+  width: 125px;
+  padding: 6px 8px;
+}
+
+.ta-clear-filters {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 10px;
+  line-height: 1;
+}
+
+.ta-clear-filters:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.ta-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ta-kpi-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 3px solid var(--kpi-color, var(--accent));
+}
+
+.ta-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--kpi-color, var(--text-primary));
+  font-family: monospace;
+}
+
+.ta-kpi-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.ta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .ta-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ta-chart-card,
+.ta-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.ta-card-title {
+  margin: 0 0 12px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ta-chart-container {
+  width: 100%;
+  min-height: 250px;
+}
+
+.ta-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.ta-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.ta-table th {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.ta-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.ta-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ta-table tbody tr:hover {
+  background: var(--bg-card-hover);
+}
+
+.ta-rank {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  width: 30px;
+}
+
+.ta-nick {
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.ta-type {
+  font-weight: 500;
+}
+
+.ta-income {
+  color: #22c55e;
+  font-family: monospace;
+}
+
+.ta-expense {
+  color: #ef4444;
+  font-family: monospace;
+}
+
+.recharts-default-legend {
+  font-size: 12px !important;
+}

@@ -26,6 +26,7 @@ import { ClanChat } from './components/chat/ClanChat';
 import { ClanOverview } from './components/clan/ClanOverview';
 import { ClanMembersTable } from './components/clan/ClanMembersTable';
 import { TreasuryTab } from './components/clan/TreasuryTab';
+import { TreasuryAnalytics } from './components/clan/TreasuryAnalytics';
 import { saveSnapshot } from './api/snapshots';
 import { addCompareCharacter } from './api/compare';
 import type { AnalysisResult } from './types/character';
@@ -274,6 +275,7 @@ function ClanPageWrapper() {
         case 'info': return <ClanOverview clanId={Number(clanId) || 2315} onSwitchTab={handleSwitchTab} />;
         case 'members': return <ClanMembersTable clanId={Number(clanId) || 2315} />;
         case 'treasury': return <TreasuryTab clanId={Number(clanId) || 2315} />;
+        case 'analytics': return <TreasuryAnalytics clanId={Number(clanId) || 2315} />;
       }
     }
     return null;
