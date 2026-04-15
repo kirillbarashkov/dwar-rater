@@ -67,8 +67,30 @@ export async function importTreasuryOperations(
     operation_type: string;
     object_name: string;
     quantity: number;
-  }>
-): Promise<{ success: boolean; imported: number; updated: number; message: string }> {
-  const response = await apiClient.post(`/api/clan/${clanId}/treasury/import`, { operations });
+  }>,
+  replace: boolean = false
+): Promise<{ success: boolean; imported: number; updated: number; skipped: number; message: string }> {
+  const response = await apiClient.post(`/api/clan/${clanId}/treasury/import`, { operations, replace });
+  return response.data;
+}
+
+export interface TreasuryExportData {
+  version: number;
+  exported_at: string;
+  clan_id: number;
+  operations_count: number;
+  operations: Array<{
+    id: number;
+    date: string;
+    nick: string;
+    operation_type: string;
+    object_name: string;
+    quantity: number;
+    created_at: string | null;
+  }>;
+}
+
+export async function exportTreasuryOperations(clanId: number): Promise<TreasuryExportData> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury/export`);
   return response.data;
 }

@@ -402,11 +402,17 @@ def import_treasury_operations(clan_id):
     
     data = request.json
     operations_data = data.get('operations', [])
+    replace = data.get('replace', False)
     
-    data_logger.info(f'[TREASURY] Importing {len(operations_data)} operations for clan {clan_id}')
+    data_logger.info(f'[TREASURY] Importing {len(operations_data)} operations for clan {clan_id} (replace={replace})')
+    
+    if replace:
+        TreasuryOperation.query.filter_by(clan_id=clan_id).delete()
+        data_logger.info(f'[TREASURY] Cleared existing operations for clan {clan_id}')
     
     imported = 0
     updated = 0
+    skipped = 0
     
     for op in operations_data:
         try:
@@ -415,6 +421,10 @@ def import_treasury_operations(clan_id):
             operation_type = op.get('operation_type', '')
             object_name = op.get('object_name', '')
             quantity = op.get('quantity', 0)
+            
+            if not date or not nick:
+                skipped += 1
+                continue
             
             existing = TreasuryOperation.query.filter_by(
                 clan_id=clan_id,
@@ -440,18 +450,48 @@ def import_treasury_operations(clan_id):
                 imported += 1
         except Exception as e:
             data_logger.error(f'[TREASURY] Error importing operation: {str(e)}')
+            skipped += 1
     
     db.session.commit()
     
     final_count = TreasuryOperation.query.filter_by(clan_id=clan_id).count()
-    data_logger.info(f'[TREASURY] Import completed for clan {clan_id}: added={imported}, updated={updated}, total={final_count}')
+    data_logger.info(f'[TREASURY] Import completed for clan {clan_id}: added={imported}, updated={updated}, skipped={skipped}, total={final_count}')
     
     return jsonify({
         'success': True,
         'imported': imported,
         'updated': updated,
+        'skipped': skipped,
         'message': f'Импортировано {imported}, обновлено {updated}',
     })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/export', methods=['GET'])
+def export_treasury_operations(clan_id):
+    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).all()
+    
+    export_data = {
+        'version': 1,
+        'exported_at': datetime.utcnow().isoformat(),
+        'clan_id': clan_id,
+        'operations_count': len(operations),
+        'operations': [
+            {
+                'id': op.id,
+                'date': op.date,
+                'nick': op.nick,
+                'operation_type': op.operation_type,
+                'object_name': op.object_name,
+                'quantity': op.quantity,
+                'created_at': op.created_at.isoformat() if op.created_at else None,
+            }
+            for op in operations
+        ]
+    }
+    
+    data_logger.info(f'[TREASURY] Exported {len(operations)} operations for clan {clan_id}')
+    
+    return jsonify(export_data)
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury', methods=['POST'])
