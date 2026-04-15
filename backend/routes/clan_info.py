@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from datetime import datetime
 from services.clan_parser import fetch_clan_page, parse_clan_info, fetch_clan_treasury_report, parse_clan_treasury_operations
 from services.data_logger import data_logger
 from models import db
