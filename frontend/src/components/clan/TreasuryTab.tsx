@@ -3,118 +3,37 @@ import { getTreasuryOperations, importTreasuryOperations } from '../../api/clanI
 import type { TreasuryOperationData } from '../../types/clanInfo';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { Button } from '../ui/Button';
+import {
+  parseTreasuryOperations,
+  TREASURY_WEB_URL,
+  TREASURY_CLAN_REPORT_URL,
+  MONTHS_RU,
+  PERIOD_OPTIONS,
+  PAGE_SIZE_OPTIONS,
+  SORT_KEYS,
+  SORT_KEY_LABELS,
+  parseDate,
+  formatDateKey,
+  getMonthDays,
+  type PeriodType,
+  type SortKey,
+  type MonthDay,
+} from '../../utils/treasury';
 import './TreasuryTab.css';
 
 interface TreasuryTabProps {
   clanId: number;
 }
 
-function parseTreasuryOperations(html: string): Omit<TreasuryOperationData, 'id'>[] {
-  const operations: Omit<TreasuryOperationData, 'id'>[] = [];
-  const seen = new Set<string>();
-  
-  const rowRegex = /<tr\s*class="[^"]*">(.*?)<\/tr>/gs;
-  const dateRegex = /(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})/;
-  const nickRegex = /userToTag\(\s*'([^']+)'\s*\)/;
-  
-  function cleanHtml(html: string): string {
-    return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
-  }
-  
-  let rowMatch;
-  while ((rowMatch = rowRegex.exec(html)) !== null) {
-    const rowHtml = rowMatch[1];
-    const cells: string[] = [];
-    const cellStyles: string[] = [];
-    
-    let tdMatch;
-    const tdRegex = /<td[^>]*class="brd-all p6h"([^>]*)>(.*?)<\/td>/gs;
-    while ((tdMatch = tdRegex.exec(rowHtml)) !== null) {
-      cellStyles.push(tdMatch[1]);
-      cells.push(tdMatch[2]);
-    }
-    
-    if (cells.length < 5) continue;
-    
-    const dateMatch = dateRegex.exec(cells[0]);
-    if (!dateMatch) continue;
-    const date = dateMatch[1];
-    
-    const nickMatch = nickRegex.exec(cells[1]);
-    if (!nickMatch) continue;
-    const nick = nickMatch[1];
-    
-    const operation_type = cleanHtml(cells[2]);
-    const objectName = cleanHtml(cells[3]);
-    
-    const cell5Content = cells[4];
-    const cell5Style = cellStyles[4] || '';
-    const cleanCell5 = cleanHtml(cell5Content);
-    
-    let quantity = 0;
-    let direction = 1;
-    
-    const isGreen = /color:\s*green/i.test(cell5Style);
-    const isRed = /color:\s*red/i.test(cell5Style);
-    
-    if (isGreen) {
-      direction = 1;
-      const numMatch = cleanCell5.match(/(-?\d+)/);
-      if (numMatch) {
-        quantity = Math.abs(parseInt(numMatch[1], 10));
-      }
-    } else if (isRed) {
-      direction = -1;
-      const numMatch = cleanCell5.match(/(-?\d+)/);
-      if (numMatch) {
-        quantity = Math.abs(parseInt(numMatch[1], 10));
-      }
-    }
-    
-    const key = `${date}|${nick}|${operation_type}|${objectName}|${quantity}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    
-    operations.push({
-      date,
-      nick,
-      operation_type,
-      object_name: objectName,
-      quantity: quantity * direction,
-    });
-  }
-  
-  return operations;
-}
-
-function parseDate(dateStr: string): { day: number; month: number; year: number } | null {
-  const match = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-  if (!match) return null;
-  return {
-    day: parseInt(match[1], 10),
-    month: parseInt(match[2], 10),
-    year: parseInt(match[3], 10)
-  };
-}
-
-function formatDateKey(day: number, month: number, year: number): string {
-  return `${day.toString().padStart(2, '0')}.${month.toString().padStart(2, '0')}.${year}`;
-}
-
-function getMonthDays(year: number, month: number): { day: number; dateKey: string; hasData: boolean }[] {
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const result = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    result.push({
-      day: d,
-      dateKey: formatDateKey(d, month, year),
-      hasData: false
-    });
-  }
-  return result;
-}
-
-const MONTHS = ['', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const INITIAL_FILTERS = {
+  searchNick: '',
+  searchType: '',
+  searchObject: '',
+  filterPeriod: 'all' as PeriodType,
+  rangeStart: '',
+  rangeEnd: '',
+  selectedDate: null as string | null,
+};
 
 export function TreasuryTab({ clanId }: TreasuryTabProps) {
   const [operations, setOperations] = useState<TreasuryOperationData[]>([]);
@@ -123,18 +42,17 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
   const [showImport, setShowImport] = useState(false);
   const [pastedHtml, setPastedHtml] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [sortConfig, setSortConfig] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'date', dir: 'desc' });
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({
+    key: 'date',
+    dir: 'desc',
+  });
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchNick, setSearchNick] = useState('');
-  const [searchType, setSearchType] = useState('');
-  const [searchObject, setSearchObject] = useState('');
-  const [filterPeriod, setFilterPeriod] = useState<'all' | 'today' | 'month' | 'range'>('all');
-  const [rangeStart, setRangeStart] = useState('');
-  const [rangeEnd, setRangeEnd] = useState('');
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const { searchNick, searchType, searchObject, filterPeriod, rangeStart, rangeEnd, selectedDate } = filters;
 
   const loadOperations = useCallback(async () => {
     setIsLoading(true);
@@ -157,23 +75,29 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
       setMessage({ type: 'error', text: 'Вставьте HTML код страницы' });
       return;
     }
-    
+
     setIsImporting(true);
     setMessage(null);
-    
+
     try {
       const parsed = parseTreasuryOperations(pastedHtml);
-      
+
       if (parsed.length === 0) {
-        setMessage({ type: 'error', text: 'Не удалось найти операции. Убедитесь, что скопировали HTML со страницы со таблицей.' });
+        setMessage({
+          type: 'error',
+          text: 'Не удалось найти операции. Убедитесь, что скопировали HTML со страницы со таблицей.',
+        });
         setIsImporting(false);
         return;
       }
-      
+
       const result = await importTreasuryOperations(clanId, parsed);
-      
+
       if (result.success) {
-        setMessage({ type: 'success', text: `Импортировано ${result.imported}, обновлено ${result.updated} операций` });
+        setMessage({
+          type: 'success',
+          text: `Импортировано ${result.imported}, обновлено ${result.updated} операций`,
+        });
         setPastedHtml('');
         setShowImport(false);
         await loadOperations();
@@ -181,74 +105,105 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
         setMessage({ type: 'error', text: result.message || 'Ошибка при импорте' });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: `Ошибка при импорте: ${err instanceof Error ? err.message : String(err)}` });
+      setMessage({
+        type: 'error',
+        text: `Ошибка при импорте: ${err instanceof Error ? err.message : String(err)}`,
+      });
     } finally {
       setIsImporting(false);
     }
   };
 
   const handleAnalyze = (nick: string) => {
-    const url = `https://w1.dwar.ru/user_info.php?nick=${encodeURIComponent(nick)}`;
-    window.open(url, '_blank');
+    window.open(`${TREASURY_WEB_URL}?nick=${encodeURIComponent(nick)}`, '_blank');
   };
 
-  const handleSort = (key: string) => {
+  const handleSort = (key: SortKey) => {
     setSortConfig((prev) => ({
       key,
       dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc',
     }));
   };
 
+  const handleClearFilters = () => {
+    setFilters(INITIAL_FILTERS);
+  };
+
+  const handlePeriodChange = (value: PeriodType) => {
+    setFilters((prev) => ({ ...prev, filterPeriod: value, selectedDate: null }));
+  };
+
+  const handleDateSelect = (dateKey: string, hasData: boolean) => {
+    if (!hasData) return;
+    setFilters((prev) => ({
+      ...prev,
+      selectedDate: prev.selectedDate === dateKey ? null : dateKey,
+    }));
+  };
+
+  const handlePrevMonth = () => {
+    setCurrentYear((y) => (currentMonth === 1 ? y - 1 : y));
+    setCurrentMonth((m) => (m === 1 ? 12 : m - 1));
+    setFilters((prev) => ({ ...prev, selectedDate: null }));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentYear((y) => (currentMonth === 12 ? y + 1 : y));
+    setCurrentMonth((m) => (m === 12 ? 1 : m + 1));
+    setFilters((prev) => ({ ...prev, selectedDate: null }));
+  };
+
   const uniqueTypes = useMemo(() => {
-    const types = new Set(operations.map(op => op.operation_type));
+    const types = new Set(operations.map((op) => op.operation_type));
     return Array.from(types).sort();
   }, [operations]);
 
   const dateSet = useMemo(() => {
     const set = new Set<string>();
-    operations.forEach(op => {
+    for (const op of operations) {
       const parsed = parseDate(op.date);
       if (parsed) {
         set.add(formatDateKey(parsed.day, parsed.month, parsed.year));
       }
-    });
+    }
     return set;
   }, [operations]);
 
-  const monthDays = useMemo(() => {
-    return getMonthDays(currentYear, currentMonth).map(d => ({
+  const monthDays = useMemo((): MonthDay[] => {
+    return getMonthDays(currentYear, currentMonth).map((d) => ({
       ...d,
-      hasData: dateSet.has(d.dateKey)
+      hasData: dateSet.has(d.dateKey),
     }));
   }, [currentYear, currentMonth, dateSet]);
 
   const filtered = useMemo(() => {
     let result = [...operations];
-    
+
     if (searchNick) {
-      result = result.filter(op => op.nick.toLowerCase().includes(searchNick.toLowerCase()));
+      const nickLower = searchNick.toLowerCase();
+      result = result.filter((op) => op.nick.toLowerCase().includes(nickLower));
     }
     if (searchType) {
-      result = result.filter(op => op.operation_type === searchType);
+      result = result.filter((op) => op.operation_type === searchType);
     }
     if (searchObject) {
-      result = result.filter(op => op.object_name.toLowerCase().includes(searchObject.toLowerCase()));
+      const objLower = searchObject.toLowerCase();
+      result = result.filter((op) => op.object_name.toLowerCase().includes(objLower));
     }
-    
+
     const now = new Date();
     const today = formatDateKey(now.getDate(), now.getMonth() + 1, now.getFullYear());
-    
+
     switch (filterPeriod) {
       case 'today':
-        result = result.filter(op => {
+        result = result.filter((op) => {
           const parsed = parseDate(op.date);
           if (!parsed) return false;
-          const key = formatDateKey(parsed.day, parsed.month, parsed.year);
-          return key === today;
+          return formatDateKey(parsed.day, parsed.month, parsed.year) === today;
         });
         break;
       case 'month':
-        result = result.filter(op => {
+        result = result.filter((op) => {
           const parsed = parseDate(op.date);
           if (!parsed) return false;
           return parsed.year === currentYear && parsed.month === currentMonth;
@@ -256,33 +211,34 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
         break;
       case 'range':
         if (rangeStart) {
-          result = result.filter(op => op.date >= rangeStart);
+          result = result.filter((op) => op.date >= rangeStart);
         }
         if (rangeEnd) {
-          result = result.filter(op => op.date <= rangeEnd);
+          result = result.filter((op) => op.date <= rangeEnd);
         }
         break;
     }
-    
+
     if (selectedDate) {
-      result = result.filter(op => {
+      result = result.filter((op) => {
         const parsed = parseDate(op.date);
         if (!parsed) return false;
-        const key = formatDateKey(parsed.day, parsed.month, parsed.year);
-        return key === selectedDate;
+        return formatDateKey(parsed.day, parsed.month, parsed.year) === selectedDate;
       });
     }
-    
+
     return result;
   }, [operations, searchNick, searchType, searchObject, filterPeriod, rangeStart, rangeEnd, currentYear, currentMonth, selectedDate]);
 
   const sorted = useMemo(() => {
     const result = [...filtered];
+    const { key, dir } = sortConfig;
+
     result.sort((a, b) => {
       let aVal: string | number = '';
       let bVal: string | number = '';
-      
-      switch (sortConfig.key) {
+
+      switch (key) {
         case 'date':
           aVal = a.date;
           bVal = b.date;
@@ -304,13 +260,14 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
           bVal = b.quantity;
           break;
       }
-      
+
       if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortConfig.dir === 'asc' ? aVal - bVal : bVal - aVal;
+        return dir === 'asc' ? aVal - bVal : bVal - aVal;
       }
-      
-      return sortConfig.dir === 'asc' ? String(aVal).localeCompare(String(bVal)) : String(bVal).localeCompare(String(aVal));
+
+      return dir === 'asc' ? String(aVal).localeCompare(String(bVal)) : String(bVal).localeCompare(String(aVal));
     });
+
     return result;
   }, [filtered, sortConfig]);
 
@@ -321,59 +278,44 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
     setCurrentPage(1);
   }, [pageSize, filtered.length, searchNick, searchType, searchObject, filterPeriod, selectedDate]);
 
-  const getSortIndicator = (key: string) => {
-    if (sortConfig.key !== key) return '';
+  const getSortIndicator = (key: SortKey) => {
+    if (sortConfig.key !== key) return null;
     return sortConfig.dir === 'asc' ? ' ↑' : ' ↓';
   };
 
-  const handlePrevMonth = () => {
-    if (currentMonth === 1) {
-      setCurrentMonth(12);
-      setCurrentYear(y => y - 1);
-    } else {
-      setCurrentMonth(m => m - 1);
-    }
-    setSelectedDate(null);
-  };
-
-  const handleNextMonth = () => {
-    if (currentMonth === 12) {
-      setCurrentMonth(1);
-      setCurrentYear(y => y + 1);
-    } else {
-      setCurrentMonth(m => m + 1);
-    }
-    setSelectedDate(null);
-  };
+  const hasActiveFilters =
+    searchNick || searchType || searchObject || filterPeriod !== 'all' || selectedDate;
 
   if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className="treasury-tab">
-      <div className="treasury-header">
-        <h3 className="treasury-title">💰 Операции казны</h3>
-        <Button
-          variant="secondary"
-          size="small"
-          onClick={() => setShowImport(!showImport)}
-        >
-          {showImport ? 'Отмена' : '📋 Импорт из HTML'}
+      <header className="treasury-header">
+        <h2 className="treasury-title">Казна</h2>
+        <Button variant="secondary" size="small" onClick={() => setShowImport(!showImport)}>
+          {showImport ? 'Отмена' : 'Импорт из HTML'}
         </Button>
-      </div>
+      </header>
 
       {message && (
-        <div className={`treasury-message treasury-message-${message.type}`}>
+        <div className={`treasury-message treasury-message-${message.type}`} role="alert">
           {message.text}
         </div>
       )}
 
       {showImport && (
-        <div className="treasury-import">
+        <section className="treasury-import" aria-label="Импорт данных">
           <div className="treasury-import-instructions">
-            <h4>Как скопировать HTML:</h4>
+            <h3>Как скопировать HTML:</h3>
             <ol>
-              <li>Откройте страницу <a href="https://w1.dwar.ru/clan_management.php?f=1&mode=clancell&submode=report" target="_blank" rel="noopener noreferrer">Операции казны</a> в браузере</li>
-              <li>Нажмите правую кнопку мыши → "Просмотр кода страницы" (или Ctrl+U)</li>
+              <li>
+                Откройте страницу{' '}
+                <a href={TREASURY_CLAN_REPORT_URL} target="_blank" rel="noopener noreferrer">
+                  Операции казны
+                </a>{' '}
+                в браузере
+              </li>
+              <li>Нажмите правую кнопку мыши → &quot;Просмотр кода страницы&quot; (или Ctrl+U)</li>
               <li>Выделите весь код (Ctrl+A) и скопируйте (Ctrl+C)</li>
               <li>Вставьте в поле ниже (Ctrl+V)</li>
             </ol>
@@ -384,185 +326,230 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
             onChange={(e) => setPastedHtml(e.target.value)}
             placeholder="Вставьте HTML код страницы сюда..."
             rows={10}
+            aria-label="HTML код страницы"
           />
-          <Button
-            variant="primary"
-            onClick={handleImport}
-            disabled={isImporting || !pastedHtml.trim()}
-          >
+          <Button variant="primary" onClick={handleImport} disabled={isImporting || !pastedHtml.trim()}>
             {isImporting ? 'Импорт...' : 'Импортировать'}
           </Button>
-        </div>
+        </section>
       )}
 
       {operations.length === 0 && !showImport ? (
         <div className="treasury-empty">
           <p>Нет данных о казне.</p>
-          <p>Нажмите "Импорт из HTML" для добавления данных.</p>
+          <p>Нажмите &quot;Импорт из HTML&quot; для добавления данных.</p>
         </div>
       ) : operations.length > 0 ? (
         <>
-          <div className="treasury-filters">
+          <section className="treasury-filters" aria-label="Фильтры">
             <div className="treasury-filter-row">
               <div className="treasury-filter-group">
-                <label>Период:</label>
-                <select value={filterPeriod} onChange={(e) => { setFilterPeriod(e.target.value as 'all' | 'today' | 'month' | 'range'); setSelectedDate(null); }}>
-                  <option value="all">Все</option>
-                  <option value="today">Сегодня</option>
-                  <option value="month">Текущий месяц</option>
-                  <option value="range">Диапазон</option>
+                <label htmlFor="period-select">Период:</label>
+                <select
+                  id="period-select"
+                  value={filterPeriod}
+                  onChange={(e) => handlePeriodChange(e.target.value as PeriodType)}
+                >
+                  {PERIOD_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
-              
+
               {filterPeriod === 'range' && (
                 <>
                   <input
                     type="date"
                     className="treasury-date-input"
                     value={rangeStart}
-                    onChange={(e) => setRangeStart(e.target.value)}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, rangeStart: e.target.value }))}
                     placeholder="От"
+                    aria-label="Дата начала"
                   />
-                  <span>—</span>
+                  <span aria-hidden="true">—</span>
                   <input
                     type="date"
                     className="treasury-date-input"
                     value={rangeEnd}
-                    onChange={(e) => setRangeEnd(e.target.value)}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, rangeEnd: e.target.value }))}
                     placeholder="До"
+                    aria-label="Дата окончания"
                   />
                 </>
               )}
-              
+
               <div className="treasury-filter-group">
                 <input
                   type="text"
                   placeholder="Игрок..."
                   value={searchNick}
-                  onChange={(e) => setSearchNick(e.target.value)}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, searchNick: e.target.value }))}
                   className="treasury-search"
+                  aria-label="Поиск по игроку"
                 />
               </div>
-              
+
               <div className="treasury-filter-group">
-                <select value={searchType} onChange={(e) => setSearchType(e.target.value)}>
+                <select
+                  value={searchType}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, searchType: e.target.value }))}
+                  aria-label="Фильтр по типу"
+                >
                   <option value="">Все типы</option>
-                  {uniqueTypes.map(t => (
-                    <option key={t} value={t}>{t}</option>
+                  {uniqueTypes.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
                   ))}
                 </select>
               </div>
-              
+
               <div className="treasury-filter-group">
                 <input
                   type="text"
                   placeholder="Объект..."
                   value={searchObject}
-                  onChange={(e) => setSearchObject(e.target.value)}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, searchObject: e.target.value }))}
                   className="treasury-search"
+                  aria-label="Поиск по объекту"
                 />
               </div>
-              
-              {(searchNick || searchType || searchObject || filterPeriod !== 'all' || selectedDate) && (
-                <button className="treasury-clear-filters" onClick={() => {
-                  setSearchNick('');
-                  setSearchType('');
-                  setSearchObject('');
-                  setFilterPeriod('all');
-                  setSelectedDate(null);
-                }}>
+
+              {hasActiveFilters && (
+                <button
+                  className="treasury-clear-filters"
+                  onClick={handleClearFilters}
+                  aria-label="Очистить фильтры"
+                  type="button"
+                >
                   ×
                 </button>
               )}
             </div>
-            
-            <div className="treasury-month-nav">
-              <button onClick={handlePrevMonth}>←</button>
-              <span className="treasury-month-label">{MONTHS[currentMonth]} {currentYear}</span>
-              <button onClick={handleNextMonth}>→</button>
-            </div>
-            
-            <div className="treasury-month-strip">
+
+            <nav className="treasury-month-nav" aria-label="Навигация по месяцам">
+              <button onClick={handlePrevMonth} aria-label="Предыдущий месяц" type="button">
+                ←
+              </button>
+              <span className="treasury-month-label" aria-live="polite">
+                {MONTHS_RU[currentMonth]} {currentYear}
+              </span>
+              <button onClick={handleNextMonth} aria-label="Следующий месяц" type="button">
+                →
+              </button>
+            </nav>
+
+            <div className="treasury-month-strip" role="list" aria-label="Календарь дней">
               {monthDays.map(({ day, dateKey, hasData }) => (
                 <div
                   key={dateKey}
-                  className={`treasury-month-day ${hasData ? 'has-data' : ''} ${selectedDate === dateKey ? 'selected' : ''}`}
-                  onClick={() => hasData ? setSelectedDate(selectedDate === dateKey ? null : dateKey) : undefined}
-                  title={hasData ? dateKey : 'Нет данных'}
+                  role="listitem"
+                  className={`treasury-month-day ${hasData ? 'has-data' : ''} ${
+                    selectedDate === dateKey ? 'selected' : ''
+                  }`}
+                  onClick={() => handleDateSelect(dateKey, hasData)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleDateSelect(dateKey, hasData);
+                    }
+                  }}
+                  tabIndex={hasData ? 0 : -1}
+                  role="button"
+                  aria-label={`${day} ${MONTHS_RU[currentMonth]} ${hasData ? 'есть данные' : 'нет данных'}`}
+                  aria-pressed={selectedDate === dateKey}
                 >
                   {day}
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
           <div className="treasury-table-container">
-            <table className="treasury-table">
+            <table className="treasury-table" aria-label="Операции казны">
               <thead>
                 <tr>
-                  <th className="treasury-number">#</th>
-                  <th className="treasury-sortable" onClick={() => handleSort('date')}>
-                    Дата{getSortIndicator('date')}
-                  </th>
-                  <th className="treasury-sortable" onClick={() => handleSort('nick')}>
-                    Игрок{getSortIndicator('nick')}
-                  </th>
-                  <th className="treasury-sortable" onClick={() => handleSort('operation_type')}>
-                    Тип{getSortIndicator('operation_type')}
-                  </th>
-                  <th className="treasury-sortable" onClick={() => handleSort('object_name')}>
-                    Объект{getSortIndicator('object_name')}
-                  </th>
-                  <th className="treasury-sortable treasury-col-quantity" onClick={() => handleSort('quantity')}>
-                    Кол-во{getSortIndicator('quantity')}
-                  </th>
+                  <th scope="col" className="treasury-number">#</th>
+                  {SORT_KEYS.map((key) => (
+                    <th
+                      key={key}
+                      scope="col"
+                      className={key === 'quantity' ? 'treasury-sortable treasury-col-quantity' : 'treasury-sortable'}
+                      onClick={() => handleSort(key)}
+                      aria-sort={
+                        sortConfig.key === key
+                          ? sortConfig.dir === 'asc'
+                            ? 'ascending'
+                            : 'descending'
+                          : 'none'
+                      }
+                    >
+                      {SORT_KEY_LABELS[key]}
+                      {getSortIndicator(key)}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {paginated.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="treasury-no-data">Нет данных за выбранный период</td>
-                  </tr>
-                ) : paginated.map((op, index) => (
-                  <tr key={op.id}>
-                    <td className="treasury-number">{(currentPage - 1) * pageSize + index + 1}</td>
-                    <td className="treasury-date">{op.date}</td>
-                    <td
-                      className="treasury-nick treasury-link"
-                      onClick={() => handleAnalyze(op.nick)}
-                    >
-                      {op.nick}
-                    </td>
-                    <td className="treasury-type">{op.operation_type}</td>
-                    <td className="treasury-object">{op.object_name}</td>
-                    <td className={`treasury-quantity ${op.quantity >= 0 ? 'positive' : 'negative'}`}>
-                      {op.quantity >= 0 ? '+' : ''}{op.quantity.toLocaleString()}
+                    <td colSpan={6} className="treasury-no-data">
+                      Нет данных за выбранный период
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  paginated.map((op, index) => (
+                    <tr key={op.id}>
+                      <td className="treasury-number">
+                        {(currentPage - 1) * pageSize + index + 1}
+                      </td>
+                      <td className="treasury-date">{op.date}</td>
+                      <td className="treasury-nick treasury-link" onClick={() => handleAnalyze(op.nick)}>
+                        {op.nick}
+                      </td>
+                      <td className="treasury-type">{op.operation_type}</td>
+                      <td className="treasury-object">{op.object_name}</td>
+                      <td
+                        className={`treasury-quantity ${op.quantity >= 0 ? 'positive' : 'negative'}`}
+                      >
+                        {op.quantity >= 0 ? '+' : ''}
+                        {op.quantity.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
-          <div className="treasury-pagination">
-            <div className="treasury-pagination-info">
+          <div className="treasury-pagination" role="navigation" aria-label="Пагинация">
+            <div className="treasury-pagination-info" aria-live="polite">
               Показано {paginated.length} из {sorted.length} записей
             </div>
             <div className="treasury-pagination-controls">
+              <label htmlFor="page-size-select" className="visually-hidden">
+                Количество записей на странице
+              </label>
               <select
+                id="page-size-select"
                 className="treasury-page-size"
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
               >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
               </select>
               <button
                 className="treasury-page-btn"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(1)}
+                aria-label="Первая страница"
+                type="button"
               >
                 ««
               </button>
@@ -570,16 +557,20 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
                 className="treasury-page-btn"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => p - 1)}
+                aria-label="Предыдущая страница"
+                type="button"
               >
                 «
               </button>
-              <span className="treasury-page-current">
+              <span className="treasury-page-current" aria-current="page">
                 {currentPage} / {totalPages}
               </span>
               <button
                 className="treasury-page-btn"
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((p) => p + 1)}
+                aria-label="Следующая страница"
+                type="button"
               >
                 »
               </button>
@@ -587,6 +578,8 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
                 className="treasury-page-btn"
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(totalPages)}
+                aria-label="Последняя страница"
+                type="button"
               >
                 »»
               </button>
