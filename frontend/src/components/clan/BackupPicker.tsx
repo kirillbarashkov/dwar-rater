@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
@@ -21,15 +21,7 @@ export function BackupPicker({ isOpen, onClose, clanId, mode, onSuccess }: Backu
   const [previewData, setPreviewData] = useState<TreasuryExportData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isOpen || mode !== 'restore') {
-      setIsLoading(false);
-      return;
-    }
-    loadBackups();
-  }, [isOpen, mode, clanId, loadBackups]);
-
-  const loadBackups = async () => {
+  const loadBackups = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -40,7 +32,15 @@ export function BackupPicker({ isOpen, onClose, clanId, mode, onSuccess }: Backu
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [clanId]);
+
+  useEffect(() => {
+    if (!isOpen || mode !== 'restore') {
+      setIsLoading(false);
+      return;
+    }
+    loadBackups();
+  }, [isOpen, mode, clanId, loadBackups]);
 
   const handleSave = async () => {
     setIsProcessing(true);
