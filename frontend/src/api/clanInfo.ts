@@ -127,3 +127,32 @@ export async function restoreTreasuryBackup(clanId: number, filename: string): P
   const response = await apiClient.post(`/api/clan/${clanId}/treasury/backup/restore`, { filename });
   return response.data;
 }
+
+export async function updateTreasuryCompensation(
+  clanId: number,
+  operationId: number,
+  compensationFlag: boolean,
+  compensationComment: string
+): Promise<TreasuryOperationData> {
+  const response = await apiClient.put(`/api/clan/${clanId}/treasury/${operationId}/compensation`, {
+    compensation_flag: compensationFlag,
+    compensation_comment: compensationComment,
+  });
+  return response.data;
+}
+
+export async function createTreasuryCompensation(
+  clanId: number,
+  nick: string,
+  normAmount: number,
+  comment: string,
+  months: number[]
+): Promise<{ created: number; operations: TreasuryOperationData[] }> {
+  const response = await apiClient.post(`/api/clan/${clanId}/treasury/compensation`, {
+    nick,
+    norm_amount: normAmount,
+    comment,
+    months,
+  });
+  return response.data;
+}

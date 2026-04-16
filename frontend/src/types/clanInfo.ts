@@ -59,4 +59,6 @@ export interface TreasuryOperationData {
   operation_type: string;
   object_name: string;
   quantity: number;
+  compensation_flag: boolean;
+  compensation_comment: string;
 }

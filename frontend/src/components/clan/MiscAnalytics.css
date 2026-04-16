@@ -1,0 +1,135 @@
+.misc-analytics {
+  padding: 16px;
+}
+
+.misc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.misc-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.misc-kpi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.misc-kpi-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.misc-kpi-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.misc-kpi-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.misc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .misc-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.misc-chart-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.misc-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.misc-section-wide {
+  grid-column: 1 / -1;
+}
+
+.misc-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.misc-chart-container {
+  width: 100%;
+}
+
+.misc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.misc-table th,
+.misc-table td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.misc-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.misc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.misc-nick {
+  font-weight: 500;
+}
+
+.misc-object {
+  font-weight: 500;
+}
+
+.misc-type {
+  font-weight: 500;
+}
+
+.misc-income {
+  color: #22c55e;
+}
+
+.misc-expense {
+  color: #ef4444;
+}
+
+.misc-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px;
+  font-size: 13px;
+}

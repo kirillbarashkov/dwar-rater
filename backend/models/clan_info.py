@@ -77,6 +77,8 @@ class TreasuryOperation(db.Model):
     operation_type = db.Column(db.String(100), default='')
     object_name = db.Column(db.String(200), default='')
     quantity = db.Column(db.Integer, default=0)
+    compensation_flag = db.Column(db.Boolean, default=False)
+    compensation_comment = db.Column(db.String(500), default='')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     clan = db.relationship('ClanInfo', foreign_keys=[clan_id], primaryjoin='TreasuryOperation.clan_id == ClanInfo.clan_id')

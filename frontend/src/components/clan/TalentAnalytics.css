@@ -1,0 +1,152 @@
+.talent-analytics {
+  padding: 16px;
+}
+
+.talent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.talent-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.talent-kpi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.talent-kpi-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.talent-kpi-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.talent-kpi-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.talent-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .talent-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.talent-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.talent-section-wide {
+  grid-column: 1 / -1;
+}
+
+.talent-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.talent-section-subtitle {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.talent-section-warning .talent-section-title {
+  color: #f59e0b;
+}
+
+.talent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.talent-table th,
+.talent-table td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.talent-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.talent-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.talent-table-wide {
+  font-size: 12px;
+}
+
+.talent-table-wide th,
+.talent-table-wide td {
+  padding: 6px;
+}
+
+.talent-nick {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.talent-rank {
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.talent-resource {
+  font-weight: 500;
+}
+
+.talent-amount {
+  color: #22c55e;
+}
+
+.talent-deficit {
+  color: #ef4444;
+}
+
+.talent-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px;
+  font-size: 13px;
+}

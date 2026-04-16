@@ -396,6 +396,8 @@ def export_treasury_operations(clan_id):
                 'operation_type': op.operation_type,
                 'object_name': op.object_name,
                 'quantity': op.quantity,
+                'compensation_flag': op.compensation_flag,
+                'compensation_comment': op.compensation_comment,
                 'created_at': op.created_at.isoformat() if op.created_at else None,
             }
             for op in operations
@@ -427,6 +429,8 @@ def save_treasury_backup(clan_id):
                 'operation_type': op.operation_type,
                 'object_name': op.object_name,
                 'quantity': op.quantity,
+                'compensation_flag': op.compensation_flag,
+                'compensation_comment': op.compensation_comment,
                 'created_at': op.created_at.isoformat() if op.created_at else None,
             }
             for op in operations
@@ -537,6 +541,8 @@ def restore_treasury_backup(clan_id):
             operation_type=op.get('operation_type', ''),
             object_name=op.get('object_name', ''),
             quantity=op.get('quantity', 0),
+            compensation_flag=op.get('compensation_flag', False),
+            compensation_comment=op.get('compensation_comment', ''),
         )
         db.session.add(treasury_op)
         imported += 1
@@ -562,7 +568,98 @@ def get_treasury_operations(clan_id):
         'operation_type': op.operation_type,
         'object_name': op.object_name,
         'quantity': op.quantity,
+        'compensation_flag': op.compensation_flag,
+        'compensation_comment': op.compensation_comment,
     } for op in operations])
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/<int:operation_id>/compensation', methods=['PUT'])
+@require_auth
+def update_treasury_compensation(clan_id, operation_id):
+    from flask import g
+    
+    if not g.current_user or g.current_user.role != 'admin':
+        return jsonify({'error': 'Только администратор может изменять компенсации'}), 403
+    
+    operation = TreasuryOperation.query.filter_by(id=operation_id, clan_id=clan_id).first()
+    if not operation:
+        return jsonify({'error': 'Операция не найдена'}), 404
+    
+    data = request.json
+    
+    if 'compensation_flag' in data:
+        operation.compensation_flag = data['compensation_flag']
+    if 'compensation_comment' in data:
+        operation.compensation_comment = data['compensation_comment']
+    
+    db.session.commit()
+    
+    data_logger.info(f'[TREASURY] Updated compensation for operation {operation_id}: flag={operation.compensation_flag}, comment={operation.compensation_comment}')
+    
+    return jsonify({
+        'id': operation.id,
+        'date': operation.date,
+        'nick': operation.nick,
+        'operation_type': operation.operation_type,
+        'object_name': operation.object_name,
+        'quantity': operation.quantity,
+        'compensation_flag': operation.compensation_flag,
+        'compensation_comment': operation.compensation_comment,
+    })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/compensation', methods=['POST'])
+@require_auth
+def create_treasury_compensation(clan_id):
+    from flask import g
+    
+    if not g.current_user or g.current_user.role != 'admin':
+        return jsonify({'error': 'Только администратор может создавать компенсации'}), 403
+    
+    data = request.json
+    nick = data.get('nick')
+    norm_amount = data.get('norm_amount', 0)
+    comment = data.get('comment', '')
+    months = data.get('months', [])
+    
+    if not nick:
+        return jsonify({'error': 'nick обязателен'}), 400
+    
+    if not months:
+        return jsonify({'error': 'months обязателен'}), 400
+    
+    created = []
+    for month in months:
+        date_str = f'15.{month:02d}.{datetime.now().year}'
+        
+        treasury_op = TreasuryOperation(
+            clan_id=clan_id,
+            date=date_str,
+            nick=nick,
+            operation_type='Деньги',
+            object_name='Монеты',
+            quantity=norm_amount,
+            compensation_flag=True,
+            compensation_comment=comment,
+        )
+        db.session.add(treasury_op)
+        created.append(treasury_op)
+    
+    db.session.commit()
+    
+    data_logger.info(f'[TREASURY] Created {len(created)} compensations for {nick}: amount={norm_amount}, months={months}, comment={comment}')
+    
+    return jsonify({
+        'created': len(created),
+        'operations': [{
+            'id': op.id,
+            'date': op.date,
+            'nick': op.nick,
+            'quantity': op.quantity,
+            'compensation_flag': op.compensation_flag,
+            'compensation_comment': op.compensation_comment,
+        } for op in created],
+    }), 201
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/import', methods=['POST'])
@@ -595,6 +692,8 @@ def import_treasury_operations(clan_id):
             operation_type = op.get('operation_type', '')
             object_name = op.get('object_name', '')
             quantity = op.get('quantity', 0)
+            compensation_flag = op.get('compensation_flag', False)
+            compensation_comment = op.get('compensation_comment', '')
             
             if not date or not nick:
                 skipped += 1
@@ -610,6 +709,8 @@ def import_treasury_operations(clan_id):
             
             if existing:
                 existing.quantity = quantity
+                existing.compensation_flag = compensation_flag
+                existing.compensation_comment = compensation_comment
                 updated += 1
             else:
                 treasury_op = TreasuryOperation(
@@ -619,6 +720,8 @@ def import_treasury_operations(clan_id):
                     operation_type=operation_type,
                     object_name=object_name,
                     quantity=quantity,
+                    compensation_flag=compensation_flag,
+                    compensation_comment=compensation_comment,
                 )
                 db.session.add(treasury_op)
                 imported += 1

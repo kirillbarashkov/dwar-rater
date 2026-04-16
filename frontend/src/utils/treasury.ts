@@ -171,3 +171,95 @@ export function getMonthDays(year: number, month: number): MonthDay[] {
   }
   return result;
 }
+
+export const TALENT_RESOURCES = [
+  'Кристаллы истины',
+  'Страница из трактата «Единство клана»',
+  'Трактат «Единство клана I»',
+  'Трактат «Единство клана II»',
+  'Трактат «Единство клана III»',
+  'Трактат «Единство клана IV»',
+  'Трактат «Единство клана V»',
+  'Жетон «Времена года»',
+  'Кристаллический прах',
+  'Браслеты джиннов',
+  'Мо-датхар альвы благонравной',
+  'Мо-датхар нурида',
+  'Мо-датхар золотой шамсы',
+  'Боевое свидетельство',
+  'Гиамбир',
+  'Эльдорилл',
+  'Золотой хабус',
+  'Фосфорическая пыль',
+  'Звено цепи Лудьиал',
+  'Злое око',
+  'Эфирная пыль',
+] as const;
+
+export type TalentResourceName = typeof TALENT_RESOURCES[number];
+
+export const TAX_OBJECT_NAME = 'Монеты';
+
+export const CLAN_TAX_NORM: Record<number, number> = {
+  1: 10, 2: 10, 3: 10, 4: 10, 5: 10,
+  6: 15, 7: 15, 8: 15,
+  9: 20, 10: 20,
+  11: 25, 12: 25,
+  13: 50, 14: 50, 15: 50,
+  16: 100, 17: 100, 18: 100, 19: 100, 20: 100,
+};
+
+export interface PlayerContribution {
+  nick: string;
+  total: number;
+  count: number;
+  details: Record<string, number>;
+}
+
+export interface TaxRecord {
+  nick: string;
+  amount: number;
+  date: string;
+  status: 'debtor' | 'normal' | 'over';
+}
+
+export function isTaxOperation(op: { operation_type: string; object_name: string }): boolean {
+  return op.operation_type === 'Деньги' && op.object_name === TAX_OBJECT_NAME;
+}
+
+export function isTalentResource(objectName: string): boolean {
+  return TALENT_RESOURCES.includes(objectName as TalentResourceName);
+}
+
+export function isTalentOperation(op: { operation_type: string; object_name: string }): boolean {
+  if (op.operation_type === 'Склад' && isTalentResource(op.object_name)) {
+    return true;
+  }
+  if (op.operation_type === 'Возвращено главой') {
+    return isTalentResource(op.object_name);
+  }
+  return false;
+}
+
+export function isTaxRelevantOperation(op: { operation_type: string; object_name: string }): boolean {
+  if (isTaxOperation(op)) return true;
+  if (op.operation_type === 'Возвращено главой' && op.object_name === TAX_OBJECT_NAME) {
+    return true;
+  }
+  return false;
+}
+
+export function getOriginalOwner(
+  op: { operation_type: string; object_name: string; nick: string; quantity: number; date: string },
+  allOperations: { nick: string; object_name: string; quantity: number; date: string }[]
+): string {
+  if (op.operation_type === 'Возвращено главой' && op.quantity > 0) {
+    const sameResource = allOperations.filter(
+      o => o.object_name === op.object_name && o.quantity < 0
+    );
+    const sameResourceSorted = sameResource.sort((a, b) => b.date.localeCompare(a.date));
+    const original = sameResourceSorted[0];
+    return original ? original.nick : op.nick;
+  }
+  return op.nick;
+}
