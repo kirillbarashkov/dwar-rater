@@ -271,10 +271,17 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
       let bVal: string | number = '';
 
       switch (key) {
-        case 'date':
-          aVal = a.date;
-          bVal = b.date;
-          break;
+        case 'date': {
+          const parseSortDate = (dateStr: string): Date => {
+            const [dmy, time] = dateStr.split(' ');
+            const [day, month, year] = dmy.split('.').map(Number);
+            const [hours, minutes] = time ? time.split(':').map(Number) : [0, 0];
+            return new Date(year, month - 1, day, hours, minutes);
+          };
+          aVal = parseSortDate(a.date).getTime();
+          bVal = parseSortDate(b.date).getTime();
+          return dir === 'asc' ? Number(aVal) - Number(bVal) : Number(bVal) - Number(aVal);
+        }
         case 'nick':
           aVal = a.nick.toLowerCase();
           bVal = b.nick.toLowerCase();
