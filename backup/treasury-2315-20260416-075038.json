@@ -1,0 +1,6767 @@
+{
+  "version": 1,
+  "exported_at": "2026-04-16T07:50:38.311836",
+  "clan_id": 2315,
+  "operations_count": 751,
+  "operations": [
+    {
+      "id": 751,
+      "date": "03.04.2026 08:25",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Совершенный энергетический настой",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:50:25.168280"
+    },
+    {
+      "id": 750,
+      "date": "03.04.2026 08:25",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Энергетический настой",
+      "quantity": 24,
+      "created_at": "2026-04-16T07:50:25.167513"
+    },
+    {
+      "id": 749,
+      "date": "03.04.2026 08:25",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Большой энергетический настой",
+      "quantity": 16,
+      "created_at": "2026-04-16T07:50:25.166437"
+    },
+    {
+      "id": 748,
+      "date": "03.04.2026 08:25",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": 59,
+      "created_at": "2026-04-16T07:50:25.165202"
+    },
+    {
+      "id": 747,
+      "date": "03.04.2026 08:40",
+      "nick": "флегматичный Вик",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:50:25.163625"
+    },
+    {
+      "id": 746,
+      "date": "03.04.2026 09:02",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:50:25.161304"
+    },
+    {
+      "id": 745,
+      "date": "03.04.2026 09:04",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Склад",
+      "object_name": "Семилапый Вайранг",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:50:25.159071"
+    },
+    {
+      "id": 744,
+      "date": "03.04.2026 09:04",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Склад",
+      "object_name": "Пламенная Альтизария",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:50:25.158029"
+    },
+    {
+      "id": 743,
+      "date": "03.04.2026 09:05",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Склад",
+      "object_name": "Верткий Кастинодус",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:50:25.157157"
+    },
+    {
+      "id": 742,
+      "date": "03.04.2026 09:05",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Склад",
+      "object_name": "Сочный Кару",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:50:25.156079"
+    },
+    {
+      "id": 741,
+      "date": "03.04.2026 09:05",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Склад",
+      "object_name": "Пышный Иноцвет",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:50:25.154425"
+    },
+    {
+      "id": 740,
+      "date": "03.04.2026 09:05",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Склад",
+      "object_name": "Каплевидный Сараккаш",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:50:25.153275"
+    },
+    {
+      "id": 739,
+      "date": "03.04.2026 09:06",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Склад",
+      "object_name": "Белоснежный Бразилит",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:50:25.151901"
+    },
+    {
+      "id": 738,
+      "date": "03.04.2026 09:06",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Склад",
+      "object_name": "Шипастый Астанит",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:50:25.149725"
+    },
+    {
+      "id": 737,
+      "date": "03.04.2026 09:26",
+      "nick": "прото",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:50:25.147055"
+    },
+    {
+      "id": 736,
+      "date": "03.04.2026 09:37",
+      "nick": "A e r i s",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:50:25.144064"
+    },
+    {
+      "id": 735,
+      "date": "03.04.2026 09:43",
+      "nick": "Родри",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 20,
+      "created_at": "2026-04-16T07:50:25.142585"
+    },
+    {
+      "id": 734,
+      "date": "03.04.2026 09:51",
+      "nick": "Agni",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": -5,
+      "created_at": "2026-04-16T07:50:25.141564"
+    },
+    {
+      "id": 733,
+      "date": "03.04.2026 09:51",
+      "nick": "Agni",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:50:25.138179"
+    },
+    {
+      "id": 732,
+      "date": "03.04.2026 10:04",
+      "nick": "Master Snake",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 30,
+      "created_at": "2026-04-16T07:49:27.726082"
+    },
+    {
+      "id": 731,
+      "date": "03.04.2026 10:24",
+      "nick": "Agni",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:49:27.725444"
+    },
+    {
+      "id": 730,
+      "date": "03.04.2026 10:49",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Потрёпанная карта клада",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:49:27.724541"
+    },
+    {
+      "id": 729,
+      "date": "03.04.2026 10:49",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Неразборчивая карта клада",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:49:27.723704"
+    },
+    {
+      "id": 728,
+      "date": "03.04.2026 10:49",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Надёжная карта клада",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:49:27.722801"
+    },
+    {
+      "id": 727,
+      "date": "03.04.2026 11:03",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Золотой хабус",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:49:27.721654"
+    },
+    {
+      "id": 726,
+      "date": "03.04.2026 11:07",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:49:27.720556"
+    },
+    {
+      "id": 725,
+      "date": "03.04.2026 11:08",
+      "nick": "Naysayer",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:49:27.719505"
+    },
+    {
+      "id": 724,
+      "date": "03.04.2026 11:08",
+      "nick": "Naysayer",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:49:27.717986"
+    },
+    {
+      "id": 723,
+      "date": "03.04.2026 11:08",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:49:27.716068"
+    },
+    {
+      "id": 722,
+      "date": "03.04.2026 11:09",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Шипастый Астанит",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:27.714425"
+    },
+    {
+      "id": 721,
+      "date": "03.04.2026 11:09",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Белоснежный Бразилит",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:27.712812"
+    },
+    {
+      "id": 720,
+      "date": "03.04.2026 11:09",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Совершенный энергетический настой",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:27.710137"
+    },
+    {
+      "id": 719,
+      "date": "03.04.2026 11:09",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Каплевидный Сараккаш",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:27.709224"
+    },
+    {
+      "id": 718,
+      "date": "03.04.2026 11:09",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Семилапый Вайранг",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:27.708392"
+    },
+    {
+      "id": 717,
+      "date": "03.04.2026 11:09",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Пышный Иноцвет",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:27.707581"
+    },
+    {
+      "id": 716,
+      "date": "03.04.2026 11:09",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сочный Кару",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:27.706808"
+    },
+    {
+      "id": 715,
+      "date": "03.04.2026 11:09",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Верткий Кастинодус",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:27.706019"
+    },
+    {
+      "id": 714,
+      "date": "03.04.2026 11:09",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Энергетический настой",
+      "quantity": -24,
+      "created_at": "2026-04-16T07:49:27.704982"
+    },
+    {
+      "id": 713,
+      "date": "03.04.2026 11:09",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": -59,
+      "created_at": "2026-04-16T07:49:27.701767"
+    },
+    {
+      "id": 712,
+      "date": "03.04.2026 11:10",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Пламенная Альтизария",
+      "quantity": -3,
+      "created_at": "2026-04-16T07:49:08.496203"
+    },
+    {
+      "id": 711,
+      "date": "03.04.2026 11:10",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Большой энергетический настой",
+      "quantity": -16,
+      "created_at": "2026-04-16T07:49:08.495400"
+    },
+    {
+      "id": 710,
+      "date": "03.04.2026 11:11",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Груда бумаг",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:08.494351"
+    },
+    {
+      "id": 709,
+      "date": "03.04.2026 11:22",
+      "nick": "старый чертенок",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:49:08.493471"
+    },
+    {
+      "id": 708,
+      "date": "03.04.2026 12:13",
+      "nick": "Doktor Web",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:49:08.492543"
+    },
+    {
+      "id": 707,
+      "date": "03.04.2026 13:53",
+      "nick": "Звизданутый",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 100,
+      "created_at": "2026-04-16T07:49:08.491633"
+    },
+    {
+      "id": 706,
+      "date": "03.04.2026 13:58",
+      "nick": "Hozaika ozer",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:49:08.490654"
+    },
+    {
+      "id": 705,
+      "date": "03.04.2026 14:58",
+      "nick": "O____O",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:49:08.489434"
+    },
+    {
+      "id": 704,
+      "date": "03.04.2026 15:15",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 75,
+      "created_at": "2026-04-16T07:49:08.487954"
+    },
+    {
+      "id": 703,
+      "date": "03.04.2026 15:15",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Редкая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:49:08.486536"
+    },
+    {
+      "id": 702,
+      "date": "03.04.2026 15:45",
+      "nick": "старый чертенок",
+      "operation_type": "Склад",
+      "object_name": "Мясной жук",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:08.484215"
+    },
+    {
+      "id": 701,
+      "date": "03.04.2026 15:45",
+      "nick": "старый чертенок",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:49:08.482052"
+    },
+    {
+      "id": 700,
+      "date": "03.04.2026 15:56",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -904,
+      "created_at": "2026-04-16T07:49:08.480862"
+    },
+    {
+      "id": 699,
+      "date": "03.04.2026 15:57",
+      "nick": "Satoshi Nakamoto",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:49:08.479453"
+    },
+    {
+      "id": 698,
+      "date": "03.04.2026 16:05",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:49:08.478279"
+    },
+    {
+      "id": 697,
+      "date": "03.04.2026 16:29",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Потрёпанная карта клада",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:08.475954"
+    },
+    {
+      "id": 696,
+      "date": "03.04.2026 16:29",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Неразборчивая карта клада",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:08.473178"
+    },
+    {
+      "id": 695,
+      "date": "03.04.2026 16:29",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Надёжная карта клада",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:49:08.471480"
+    },
+    {
+      "id": 694,
+      "date": "03.04.2026 18:33",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:49:08.468926"
+    },
+    {
+      "id": 693,
+      "date": "03.04.2026 19:08",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:49:08.462842"
+    },
+    {
+      "id": 692,
+      "date": "03.04.2026 19:30",
+      "nick": "Manjunya86",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:48:51.847644"
+    },
+    {
+      "id": 691,
+      "date": "03.04.2026 20:08",
+      "nick": "Manjunya86",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:48:51.846964"
+    },
+    {
+      "id": 690,
+      "date": "03.04.2026 20:23",
+      "nick": "Drago71421",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": 234,
+      "created_at": "2026-04-16T07:48:51.846061"
+    },
+    {
+      "id": 689,
+      "date": "03.04.2026 20:23",
+      "nick": "Drago71421",
+      "operation_type": "Склад",
+      "object_name": "Кристаллы истины",
+      "quantity": 1000,
+      "created_at": "2026-04-16T07:48:51.844948"
+    },
+    {
+      "id": 688,
+      "date": "03.04.2026 20:49",
+      "nick": "Drago71421",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:48:51.843268"
+    },
+    {
+      "id": 687,
+      "date": "03.04.2026 21:24",
+      "nick": "Minister_ Sanych",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:48:51.839550"
+    },
+    {
+      "id": 686,
+      "date": "03.04.2026 21:48",
+      "nick": "Minister_ Sanych",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:48:51.837213"
+    },
+    {
+      "id": 685,
+      "date": "03.04.2026 22:00",
+      "nick": "Minister_ Sanych",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:51.836360"
+    },
+    {
+      "id": 684,
+      "date": "04.04.2026 00:00",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:51.835510"
+    },
+    {
+      "id": 683,
+      "date": "04.04.2026 00:00",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:51.834644"
+    },
+    {
+      "id": 682,
+      "date": "04.04.2026 02:20",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -2,
+      "created_at": "2026-04-16T07:48:51.833606"
+    },
+    {
+      "id": 681,
+      "date": "04.04.2026 02:20",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": -3,
+      "created_at": "2026-04-16T07:48:51.832157"
+    },
+    {
+      "id": 680,
+      "date": "04.04.2026 05:28",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:48:51.829872"
+    },
+    {
+      "id": 679,
+      "date": "04.04.2026 07:45",
+      "nick": "Doktor Web",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:51.827736"
+    },
+    {
+      "id": 678,
+      "date": "04.04.2026 08:39",
+      "nick": "-Верева-",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:48:51.825879"
+    },
+    {
+      "id": 677,
+      "date": "04.04.2026 09:27",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:48:51.824104"
+    },
+    {
+      "id": 676,
+      "date": "04.04.2026 09:27",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:48:51.822238"
+    },
+    {
+      "id": 675,
+      "date": "04.04.2026 09:27",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Редкая кость",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:48:51.820404"
+    },
+    {
+      "id": 674,
+      "date": "04.04.2026 09:27",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Раритетная кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:51.816726"
+    },
+    {
+      "id": 673,
+      "date": "04.04.2026 09:29",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:48:34.689081"
+    },
+    {
+      "id": 672,
+      "date": "04.04.2026 09:30",
+      "nick": "Не болей",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:48:34.688115"
+    },
+    {
+      "id": 671,
+      "date": "04.04.2026 11:18",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Эльм",
+      "quantity": 10,
+      "created_at": "2026-04-16T07:48:34.687156"
+    },
+    {
+      "id": 670,
+      "date": "04.04.2026 12:41",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Стихиада",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:34.686088"
+    },
+    {
+      "id": 669,
+      "date": "04.04.2026 13:52",
+      "nick": "С-ф-и-н-к-с",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:48:34.684019"
+    },
+    {
+      "id": 668,
+      "date": "04.04.2026 14:01",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Сфера вековых дубрав",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:34.680988"
+    },
+    {
+      "id": 667,
+      "date": "04.04.2026 14:11",
+      "nick": "Кудряшка Лю",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:34.679087"
+    },
+    {
+      "id": 666,
+      "date": "04.04.2026 14:11",
+      "nick": "Кудряшка Лю",
+      "operation_type": "Склад",
+      "object_name": "Редкая кость",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:48:34.676922"
+    },
+    {
+      "id": 665,
+      "date": "04.04.2026 14:11",
+      "nick": "Кудряшка Лю",
+      "operation_type": "Склад",
+      "object_name": "Раритетная кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:34.675911"
+    },
+    {
+      "id": 664,
+      "date": "04.04.2026 14:11",
+      "nick": "Кудряшка Лю",
+      "operation_type": "Склад",
+      "object_name": "Реликтовая кость",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:48:34.675139"
+    },
+    {
+      "id": 663,
+      "date": "04.04.2026 14:11",
+      "nick": "Кудряшка Лю",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:48:34.674349"
+    },
+    {
+      "id": 662,
+      "date": "04.04.2026 14:12",
+      "nick": "Кудряшка Лю",
+      "operation_type": "Склад",
+      "object_name": "Строительный камень",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:34.673594"
+    },
+    {
+      "id": 661,
+      "date": "04.04.2026 14:12",
+      "nick": "Кудряшка Лю",
+      "operation_type": "Склад",
+      "object_name": "Семена гасконтии",
+      "quantity": 8,
+      "created_at": "2026-04-16T07:48:34.672838"
+    },
+    {
+      "id": 660,
+      "date": "04.04.2026 14:12",
+      "nick": "Кудряшка Лю",
+      "operation_type": "Склад",
+      "object_name": "Семя кромпуса",
+      "quantity": 10,
+      "created_at": "2026-04-16T07:48:34.672046"
+    },
+    {
+      "id": 659,
+      "date": "04.04.2026 14:25",
+      "nick": "Белоснежъка",
+      "operation_type": "Склад",
+      "object_name": "Редкая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:34.671285"
+    },
+    {
+      "id": 658,
+      "date": "04.04.2026 14:25",
+      "nick": "Белоснежъка",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:34.670518"
+    },
+    {
+      "id": 657,
+      "date": "04.04.2026 14:25",
+      "nick": "Белоснежъка",
+      "operation_type": "Склад",
+      "object_name": "Раритетная кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:34.669700"
+    },
+    {
+      "id": 656,
+      "date": "04.04.2026 14:25",
+      "nick": "Белоснежъка",
+      "operation_type": "Склад",
+      "object_name": "Реликтовая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:34.668754"
+    },
+    {
+      "id": 655,
+      "date": "04.04.2026 14:49",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Раритетная кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:34.667375"
+    },
+    {
+      "id": 654,
+      "date": "04.04.2026 15:00",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -454,
+      "created_at": "2026-04-16T07:48:34.664184"
+    },
+    {
+      "id": 653,
+      "date": "04.04.2026 15:02",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -455,
+      "created_at": "2026-04-16T07:48:15.757241"
+    },
+    {
+      "id": 652,
+      "date": "04.04.2026 16:03",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Неразборчивая карта клада",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:15.756290"
+    },
+    {
+      "id": 651,
+      "date": "04.04.2026 16:03",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Сложное поручение Первородного",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:15.755087"
+    },
+    {
+      "id": 650,
+      "date": "04.04.2026 16:35",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:48:15.753673"
+    },
+    {
+      "id": 649,
+      "date": "04.04.2026 17:32",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Большой энергетический настой",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:15.751977"
+    },
+    {
+      "id": 648,
+      "date": "04.04.2026 17:32",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Энергетический настой",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:48:15.749452"
+    },
+    {
+      "id": 647,
+      "date": "04.04.2026 17:32",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:48:15.747866"
+    },
+    {
+      "id": 646,
+      "date": "04.04.2026 17:35",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:15.746807"
+    },
+    {
+      "id": 645,
+      "date": "04.04.2026 17:39",
+      "nick": "С-ф-и-н-к-с",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 20,
+      "created_at": "2026-04-16T07:48:15.744478"
+    },
+    {
+      "id": 644,
+      "date": "04.04.2026 17:42",
+      "nick": "Agni",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:48:15.742321"
+    },
+    {
+      "id": 643,
+      "date": "04.04.2026 18:45",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -445,
+      "created_at": "2026-04-16T07:48:15.739182"
+    },
+    {
+      "id": 642,
+      "date": "04.04.2026 18:48",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -445,
+      "created_at": "2026-04-16T07:48:15.736735"
+    },
+    {
+      "id": 641,
+      "date": "04.04.2026 20:35",
+      "nick": "Naysayer",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:48:15.734246"
+    },
+    {
+      "id": 640,
+      "date": "04.04.2026 20:41",
+      "nick": "м ы к а",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:48:15.732229"
+    },
+    {
+      "id": 639,
+      "date": "04.04.2026 21:50",
+      "nick": "redsarmat",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:48:15.730832"
+    },
+    {
+      "id": 638,
+      "date": "04.04.2026 23:10",
+      "nick": "redsarmat",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": 100,
+      "created_at": "2026-04-16T07:48:15.728975"
+    },
+    {
+      "id": 637,
+      "date": "05.04.2026 01:18",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар альвы благонравной",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:48:15.726623"
+    },
+    {
+      "id": 636,
+      "date": "05.04.2026 01:18",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -2,
+      "created_at": "2026-04-16T07:48:15.724226"
+    },
+    {
+      "id": 635,
+      "date": "05.04.2026 01:50",
+      "nick": "Satoshi Nakamoto",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 25,
+      "created_at": "2026-04-16T07:48:15.722089"
+    },
+    {
+      "id": 634,
+      "date": "05.04.2026 07:02",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:48:15.717298"
+    },
+    {
+      "id": 633,
+      "date": "05.04.2026 08:10",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Кристаллический уголь",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:47:55.356027"
+    },
+    {
+      "id": 632,
+      "date": "05.04.2026 08:10",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:47:55.355063"
+    },
+    {
+      "id": 631,
+      "date": "05.04.2026 08:10",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Клык опасного хищника»",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:47:55.354248"
+    },
+    {
+      "id": 630,
+      "date": "05.04.2026 08:10",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Когти редкого зверя»",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:47:55.353431"
+    },
+    {
+      "id": 629,
+      "date": "05.04.2026 08:58",
+      "nick": "Е-В-Г-Е-Н",
+      "operation_type": "Склад",
+      "object_name": "Великий талисман гармонии",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:47:55.352599"
+    },
+    {
+      "id": 628,
+      "date": "05.04.2026 10:31",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Золотой хабус",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:47:55.351620"
+    },
+    {
+      "id": 627,
+      "date": "05.04.2026 10:57",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Великий талисман гармонии",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:55.350282"
+    },
+    {
+      "id": 626,
+      "date": "05.04.2026 10:57",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Раритетная кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:55.348980"
+    },
+    {
+      "id": 625,
+      "date": "05.04.2026 10:57",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Редкая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:55.347684"
+    },
+    {
+      "id": 624,
+      "date": "05.04.2026 10:57",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:47:55.346115"
+    },
+    {
+      "id": 623,
+      "date": "05.04.2026 10:57",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Реликтовая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:55.344310"
+    },
+    {
+      "id": 622,
+      "date": "05.04.2026 10:57",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 52,
+      "created_at": "2026-04-16T07:47:55.342845"
+    },
+    {
+      "id": 621,
+      "date": "05.04.2026 12:14",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:55.341617"
+    },
+    {
+      "id": 620,
+      "date": "05.04.2026 12:57",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Раритетная кость",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:47:55.340353"
+    },
+    {
+      "id": 619,
+      "date": "05.04.2026 15:59",
+      "nick": "-Bagur-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 100,
+      "created_at": "2026-04-16T07:47:55.339174"
+    },
+    {
+      "id": 618,
+      "date": "05.04.2026 16:23",
+      "nick": "Капитан Ша",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:55.338247"
+    },
+    {
+      "id": 617,
+      "date": "05.04.2026 16:47",
+      "nick": "Лесник-",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:55.337478"
+    },
+    {
+      "id": 616,
+      "date": "05.04.2026 16:51",
+      "nick": "Doktor Web",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:55.336713"
+    },
+    {
+      "id": 615,
+      "date": "05.04.2026 16:56",
+      "nick": "_Веревочка_",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:55.335911"
+    },
+    {
+      "id": 614,
+      "date": "05.04.2026 17:52",
+      "nick": "Seregkaa",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:55.327533"
+    },
+    {
+      "id": 613,
+      "date": "05.04.2026 18:00",
+      "nick": "__Арвен__",
+      "operation_type": "Склад",
+      "object_name": "Реликтовая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:34.175326"
+    },
+    {
+      "id": 612,
+      "date": "05.04.2026 19:36",
+      "nick": "Master Snake",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар альвы благонравной",
+      "quantity": -2,
+      "created_at": "2026-04-16T07:47:34.174413"
+    },
+    {
+      "id": 611,
+      "date": "05.04.2026 19:37",
+      "nick": "Master Snake",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:47:34.173027"
+    },
+    {
+      "id": 610,
+      "date": "05.04.2026 19:49",
+      "nick": "_чакки_",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:34.171736"
+    },
+    {
+      "id": 609,
+      "date": "05.04.2026 19:52",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Мясной жук",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:47:34.170510"
+    },
+    {
+      "id": 608,
+      "date": "05.04.2026 19:52",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:47:34.168501"
+    },
+    {
+      "id": 607,
+      "date": "05.04.2026 19:52",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Ягода «Вкусница»",
+      "quantity": 8,
+      "created_at": "2026-04-16T07:47:34.166216"
+    },
+    {
+      "id": 606,
+      "date": "05.04.2026 20:17",
+      "nick": "Master Snake",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:34.164656"
+    },
+    {
+      "id": 605,
+      "date": "05.04.2026 20:24",
+      "nick": "redsarmat",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:47:34.162882"
+    },
+    {
+      "id": 604,
+      "date": "05.04.2026 20:24",
+      "nick": "redsarmat",
+      "operation_type": "Склад",
+      "object_name": "Мясной жук",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:47:34.161229"
+    },
+    {
+      "id": 603,
+      "date": "05.04.2026 20:24",
+      "nick": "redsarmat",
+      "operation_type": "Склад",
+      "object_name": "Ягода «Вкусница»",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:47:34.160287"
+    },
+    {
+      "id": 602,
+      "date": "05.04.2026 20:40",
+      "nick": "Manjunya86",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:34.159342"
+    },
+    {
+      "id": 601,
+      "date": "05.04.2026 21:02",
+      "nick": "redsarmat",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:34.158391"
+    },
+    {
+      "id": 600,
+      "date": "05.04.2026 21:03",
+      "nick": "redsarmat",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Хагра",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:34.157474"
+    },
+    {
+      "id": 599,
+      "date": "05.04.2026 21:32",
+      "nick": "Vitaminka -",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:34.156541"
+    },
+    {
+      "id": 598,
+      "date": "05.04.2026 21:38",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": -2,
+      "created_at": "2026-04-16T07:47:34.155584"
+    },
+    {
+      "id": 597,
+      "date": "05.04.2026 21:38",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Хагра",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:47:34.154368"
+    },
+    {
+      "id": 596,
+      "date": "05.04.2026 21:40",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -455,
+      "created_at": "2026-04-16T07:47:34.152614"
+    },
+    {
+      "id": 595,
+      "date": "05.04.2026 22:07",
+      "nick": "Agni",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:34.151033"
+    },
+    {
+      "id": 594,
+      "date": "05.04.2026 22:49",
+      "nick": "Agni",
+      "operation_type": "Склад",
+      "object_name": "Ягода «Вкусница»",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:47:34.147407"
+    },
+    {
+      "id": 593,
+      "date": "06.04.2026 00:34",
+      "nick": "Naysayer",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:14.690748"
+    },
+    {
+      "id": 592,
+      "date": "06.04.2026 00:38",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Раритетная кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:14.689709"
+    },
+    {
+      "id": 591,
+      "date": "06.04.2026 03:27",
+      "nick": "probnik",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:14.688519"
+    },
+    {
+      "id": 590,
+      "date": "06.04.2026 05:33",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Тагх",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:14.686560"
+    },
+    {
+      "id": 589,
+      "date": "06.04.2026 07:46",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Эльм",
+      "quantity": 10,
+      "created_at": "2026-04-16T07:47:14.684506"
+    },
+    {
+      "id": 588,
+      "date": "06.04.2026 07:47",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Доска",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:47:14.683437"
+    },
+    {
+      "id": 587,
+      "date": "06.04.2026 07:47",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Строительный камень",
+      "quantity": 9,
+      "created_at": "2026-04-16T07:47:14.682580"
+    },
+    {
+      "id": 586,
+      "date": "06.04.2026 07:48",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Доска",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:47:14.681645"
+    },
+    {
+      "id": 585,
+      "date": "06.04.2026 07:48",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Строительный камень",
+      "quantity": 9,
+      "created_at": "2026-04-16T07:47:14.680491"
+    },
+    {
+      "id": 584,
+      "date": "06.04.2026 09:05",
+      "nick": "флегматичный Вик",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:14.679163"
+    },
+    {
+      "id": 583,
+      "date": "06.04.2026 09:20",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Чешуя черного дракона»",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:14.677950"
+    },
+    {
+      "id": 582,
+      "date": "06.04.2026 09:20",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Когти редкого зверя»",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:47:14.676403"
+    },
+    {
+      "id": 581,
+      "date": "06.04.2026 09:20",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Клык опасного хищника»",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:47:14.673793"
+    },
+    {
+      "id": 580,
+      "date": "06.04.2026 10:10",
+      "nick": "FeDeLTa",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:47:14.671794"
+    },
+    {
+      "id": 579,
+      "date": "06.04.2026 10:25",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Мясной жук",
+      "quantity": -3,
+      "created_at": "2026-04-16T07:47:14.670333"
+    },
+    {
+      "id": 578,
+      "date": "06.04.2026 10:25",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Ягода «Вкусница»",
+      "quantity": -3,
+      "created_at": "2026-04-16T07:47:14.663700"
+    },
+    {
+      "id": 577,
+      "date": "06.04.2026 10:25",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 6,
+      "created_at": "2026-04-16T07:47:14.662277"
+    },
+    {
+      "id": 576,
+      "date": "06.04.2026 10:26",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:47:14.659072"
+    },
+    {
+      "id": 575,
+      "date": "06.04.2026 11:25",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:53.571570"
+    },
+    {
+      "id": 574,
+      "date": "06.04.2026 11:44",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": 74,
+      "created_at": "2026-04-16T07:46:53.570959"
+    },
+    {
+      "id": 573,
+      "date": "06.04.2026 11:58",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:53.570029"
+    },
+    {
+      "id": 572,
+      "date": "06.04.2026 12:28",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Сочный Кару",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:53.568853"
+    },
+    {
+      "id": 571,
+      "date": "06.04.2026 14:39",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сочный Кару",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:46:53.567835"
+    },
+    {
+      "id": 570,
+      "date": "06.04.2026 14:39",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Тагх",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:46:53.566553"
+    },
+    {
+      "id": 569,
+      "date": "06.04.2026 14:39",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Энергетический настой",
+      "quantity": -2,
+      "created_at": "2026-04-16T07:46:53.565595"
+    },
+    {
+      "id": 568,
+      "date": "06.04.2026 14:39",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Большой энергетический настой",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:46:53.564229"
+    },
+    {
+      "id": 567,
+      "date": "06.04.2026 14:41",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:53.562344"
+    },
+    {
+      "id": 566,
+      "date": "06.04.2026 14:55",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:53.561046"
+    },
+    {
+      "id": 565,
+      "date": "06.04.2026 15:16",
+      "nick": "Hozaika ozer",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:46:53.559885"
+    },
+    {
+      "id": 564,
+      "date": "06.04.2026 17:08",
+      "nick": "С-ф-и-н-к-с",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:46:53.558677"
+    },
+    {
+      "id": 563,
+      "date": "06.04.2026 17:36",
+      "nick": "Satoshi Nakamoto",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:46:53.557612"
+    },
+    {
+      "id": 562,
+      "date": "06.04.2026 17:42",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Золотой хабус",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:46:53.556838"
+    },
+    {
+      "id": 561,
+      "date": "06.04.2026 19:26",
+      "nick": "Doktor Web",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:53.556071"
+    },
+    {
+      "id": 560,
+      "date": "06.04.2026 21:31",
+      "nick": "A e r i s",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:46:53.555278"
+    },
+    {
+      "id": 559,
+      "date": "07.04.2026 01:52",
+      "nick": "старый чертенок",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:46:53.554338"
+    },
+    {
+      "id": 558,
+      "date": "07.04.2026 07:41",
+      "nick": "Drago71421",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:46:53.553040"
+    },
+    {
+      "id": 557,
+      "date": "07.04.2026 08:13",
+      "nick": "_Веревочка_",
+      "operation_type": "Склад",
+      "object_name": "Сумрачный Грамиллит",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:53.551664"
+    },
+    {
+      "id": 556,
+      "date": "07.04.2026 08:45",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:53.547784"
+    },
+    {
+      "id": 555,
+      "date": "07.04.2026 08:45",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Мясной жук",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:46:35.585805"
+    },
+    {
+      "id": 554,
+      "date": "07.04.2026 09:12",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Редкая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:35.584883"
+    },
+    {
+      "id": 553,
+      "date": "07.04.2026 09:40",
+      "nick": "Born To Chill",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 15,
+      "created_at": "2026-04-16T07:46:35.583397"
+    },
+    {
+      "id": 552,
+      "date": "07.04.2026 11:53",
+      "nick": "_Бузувер_",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар мистрасского рыбозмея",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:46:35.581259"
+    },
+    {
+      "id": 551,
+      "date": "07.04.2026 11:53",
+      "nick": "_Бузувер_",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар шахифрита",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:35.579510"
+    },
+    {
+      "id": 550,
+      "date": "07.04.2026 12:51",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:35.578001"
+    },
+    {
+      "id": 549,
+      "date": "07.04.2026 13:20",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:35.576417"
+    },
+    {
+      "id": 548,
+      "date": "07.04.2026 14:02",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -445,
+      "created_at": "2026-04-16T07:46:35.573696"
+    },
+    {
+      "id": 547,
+      "date": "07.04.2026 14:05",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сумрачный Грамиллит",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:46:35.570934"
+    },
+    {
+      "id": 546,
+      "date": "07.04.2026 15:16",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:35.568979"
+    },
+    {
+      "id": 545,
+      "date": "07.04.2026 15:57",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Ягода «Вкусница»",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:46:35.566841"
+    },
+    {
+      "id": 544,
+      "date": "07.04.2026 15:57",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:46:35.564860"
+    },
+    {
+      "id": 543,
+      "date": "07.04.2026 15:57",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Мясной жук",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:46:35.563196"
+    },
+    {
+      "id": 542,
+      "date": "07.04.2026 16:19",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:46:35.562382"
+    },
+    {
+      "id": 541,
+      "date": "07.04.2026 16:23",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:46:35.561557"
+    },
+    {
+      "id": 540,
+      "date": "07.04.2026 16:23",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": -5,
+      "created_at": "2026-04-16T07:46:35.560735"
+    },
+    {
+      "id": 539,
+      "date": "07.04.2026 16:53",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:35.559906"
+    },
+    {
+      "id": 538,
+      "date": "07.04.2026 17:43",
+      "nick": "Agni",
+      "operation_type": "Склад",
+      "object_name": "Строительный камень",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:35.559055"
+    },
+    {
+      "id": 537,
+      "date": "07.04.2026 17:45",
+      "nick": "Agni",
+      "operation_type": "Склад",
+      "object_name": "Неразборчивая карта клада",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:46:35.558005"
+    },
+    {
+      "id": 536,
+      "date": "07.04.2026 18:50",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": -5,
+      "created_at": "2026-04-16T07:46:35.554450"
+    },
+    {
+      "id": 535,
+      "date": "07.04.2026 18:50",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:46:19.057971"
+    },
+    {
+      "id": 534,
+      "date": "07.04.2026 19:06",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:46:19.056675"
+    },
+    {
+      "id": 533,
+      "date": "07.04.2026 19:52",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Золотой хабус",
+      "quantity": 4,
+      "created_at": "2026-04-16T07:46:19.055181"
+    },
+    {
+      "id": 532,
+      "date": "07.04.2026 21:29",
+      "nick": "Звизданутый",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:46:19.053418"
+    },
+    {
+      "id": 531,
+      "date": "07.04.2026 21:32",
+      "nick": "Звизданутый",
+      "operation_type": "Склад",
+      "object_name": "Красноглазый Фунгус",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:19.051781"
+    },
+    {
+      "id": 530,
+      "date": "07.04.2026 21:40",
+      "nick": "-Витчер-",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 50,
+      "created_at": "2026-04-16T07:46:19.050892"
+    },
+    {
+      "id": 529,
+      "date": "07.04.2026 21:42",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Склад",
+      "object_name": "Омела",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:46:19.050057"
+    },
+    {
+      "id": 528,
+      "date": "07.04.2026 21:42",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Склад",
+      "object_name": "Агат",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:46:19.049165"
+    },
+    {
+      "id": 527,
+      "date": "07.04.2026 21:42",
+      "nick": "ЛентяйЧик",
+      "operation_type": "Склад",
+      "object_name": "Каменный карп",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:46:19.048295"
+    },
+    {
+      "id": 526,
+      "date": "07.04.2026 22:19",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Абсолютный порошок слабости",
+      "quantity": -144,
+      "created_at": "2026-04-16T07:46:19.047450"
+    },
+    {
+      "id": 525,
+      "date": "07.04.2026 22:19",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Абсолютный свиток воздаяния",
+      "quantity": -84,
+      "created_at": "2026-04-16T07:46:19.046592"
+    },
+    {
+      "id": 524,
+      "date": "08.04.2026 07:04",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:46:19.045763"
+    },
+    {
+      "id": 523,
+      "date": "08.04.2026 07:04",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:19.044928"
+    },
+    {
+      "id": 522,
+      "date": "08.04.2026 09:37",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Склад",
+      "object_name": "Лист железа",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:46:19.044075"
+    },
+    {
+      "id": 521,
+      "date": "08.04.2026 09:37",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Склад",
+      "object_name": "Стихиада",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:46:19.042955"
+    },
+    {
+      "id": 520,
+      "date": "08.04.2026 11:04",
+      "nick": "Vitaminka -",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:46:19.041443"
+    },
+    {
+      "id": 519,
+      "date": "08.04.2026 11:11",
+      "nick": "Master Snake",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:46:19.039838"
+    },
+    {
+      "id": 518,
+      "date": "08.04.2026 11:11",
+      "nick": "Master Snake",
+      "operation_type": "Склад",
+      "object_name": "Мясной жук",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:46:19.034854"
+    },
+    {
+      "id": 517,
+      "date": "08.04.2026 11:29",
+      "nick": "Рояль",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:45:58.088528"
+    },
+    {
+      "id": 516,
+      "date": "08.04.2026 12:08",
+      "nick": "filinn",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:45:58.087356"
+    },
+    {
+      "id": 515,
+      "date": "08.04.2026 12:08",
+      "nick": "filinn",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:45:58.086179"
+    },
+    {
+      "id": 514,
+      "date": "08.04.2026 12:18",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Склад",
+      "object_name": "Каменный карп",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:45:58.083675"
+    },
+    {
+      "id": 513,
+      "date": "08.04.2026 12:18",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Склад",
+      "object_name": "Омела",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:45:58.080917"
+    },
+    {
+      "id": 512,
+      "date": "08.04.2026 12:18",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Склад",
+      "object_name": "Агат",
+      "quantity": 20,
+      "created_at": "2026-04-16T07:45:58.078468"
+    },
+    {
+      "id": 511,
+      "date": "08.04.2026 12:24",
+      "nick": "Родри",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:45:58.076075"
+    },
+    {
+      "id": 510,
+      "date": "08.04.2026 12:32",
+      "nick": "Vitaminka -",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 100,
+      "created_at": "2026-04-16T07:45:58.074261"
+    },
+    {
+      "id": 509,
+      "date": "08.04.2026 12:39",
+      "nick": "АнВи",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:45:58.073291"
+    },
+    {
+      "id": 508,
+      "date": "08.04.2026 12:51",
+      "nick": "Agni",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:45:58.072272"
+    },
+    {
+      "id": 507,
+      "date": "08.04.2026 13:47",
+      "nick": "старый чертенок",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:45:58.071507"
+    },
+    {
+      "id": 506,
+      "date": "08.04.2026 13:47",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:45:58.070449"
+    },
+    {
+      "id": 505,
+      "date": "08.04.2026 13:47",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": -5,
+      "created_at": "2026-04-16T07:45:58.069400"
+    },
+    {
+      "id": 504,
+      "date": "08.04.2026 13:52",
+      "nick": "probnik",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:45:58.068361"
+    },
+    {
+      "id": 503,
+      "date": "08.04.2026 14:24",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -455,
+      "created_at": "2026-04-16T07:45:58.067533"
+    },
+    {
+      "id": 502,
+      "date": "08.04.2026 14:24",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Красноглазый Фунгус",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:45:58.066413"
+    },
+    {
+      "id": 501,
+      "date": "08.04.2026 14:40",
+      "nick": "FeDeLTa",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:45:58.065470"
+    },
+    {
+      "id": 500,
+      "date": "08.04.2026 15:16",
+      "nick": "флегматичный Вик",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:45:58.064415"
+    },
+    {
+      "id": 499,
+      "date": "08.04.2026 15:19",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:45:58.062972"
+    },
+    {
+      "id": 498,
+      "date": "08.04.2026 15:33",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 8,
+      "created_at": "2026-04-16T07:45:58.057925"
+    },
+    {
+      "id": 497,
+      "date": "08.04.2026 15:37",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 16,
+      "created_at": "2026-04-16T07:45:39.738821"
+    },
+    {
+      "id": 496,
+      "date": "08.04.2026 15:56",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 6,
+      "created_at": "2026-04-16T07:45:39.738048"
+    },
+    {
+      "id": 495,
+      "date": "08.04.2026 15:56",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Лист железа",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:45:39.737186"
+    },
+    {
+      "id": 494,
+      "date": "08.04.2026 16:06",
+      "nick": "Agni",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": -5,
+      "created_at": "2026-04-16T07:45:39.736266"
+    },
+    {
+      "id": 493,
+      "date": "08.04.2026 16:06",
+      "nick": "Agni",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:45:39.735213"
+    },
+    {
+      "id": 492,
+      "date": "08.04.2026 16:07",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:45:39.733853"
+    },
+    {
+      "id": 491,
+      "date": "08.04.2026 16:41",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": 15,
+      "created_at": "2026-04-16T07:45:39.731602"
+    },
+    {
+      "id": 490,
+      "date": "08.04.2026 16:53",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:45:39.730198"
+    },
+    {
+      "id": 489,
+      "date": "08.04.2026 17:11",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Груда бумаг",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:45:39.729359"
+    },
+    {
+      "id": 488,
+      "date": "08.04.2026 17:12",
+      "nick": "Born To Chill",
+      "operation_type": "Склад",
+      "object_name": "Груда бумаг",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:45:39.728511"
+    },
+    {
+      "id": 487,
+      "date": "08.04.2026 17:22",
+      "nick": "ПорноКролик",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:45:39.727538"
+    },
+    {
+      "id": 486,
+      "date": "08.04.2026 17:41",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Стихиада",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:45:39.726458"
+    },
+    {
+      "id": 485,
+      "date": "08.04.2026 17:41",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 18,
+      "created_at": "2026-04-16T07:45:39.724885"
+    },
+    {
+      "id": 484,
+      "date": "08.04.2026 19:28",
+      "nick": "Master Snake",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": -3,
+      "created_at": "2026-04-16T07:45:39.723615"
+    },
+    {
+      "id": 483,
+      "date": "08.04.2026 19:28",
+      "nick": "Master Snake",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:45:39.721194"
+    },
+    {
+      "id": 482,
+      "date": "08.04.2026 19:29",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 11,
+      "created_at": "2026-04-16T07:45:39.719533"
+    },
+    {
+      "id": 481,
+      "date": "08.04.2026 20:00",
+      "nick": "Капитан Ша",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:45:39.716799"
+    },
+    {
+      "id": 480,
+      "date": "08.04.2026 20:25",
+      "nick": "Звизданутый",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:45:39.715299"
+    },
+    {
+      "id": 479,
+      "date": "08.04.2026 20:25",
+      "nick": "Звизданутый",
+      "operation_type": "Склад",
+      "object_name": "Семилапый Вайранг",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:45:39.713741"
+    },
+    {
+      "id": 478,
+      "date": "08.04.2026 21:07",
+      "nick": "redsarmat",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:45:39.710298"
+    },
+    {
+      "id": 477,
+      "date": "08.04.2026 22:12",
+      "nick": "Master Snake",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:45:19.964582"
+    },
+    {
+      "id": 476,
+      "date": "08.04.2026 22:12",
+      "nick": "Master Snake",
+      "operation_type": "Склад",
+      "object_name": "Мясной жук",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:45:19.963785"
+    },
+    {
+      "id": 475,
+      "date": "09.04.2026 00:24",
+      "nick": "probnik",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 100,
+      "created_at": "2026-04-16T07:45:19.962493"
+    },
+    {
+      "id": 474,
+      "date": "09.04.2026 00:40",
+      "nick": "Родри",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар шахифрита",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:45:19.961611"
+    },
+    {
+      "id": 473,
+      "date": "09.04.2026 00:40",
+      "nick": "Родри",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар чёрного лотоса",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:45:19.960609"
+    },
+    {
+      "id": 472,
+      "date": "09.04.2026 02:28",
+      "nick": "Vitaminka -",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 21,
+      "created_at": "2026-04-16T07:45:19.959045"
+    },
+    {
+      "id": 471,
+      "date": "09.04.2026 06:30",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Доска",
+      "quantity": 30,
+      "created_at": "2026-04-16T07:45:19.957278"
+    },
+    {
+      "id": 470,
+      "date": "09.04.2026 06:30",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Строительный камень",
+      "quantity": 30,
+      "created_at": "2026-04-16T07:45:19.956041"
+    },
+    {
+      "id": 469,
+      "date": "09.04.2026 06:30",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Лист железа",
+      "quantity": 30,
+      "created_at": "2026-04-16T07:45:19.954841"
+    },
+    {
+      "id": 468,
+      "date": "09.04.2026 08:11",
+      "nick": "Maoria",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:45:19.953138"
+    },
+    {
+      "id": 467,
+      "date": "09.04.2026 08:15",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Го",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:45:19.952189"
+    },
+    {
+      "id": 466,
+      "date": "09.04.2026 08:17",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Когти редкого зверя»",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:45:19.951445"
+    },
+    {
+      "id": 465,
+      "date": "09.04.2026 08:17",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Чешуя черного дракона»",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:45:19.950668"
+    },
+    {
+      "id": 464,
+      "date": "09.04.2026 08:18",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:45:19.949926"
+    },
+    {
+      "id": 463,
+      "date": "09.04.2026 08:18",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семена памелики",
+      "quantity": 4,
+      "created_at": "2026-04-16T07:45:19.949112"
+    },
+    {
+      "id": 462,
+      "date": "09.04.2026 08:18",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семя лемпоцениуса",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:45:19.948358"
+    },
+    {
+      "id": 461,
+      "date": "09.04.2026 08:18",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семена маскабара",
+      "quantity": 4,
+      "created_at": "2026-04-16T07:45:19.947574"
+    },
+    {
+      "id": 460,
+      "date": "09.04.2026 08:18",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семя сминтии",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:45:19.946397"
+    },
+    {
+      "id": 459,
+      "date": "09.04.2026 08:18",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семя миагны",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:45:19.945226"
+    },
+    {
+      "id": 458,
+      "date": "09.04.2026 08:18",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семя кромпуса",
+      "quantity": 11,
+      "created_at": "2026-04-16T07:45:19.942509"
+    },
+    {
+      "id": 457,
+      "date": "09.04.2026 08:18",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семя агваракуса",
+      "quantity": 25,
+      "created_at": "2026-04-16T07:44:59.819855"
+    },
+    {
+      "id": 456,
+      "date": "09.04.2026 08:20",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:59.819069"
+    },
+    {
+      "id": 455,
+      "date": "09.04.2026 08:43",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:59.818080"
+    },
+    {
+      "id": 454,
+      "date": "09.04.2026 08:46",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:59.817042"
+    },
+    {
+      "id": 453,
+      "date": "09.04.2026 08:46",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Мясной жук",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:44:59.816000"
+    },
+    {
+      "id": 452,
+      "date": "09.04.2026 09:27",
+      "nick": "старый чертенок",
+      "operation_type": "Склад",
+      "object_name": "Омела",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:44:59.814694"
+    },
+    {
+      "id": 451,
+      "date": "09.04.2026 09:27",
+      "nick": "старый чертенок",
+      "operation_type": "Склад",
+      "object_name": "Агат",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:44:59.813350"
+    },
+    {
+      "id": 450,
+      "date": "09.04.2026 09:27",
+      "nick": "старый чертенок",
+      "operation_type": "Склад",
+      "object_name": "Каменный карп",
+      "quantity": 20,
+      "created_at": "2026-04-16T07:44:59.811681"
+    },
+    {
+      "id": 449,
+      "date": "09.04.2026 09:46",
+      "nick": "флегматичный Вик",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:44:59.809832"
+    },
+    {
+      "id": 448,
+      "date": "09.04.2026 11:29",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:44:59.808537"
+    },
+    {
+      "id": 447,
+      "date": "09.04.2026 11:37",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 16,
+      "created_at": "2026-04-16T07:44:59.807670"
+    },
+    {
+      "id": 446,
+      "date": "09.04.2026 12:42",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:44:59.806563"
+    },
+    {
+      "id": 445,
+      "date": "09.04.2026 12:42",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": -5,
+      "created_at": "2026-04-16T07:44:59.805492"
+    },
+    {
+      "id": 444,
+      "date": "09.04.2026 12:52",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Редкая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:59.804187"
+    },
+    {
+      "id": 443,
+      "date": "09.04.2026 13:18",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Раритетная кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:59.802630"
+    },
+    {
+      "id": 442,
+      "date": "09.04.2026 13:34",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:59.800503"
+    },
+    {
+      "id": 441,
+      "date": "09.04.2026 13:34",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:59.797934"
+    },
+    {
+      "id": 440,
+      "date": "09.04.2026 15:57",
+      "nick": "м ы к а",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:44:59.796024"
+    },
+    {
+      "id": 439,
+      "date": "09.04.2026 16:25",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Нежная Глаумония",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:59.793813"
+    },
+    {
+      "id": 438,
+      "date": "09.04.2026 16:25",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сияющий Аристунит",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:59.789715"
+    },
+    {
+      "id": 437,
+      "date": "09.04.2026 16:25",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Хагра",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:41.351419"
+    },
+    {
+      "id": 436,
+      "date": "09.04.2026 16:25",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Тагх",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:41.350388"
+    },
+    {
+      "id": 435,
+      "date": "09.04.2026 16:26",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Го",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:44:41.348728"
+    },
+    {
+      "id": 434,
+      "date": "09.04.2026 16:26",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Чин",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:41.346923"
+    },
+    {
+      "id": 433,
+      "date": "09.04.2026 18:32",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя лемпоцениуса",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:44:41.345599"
+    },
+    {
+      "id": 432,
+      "date": "09.04.2026 18:32",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя кромпуса",
+      "quantity": -21,
+      "created_at": "2026-04-16T07:44:41.343762"
+    },
+    {
+      "id": 431,
+      "date": "09.04.2026 18:32",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семена гасконтии",
+      "quantity": -8,
+      "created_at": "2026-04-16T07:44:41.341348"
+    },
+    {
+      "id": 430,
+      "date": "09.04.2026 18:32",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семена маскабара",
+      "quantity": -4,
+      "created_at": "2026-04-16T07:44:41.338783"
+    },
+    {
+      "id": 429,
+      "date": "09.04.2026 18:32",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя миагны",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:44:41.336639"
+    },
+    {
+      "id": 428,
+      "date": "09.04.2026 18:32",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семена памелики",
+      "quantity": -4,
+      "created_at": "2026-04-16T07:44:41.333873"
+    },
+    {
+      "id": 427,
+      "date": "09.04.2026 18:32",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя агваракуса",
+      "quantity": -25,
+      "created_at": "2026-04-16T07:44:41.331407"
+    },
+    {
+      "id": 426,
+      "date": "09.04.2026 18:32",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя сминтии",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:44:41.330448"
+    },
+    {
+      "id": 425,
+      "date": "09.04.2026 18:33",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Великий талисман гармонии",
+      "quantity": -4,
+      "created_at": "2026-04-16T07:44:41.329579"
+    },
+    {
+      "id": 424,
+      "date": "09.04.2026 19:35",
+      "nick": "Born To Chill",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:44:41.328726"
+    },
+    {
+      "id": 423,
+      "date": "09.04.2026 22:31",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Нежная Глаумония",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:44:41.327850"
+    },
+    {
+      "id": 422,
+      "date": "09.04.2026 22:31",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Семилапый Вайранг",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:44:41.326535"
+    },
+    {
+      "id": 421,
+      "date": "09.04.2026 22:31",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Го",
+      "quantity": -3,
+      "created_at": "2026-04-16T07:44:41.325226"
+    },
+    {
+      "id": 420,
+      "date": "09.04.2026 22:31",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Хагра",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:44:41.323708"
+    },
+    {
+      "id": 419,
+      "date": "09.04.2026 22:31",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Тагх",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:44:41.321944"
+    },
+    {
+      "id": 418,
+      "date": "09.04.2026 22:31",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Чин",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:44:41.318988"
+    },
+    {
+      "id": 417,
+      "date": "09.04.2026 22:31",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сияющий Аристунит",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:44:18.723525"
+    },
+    {
+      "id": 416,
+      "date": "09.04.2026 22:31",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:44:18.721917"
+    },
+    {
+      "id": 415,
+      "date": "09.04.2026 22:32",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:44:18.721032"
+    },
+    {
+      "id": 414,
+      "date": "10.04.2026 04:20",
+      "nick": "redsarmat",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:44:18.720218"
+    },
+    {
+      "id": 413,
+      "date": "10.04.2026 05:15",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:18.719381"
+    },
+    {
+      "id": 412,
+      "date": "10.04.2026 05:21",
+      "nick": "-Bagur-",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 20,
+      "created_at": "2026-04-16T07:44:18.718492"
+    },
+    {
+      "id": 411,
+      "date": "10.04.2026 05:23",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Клык опасного хищника»",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:18.717327"
+    },
+    {
+      "id": 410,
+      "date": "10.04.2026 05:23",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Когти редкого зверя»",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:18.715471"
+    },
+    {
+      "id": 409,
+      "date": "10.04.2026 05:48",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:44:18.712761"
+    },
+    {
+      "id": 408,
+      "date": "10.04.2026 08:28",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 30,
+      "created_at": "2026-04-16T07:44:18.710953"
+    },
+    {
+      "id": 407,
+      "date": "10.04.2026 09:17",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Доска",
+      "quantity": 30,
+      "created_at": "2026-04-16T07:44:18.708866"
+    },
+    {
+      "id": 406,
+      "date": "10.04.2026 09:17",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Строительный камень",
+      "quantity": 30,
+      "created_at": "2026-04-16T07:44:18.706863"
+    },
+    {
+      "id": 405,
+      "date": "10.04.2026 09:17",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Лист железа",
+      "quantity": 30,
+      "created_at": "2026-04-16T07:44:18.705233"
+    },
+    {
+      "id": 404,
+      "date": "10.04.2026 09:23",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:18.704383"
+    },
+    {
+      "id": 403,
+      "date": "10.04.2026 10:15",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Омела",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:44:18.703507"
+    },
+    {
+      "id": 402,
+      "date": "10.04.2026 10:15",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Агат",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:44:18.702687"
+    },
+    {
+      "id": 401,
+      "date": "10.04.2026 10:34",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Каменный карп",
+      "quantity": 24,
+      "created_at": "2026-04-16T07:44:18.701867"
+    },
+    {
+      "id": 400,
+      "date": "10.04.2026 10:42",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:18.701040"
+    },
+    {
+      "id": 399,
+      "date": "10.04.2026 10:42",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Раритетная кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:44:18.700165"
+    },
+    {
+      "id": 398,
+      "date": "10.04.2026 10:48",
+      "nick": "CARBONARIUZ",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 46,
+      "created_at": "2026-04-16T07:44:18.687172"
+    },
+    {
+      "id": 397,
+      "date": "10.04.2026 10:52",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:57.273508"
+    },
+    {
+      "id": 396,
+      "date": "10.04.2026 10:58",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:57.272167"
+    },
+    {
+      "id": 395,
+      "date": "10.04.2026 10:58",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:57.269726"
+    },
+    {
+      "id": 394,
+      "date": "10.04.2026 10:58",
+      "nick": "Звизданутый",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:57.267601"
+    },
+    {
+      "id": 393,
+      "date": "10.04.2026 11:44",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:43:57.265282"
+    },
+    {
+      "id": 392,
+      "date": "10.04.2026 11:45",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Сущность Линга",
+      "quantity": 2028,
+      "created_at": "2026-04-16T07:43:57.263537"
+    },
+    {
+      "id": 391,
+      "date": "10.04.2026 12:10",
+      "nick": "_Бузувер_",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:57.261802"
+    },
+    {
+      "id": 390,
+      "date": "10.04.2026 12:11",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Линга",
+      "quantity": -2028,
+      "created_at": "2026-04-16T07:43:57.260987"
+    },
+    {
+      "id": 389,
+      "date": "10.04.2026 12:13",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 10,
+      "created_at": "2026-04-16T07:43:57.260193"
+    },
+    {
+      "id": 388,
+      "date": "10.04.2026 12:15",
+      "nick": "filinn",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 10,
+      "created_at": "2026-04-16T07:43:57.259393"
+    },
+    {
+      "id": 387,
+      "date": "10.04.2026 12:15",
+      "nick": "Born To Chill",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 7,
+      "created_at": "2026-04-16T07:43:57.258600"
+    },
+    {
+      "id": 386,
+      "date": "10.04.2026 12:15",
+      "nick": "С-ф-и-н-к-с",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:57.257761"
+    },
+    {
+      "id": 385,
+      "date": "10.04.2026 12:16",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": -100,
+      "created_at": "2026-04-16T07:43:57.256954"
+    },
+    {
+      "id": 384,
+      "date": "10.04.2026 12:16",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Гиамбир",
+      "quantity": -250,
+      "created_at": "2026-04-16T07:43:57.256149"
+    },
+    {
+      "id": 383,
+      "date": "10.04.2026 12:16",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Эльдорилл",
+      "quantity": -250,
+      "created_at": "2026-04-16T07:43:57.255336"
+    },
+    {
+      "id": 382,
+      "date": "10.04.2026 12:16",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Золотой хабус",
+      "quantity": -250,
+      "created_at": "2026-04-16T07:43:57.254508"
+    },
+    {
+      "id": 381,
+      "date": "10.04.2026 12:16",
+      "nick": "--Ухожу КРАСИВО-",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 11,
+      "created_at": "2026-04-16T07:43:57.253561"
+    },
+    {
+      "id": 380,
+      "date": "10.04.2026 12:16",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Кристаллы истины",
+      "quantity": -4052,
+      "created_at": "2026-04-16T07:43:57.252305"
+    },
+    {
+      "id": 379,
+      "date": "10.04.2026 12:17",
+      "nick": "--Ухожу КРАСИВО-",
+      "operation_type": "Склад",
+      "object_name": "Лист железа",
+      "quantity": 12,
+      "created_at": "2026-04-16T07:43:57.250864"
+    },
+    {
+      "id": 378,
+      "date": "10.04.2026 12:17",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:57.246827"
+    },
+    {
+      "id": 377,
+      "date": "10.04.2026 12:19",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Кристаллы истины",
+      "quantity": 2000,
+      "created_at": "2026-04-16T07:43:33.429898"
+    },
+    {
+      "id": 376,
+      "date": "10.04.2026 12:20",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:33.429250"
+    },
+    {
+      "id": 375,
+      "date": "10.04.2026 12:28",
+      "nick": "Кудряшка Лю",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:43:33.428010"
+    },
+    {
+      "id": 374,
+      "date": "10.04.2026 12:30",
+      "nick": "Master Snake",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:33.426471"
+    },
+    {
+      "id": 373,
+      "date": "10.04.2026 14:50",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар альвы благонравной",
+      "quantity": 10,
+      "created_at": "2026-04-16T07:43:33.425004"
+    },
+    {
+      "id": 372,
+      "date": "10.04.2026 15:03",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:43:33.422781"
+    },
+    {
+      "id": 371,
+      "date": "10.04.2026 15:03",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:43:33.420602"
+    },
+    {
+      "id": 370,
+      "date": "10.04.2026 15:04",
+      "nick": "_чакки_",
+      "operation_type": "Возвращено главой",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:43:33.418823"
+    },
+    {
+      "id": 369,
+      "date": "10.04.2026 15:05",
+      "nick": "CriticalDiller",
+      "operation_type": "Возвращено главой",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 20,
+      "created_at": "2026-04-16T07:43:33.417862"
+    },
+    {
+      "id": 368,
+      "date": "10.04.2026 15:12",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": 10,
+      "created_at": "2026-04-16T07:43:33.416959"
+    },
+    {
+      "id": 367,
+      "date": "10.04.2026 17:18",
+      "nick": "filinn",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": -5,
+      "created_at": "2026-04-16T07:43:33.416012"
+    },
+    {
+      "id": 366,
+      "date": "10.04.2026 17:18",
+      "nick": "filinn",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:43:33.414661"
+    },
+    {
+      "id": 365,
+      "date": "10.04.2026 18:40",
+      "nick": "Doktor Web",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:43:33.413376"
+    },
+    {
+      "id": 364,
+      "date": "10.04.2026 18:54",
+      "nick": "С-ф-и-н-к-с",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:43:33.411131"
+    },
+    {
+      "id": 363,
+      "date": "10.04.2026 19:11",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": 4,
+      "created_at": "2026-04-16T07:43:33.408786"
+    },
+    {
+      "id": 362,
+      "date": "10.04.2026 19:11",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -4,
+      "created_at": "2026-04-16T07:43:33.406264"
+    },
+    {
+      "id": 361,
+      "date": "10.04.2026 19:19",
+      "nick": "filinn",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:43:33.403914"
+    },
+    {
+      "id": 360,
+      "date": "10.04.2026 20:47",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Браслеты джиннов",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:33.402026"
+    },
+    {
+      "id": 359,
+      "date": "10.04.2026 21:46",
+      "nick": "Master Snake",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 37,
+      "created_at": "2026-04-16T07:43:33.400544"
+    },
+    {
+      "id": 358,
+      "date": "10.04.2026 22:35",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:43:33.397653"
+    },
+    {
+      "id": 357,
+      "date": "10.04.2026 22:38",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:43:11.372563"
+    },
+    {
+      "id": 356,
+      "date": "10.04.2026 22:49",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:43:11.371948"
+    },
+    {
+      "id": 355,
+      "date": "11.04.2026 05:00",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:43:11.371153"
+    },
+    {
+      "id": 354,
+      "date": "11.04.2026 05:00",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:11.370352"
+    },
+    {
+      "id": 353,
+      "date": "11.04.2026 06:18",
+      "nick": "Плохой Котик",
+      "operation_type": "Склад",
+      "object_name": "Простое поручение Первородного",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:43:11.369555"
+    },
+    {
+      "id": 352,
+      "date": "11.04.2026 06:32",
+      "nick": "Плохой Котик",
+      "operation_type": "Склад",
+      "object_name": "Кристаллы истины",
+      "quantity": 40,
+      "created_at": "2026-04-16T07:43:11.368708"
+    },
+    {
+      "id": 351,
+      "date": "11.04.2026 06:33",
+      "nick": "Плохой Котик",
+      "operation_type": "Склад",
+      "object_name": "Желчь скорпиона",
+      "quantity": 44978,
+      "created_at": "2026-04-16T07:43:11.367617"
+    },
+    {
+      "id": 350,
+      "date": "11.04.2026 07:16",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:11.366487"
+    },
+    {
+      "id": 349,
+      "date": "11.04.2026 07:29",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:43:11.365419"
+    },
+    {
+      "id": 348,
+      "date": "11.04.2026 07:29",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:11.364513"
+    },
+    {
+      "id": 347,
+      "date": "11.04.2026 08:18",
+      "nick": "Плохой Котик",
+      "operation_type": "Склад",
+      "object_name": "Кристаллы истины",
+      "quantity": 119,
+      "created_at": "2026-04-16T07:43:11.363555"
+    },
+    {
+      "id": 346,
+      "date": "11.04.2026 09:17",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -940,
+      "created_at": "2026-04-16T07:43:11.362276"
+    },
+    {
+      "id": 345,
+      "date": "11.04.2026 10:15",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:43:11.360742"
+    },
+    {
+      "id": 344,
+      "date": "11.04.2026 10:52",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -930,
+      "created_at": "2026-04-16T07:43:11.358650"
+    },
+    {
+      "id": 343,
+      "date": "11.04.2026 10:56",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Энергетический настой",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:11.357544"
+    },
+    {
+      "id": 342,
+      "date": "11.04.2026 10:56",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:43:11.356278"
+    },
+    {
+      "id": 341,
+      "date": "11.04.2026 10:56",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Большой энергетический настой",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:43:11.354907"
+    },
+    {
+      "id": 340,
+      "date": "11.04.2026 11:06",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Золотой хабус",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:43:11.353649"
+    },
+    {
+      "id": 339,
+      "date": "11.04.2026 11:53",
+      "nick": "Звизданутый",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:43:11.351634"
+    },
+    {
+      "id": 338,
+      "date": "11.04.2026 12:06",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Реликтовая кость",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:43:11.335926"
+    },
+    {
+      "id": 337,
+      "date": "11.04.2026 12:26",
+      "nick": "_Ulfheadnar_",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:42:31.360194"
+    },
+    {
+      "id": 336,
+      "date": "11.04.2026 12:41",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:42:31.358397"
+    },
+    {
+      "id": 335,
+      "date": "11.04.2026 13:08",
+      "nick": "Minister_ Sanych",
+      "operation_type": "Склад",
+      "object_name": "Омела",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:42:31.355745"
+    },
+    {
+      "id": 334,
+      "date": "11.04.2026 13:08",
+      "nick": "Minister_ Sanych",
+      "operation_type": "Склад",
+      "object_name": "Агат",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:42:31.354222"
+    },
+    {
+      "id": 333,
+      "date": "11.04.2026 13:08",
+      "nick": "Minister_ Sanych",
+      "operation_type": "Склад",
+      "object_name": "Каменный карп",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:42:31.353219"
+    },
+    {
+      "id": 332,
+      "date": "11.04.2026 13:21",
+      "nick": "Minister_ Sanych",
+      "operation_type": "Склад",
+      "object_name": "Агат",
+      "quantity": 10,
+      "created_at": "2026-04-16T07:42:31.352190"
+    },
+    {
+      "id": 331,
+      "date": "11.04.2026 14:04",
+      "nick": "Minister_ Sanych",
+      "operation_type": "Склад",
+      "object_name": "Каменный карп",
+      "quantity": 10,
+      "created_at": "2026-04-16T07:42:31.350707"
+    },
+    {
+      "id": 330,
+      "date": "11.04.2026 14:05",
+      "nick": "Minister_ Sanych",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:42:31.349760"
+    },
+    {
+      "id": 329,
+      "date": "11.04.2026 14:05",
+      "nick": "Minister_ Sanych",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": -5,
+      "created_at": "2026-04-16T07:42:31.348245"
+    },
+    {
+      "id": 328,
+      "date": "11.04.2026 17:37",
+      "nick": "Minister_ Sanych",
+      "operation_type": "Склад",
+      "object_name": "Омела",
+      "quantity": 10,
+      "created_at": "2026-04-16T07:42:31.345964"
+    },
+    {
+      "id": 327,
+      "date": "11.04.2026 18:19",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:42:31.343965"
+    },
+    {
+      "id": 326,
+      "date": "11.04.2026 18:19",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар альвы благонравной",
+      "quantity": -2,
+      "created_at": "2026-04-16T07:42:31.342127"
+    },
+    {
+      "id": 325,
+      "date": "11.04.2026 18:19",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:42:31.340426"
+    },
+    {
+      "id": 324,
+      "date": "11.04.2026 18:56",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -2,
+      "created_at": "2026-04-16T07:42:31.338434"
+    },
+    {
+      "id": 323,
+      "date": "11.04.2026 18:56",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:42:31.337486"
+    },
+    {
+      "id": 322,
+      "date": "11.04.2026 20:11",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Золотой хабус",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:42:31.336681"
+    },
+    {
+      "id": 321,
+      "date": "11.04.2026 20:57",
+      "nick": "Белоснежъка",
+      "operation_type": "Склад",
+      "object_name": "Большой набор защитных пластин",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:42:31.335861"
+    },
+    {
+      "id": 320,
+      "date": "11.04.2026 20:58",
+      "nick": "Белоснежъка",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:42:31.335018"
+    },
+    {
+      "id": 319,
+      "date": "11.04.2026 20:58",
+      "nick": "Белоснежъка",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:42:31.333737"
+    },
+    {
+      "id": 318,
+      "date": "12.04.2026 00:11",
+      "nick": "filinn",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:42:31.330744"
+    },
+    {
+      "id": 317,
+      "date": "12.04.2026 02:29",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:54.342884"
+    },
+    {
+      "id": 316,
+      "date": "12.04.2026 02:29",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:41:54.340701"
+    },
+    {
+      "id": 315,
+      "date": "12.04.2026 03:10",
+      "nick": "Родри",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:54.334254"
+    },
+    {
+      "id": 314,
+      "date": "12.04.2026 03:10",
+      "nick": "Родри",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар шахифрита",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:41:54.331279"
+    },
+    {
+      "id": 313,
+      "date": "12.04.2026 03:11",
+      "nick": "Родри",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар чёрного лотоса",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:54.328694"
+    },
+    {
+      "id": 312,
+      "date": "12.04.2026 06:29",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Доска",
+      "quantity": 30,
+      "created_at": "2026-04-16T07:41:54.326336"
+    },
+    {
+      "id": 311,
+      "date": "12.04.2026 06:29",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Строительный камень",
+      "quantity": 30,
+      "created_at": "2026-04-16T07:41:54.323601"
+    },
+    {
+      "id": 310,
+      "date": "12.04.2026 06:29",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Лист железа",
+      "quantity": 30,
+      "created_at": "2026-04-16T07:41:54.320876"
+    },
+    {
+      "id": 309,
+      "date": "12.04.2026 10:49",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Семена гасконтии",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:54.315391"
+    },
+    {
+      "id": 308,
+      "date": "12.04.2026 10:49",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Семя кромпуса",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:54.312762"
+    },
+    {
+      "id": 307,
+      "date": "12.04.2026 10:49",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Семя орушкана",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:54.309707"
+    },
+    {
+      "id": 306,
+      "date": "12.04.2026 10:49",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Семя сминтии",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:41:54.305419"
+    },
+    {
+      "id": 305,
+      "date": "12.04.2026 10:49",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Семена памелики",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:41:54.302849"
+    },
+    {
+      "id": 304,
+      "date": "12.04.2026 10:50",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Семя лазофара",
+      "quantity": 3,
+      "created_at": "2026-04-16T07:41:54.295557"
+    },
+    {
+      "id": 303,
+      "date": "12.04.2026 10:50",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Семя миагны",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:41:54.292171"
+    },
+    {
+      "id": 302,
+      "date": "12.04.2026 10:50",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Строительный камень",
+      "quantity": 4,
+      "created_at": "2026-04-16T07:41:54.289958"
+    },
+    {
+      "id": 301,
+      "date": "12.04.2026 10:50",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Го",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:54.287875"
+    },
+    {
+      "id": 300,
+      "date": "12.04.2026 10:50",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Нежная Глаумония",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:54.285612"
+    },
+    {
+      "id": 299,
+      "date": "12.04.2026 10:50",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Кольчатая Гаспация",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:54.280208"
+    },
+    {
+      "id": 298,
+      "date": "12.04.2026 10:50",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Красноглазый Фунгус",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:31.488736"
+    },
+    {
+      "id": 297,
+      "date": "12.04.2026 10:51",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Гон-ва",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:31.487096"
+    },
+    {
+      "id": 296,
+      "date": "12.04.2026 10:51",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Хагра",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:31.484964"
+    },
+    {
+      "id": 295,
+      "date": "12.04.2026 10:51",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Тагх",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:31.482813"
+    },
+    {
+      "id": 294,
+      "date": "12.04.2026 10:51",
+      "nick": "Не болей",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Чин",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:41:31.480382"
+    },
+    {
+      "id": 293,
+      "date": "12.04.2026 11:13",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Золотой хабус",
+      "quantity": 4,
+      "created_at": "2026-04-16T07:41:31.477348"
+    },
+    {
+      "id": 292,
+      "date": "12.04.2026 11:22",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Редкая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:31.472978"
+    },
+    {
+      "id": 291,
+      "date": "12.04.2026 11:24",
+      "nick": "Рояль",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 70,
+      "created_at": "2026-04-16T07:41:31.470616"
+    },
+    {
+      "id": 290,
+      "date": "12.04.2026 12:39",
+      "nick": "Звизданутый",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:31.467752"
+    },
+    {
+      "id": 289,
+      "date": "12.04.2026 14:07",
+      "nick": "АнВи",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 70,
+      "created_at": "2026-04-16T07:41:31.465276"
+    },
+    {
+      "id": 288,
+      "date": "12.04.2026 14:09",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -2,
+      "created_at": "2026-04-16T07:41:31.462710"
+    },
+    {
+      "id": 287,
+      "date": "12.04.2026 14:09",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар альвы благонравной",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:41:31.456041"
+    },
+    {
+      "id": 286,
+      "date": "12.04.2026 19:28",
+      "nick": "Не болей",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 70,
+      "created_at": "2026-04-16T07:41:31.454416"
+    },
+    {
+      "id": 285,
+      "date": "12.04.2026 19:39",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:31.452811"
+    },
+    {
+      "id": 284,
+      "date": "12.04.2026 20:31",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Каменный карп",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:41:31.451086"
+    },
+    {
+      "id": 283,
+      "date": "12.04.2026 20:31",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Агат",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:41:31.449297"
+    },
+    {
+      "id": 282,
+      "date": "12.04.2026 20:31",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Омела",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:41:31.447001"
+    },
+    {
+      "id": 281,
+      "date": "12.04.2026 20:50",
+      "nick": "Е-В-Г-Е-Н",
+      "operation_type": "Склад",
+      "object_name": "Великий талисман гармонии",
+      "quantity": 1,
+      "created_at": "2026-04-16T07:41:31.443277"
+    },
+    {
+      "id": 280,
+      "date": "12.04.2026 22:13",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": -5,
+      "created_at": "2026-04-16T07:41:31.440089"
+    },
+    {
+      "id": 279,
+      "date": "13.04.2026 02:07",
+      "nick": "Vitaminka -",
+      "operation_type": "Склад",
+      "object_name": "Агат",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:41:31.422350"
+    },
+    {
+      "id": 278,
+      "date": "13.04.2026 02:07",
+      "nick": "Vitaminka -",
+      "operation_type": "Склад",
+      "object_name": "Омела",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:41:09.577232"
+    },
+    {
+      "id": 277,
+      "date": "13.04.2026 02:48",
+      "nick": "Vitaminka -",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": -10,
+      "created_at": "2026-04-16T07:41:09.575429"
+    },
+    {
+      "id": 276,
+      "date": "13.04.2026 02:48",
+      "nick": "Vitaminka -",
+      "operation_type": "Склад",
+      "object_name": "Редкая кость",
+      "quantity": 5,
+      "created_at": "2026-04-16T07:41:09.572743"
+    },
+    {
+      "id": 275,
+      "date": "13.04.2026 08:30",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": 20,
+      "created_at": "2026-04-16T07:41:09.569899"
+    },
+    {
+      "id": 274,
+      "date": "13.04.2026 09:20",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Нежная Глаумония",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:41:09.563449"
+    },
+    {
+      "id": 273,
+      "date": "13.04.2026 09:20",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Семя миагны",
+      "quantity": 2,
+      "created_at": "2026-04-16T07:41:09.560540"
+    },
+    {
+      "id": 272,
+      "date": "13.04.2026 09:21",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Го",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:41:09.557407"
+    },
+    {
+      "id": 271,
+      "date": "13.04.2026 09:21",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Кольчатая Гаспация",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:41:09.555047"
+    },
+    {
+      "id": 270,
+      "date": "13.04.2026 09:21",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Красноглазый Фунгус",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:41:09.547191"
+    },
+    {
+      "id": 269,
+      "date": "13.04.2026 09:21",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Гон-ва",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:41:09.544777"
+    },
+    {
+      "id": 268,
+      "date": "13.04.2026 09:21",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Хагра",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:41:09.541404"
+    },
+    {
+      "id": 267,
+      "date": "13.04.2026 09:21",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Тагх",
+      "quantity": -1,
+      "created_at": "2026-04-16T07:41:09.538917"
+    },
+    {
+      "id": 266,
+      "date": "13.04.2026 09:21",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Хранилище энергии Чин",
+      "quantity": -2,
+      "created_at": "2026-04-16T07:41:09.536294"
+    },
+    {
+      "id": 265,
+      "date": "13.04.2026 09:21",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Большой энергетический настой",
+      "quantity": -2,
+      "created_at": "2026-04-16T07:41:09.529568"
+    },
+    {
+      "id": 264,
+      "date": "13.04.2026 09:21",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": -2,
+      "created_at": "2026-04-16T07:41:09.522926"
+    },
+    {
+      "id": 263,
+      "date": "16.04.2026 09:22",
+      "nick": "_Бузувер_",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 100,
+      "created_at": "2026-04-16T07:38:32.128433"
+    },
+    {
+      "id": 262,
+      "date": "16.04.2026 09:39",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T07:38:32.126097"
+    },
+    {
+      "id": 261,
+      "date": "16.04.2026 09:53",
+      "nick": "Vitaminka -",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 10,
+      "created_at": "2026-04-16T07:38:32.123362"
+    },
+    {
+      "id": 260,
+      "date": "16.04.2026 09:54",
+      "nick": "filinn",
+      "operation_type": "Склад",
+      "object_name": "Кристаллы истины",
+      "quantity": 1276,
+      "created_at": "2026-04-16T07:38:32.111647"
+    },
+    {
+      "id": 259,
+      "date": "13.04.2026 09:21",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Энергетический настой",
+      "quantity": -1,
+      "created_at": "2026-04-16T06:06:25.590268"
+    },
+    {
+      "id": 258,
+      "date": "13.04.2026 09:23",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Великий талисман гармонии",
+      "quantity": -1,
+      "created_at": "2026-04-16T06:06:25.589392"
+    },
+    {
+      "id": 257,
+      "date": "13.04.2026 10:06",
+      "nick": "Naysayer",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 70,
+      "created_at": "2026-04-16T06:06:25.588423"
+    },
+    {
+      "id": 256,
+      "date": "13.04.2026 10:09",
+      "nick": "старый чертенок",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 70,
+      "created_at": "2026-04-16T06:06:25.587484"
+    },
+    {
+      "id": 255,
+      "date": "13.04.2026 10:33",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Редкая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:06:25.586400"
+    },
+    {
+      "id": 254,
+      "date": "13.04.2026 11:22",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": -1,
+      "created_at": "2026-04-16T06:06:25.584570"
+    },
+    {
+      "id": 253,
+      "date": "13.04.2026 11:22",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 2,
+      "created_at": "2026-04-16T06:06:25.582896"
+    },
+    {
+      "id": 252,
+      "date": "13.04.2026 11:39",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 2,
+      "created_at": "2026-04-16T06:06:25.580897"
+    },
+    {
+      "id": 251,
+      "date": "13.04.2026 12:05",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:06:25.579311"
+    },
+    {
+      "id": 250,
+      "date": "13.04.2026 13:54",
+      "nick": "O____O",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 70,
+      "created_at": "2026-04-16T06:06:25.578280"
+    },
+    {
+      "id": 249,
+      "date": "13.04.2026 13:59",
+      "nick": "Кудряшка Лю",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 100,
+      "created_at": "2026-04-16T06:06:25.577381"
+    },
+    {
+      "id": 248,
+      "date": "13.04.2026 14:16",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -5,
+      "created_at": "2026-04-16T06:06:25.576439"
+    },
+    {
+      "id": 247,
+      "date": "13.04.2026 14:16",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар чёрного лотоса",
+      "quantity": 3,
+      "created_at": "2026-04-16T06:06:25.575417"
+    },
+    {
+      "id": 246,
+      "date": "13.04.2026 14:18",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар аракша неугасимого",
+      "quantity": 3,
+      "created_at": "2026-04-16T06:06:25.574110"
+    },
+    {
+      "id": 245,
+      "date": "13.04.2026 14:18",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар альвы благонравной",
+      "quantity": -1,
+      "created_at": "2026-04-16T06:06:25.572987"
+    },
+    {
+      "id": 244,
+      "date": "13.04.2026 15:44",
+      "nick": "Лесник-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 100,
+      "created_at": "2026-04-16T06:06:25.571716"
+    },
+    {
+      "id": 243,
+      "date": "13.04.2026 15:54",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": -1,
+      "created_at": "2026-04-16T06:06:25.570104"
+    },
+    {
+      "id": 242,
+      "date": "13.04.2026 15:54",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Ягода «Вкусница»",
+      "quantity": -1,
+      "created_at": "2026-04-16T06:06:25.568092"
+    },
+    {
+      "id": 241,
+      "date": "13.04.2026 15:54",
+      "nick": "_чакки_",
+      "operation_type": "Склад",
+      "object_name": "Мясной жук",
+      "quantity": -1,
+      "created_at": "2026-04-16T06:06:25.566560"
+    },
+    {
+      "id": 240,
+      "date": "13.04.2026 15:55",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:06:25.556683"
+    },
+    {
+      "id": 239,
+      "date": "13.04.2026 20:54",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 5,
+      "created_at": "2026-04-16T06:06:06.895259"
+    },
+    {
+      "id": 238,
+      "date": "13.04.2026 22:08",
+      "nick": "Karakurdec",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 70,
+      "created_at": "2026-04-16T06:06:06.894637"
+    },
+    {
+      "id": 237,
+      "date": "14.04.2026 07:31",
+      "nick": "Vitaminka -",
+      "operation_type": "Склад",
+      "object_name": "Раритетная кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:06:06.893798"
+    },
+    {
+      "id": 236,
+      "date": "14.04.2026 07:34",
+      "nick": "Vitaminka -",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 5,
+      "created_at": "2026-04-16T06:06:06.892822"
+    },
+    {
+      "id": 235,
+      "date": "14.04.2026 07:34",
+      "nick": "Vitaminka -",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:06:06.891430"
+    },
+    {
+      "id": 234,
+      "date": "14.04.2026 08:26",
+      "nick": "Drago71421",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T06:06:06.889505"
+    },
+    {
+      "id": 233,
+      "date": "14.04.2026 08:33",
+      "nick": "Maoria",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T06:06:06.888096"
+    },
+    {
+      "id": 232,
+      "date": "14.04.2026 08:38",
+      "nick": "A e r i s",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T06:06:06.885580"
+    },
+    {
+      "id": 231,
+      "date": "14.04.2026 08:43",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Доска",
+      "quantity": 30,
+      "created_at": "2026-04-16T06:06:06.884318"
+    },
+    {
+      "id": 230,
+      "date": "14.04.2026 08:43",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Строительный камень",
+      "quantity": 30,
+      "created_at": "2026-04-16T06:06:06.883524"
+    },
+    {
+      "id": 229,
+      "date": "14.04.2026 08:43",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Лист железа",
+      "quantity": 30,
+      "created_at": "2026-04-16T06:06:06.882730"
+    },
+    {
+      "id": 228,
+      "date": "14.04.2026 09:32",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Съедобный рак",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:06:06.881936"
+    },
+    {
+      "id": 227,
+      "date": "14.04.2026 09:32",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Мясной жук",
+      "quantity": -1,
+      "created_at": "2026-04-16T06:06:06.881135"
+    },
+    {
+      "id": 226,
+      "date": "14.04.2026 09:35",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Груда бумаг",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:06:06.880313"
+    },
+    {
+      "id": 225,
+      "date": "14.04.2026 10:51",
+      "nick": "Рейлюшка",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T06:06:06.879428"
+    },
+    {
+      "id": 224,
+      "date": "14.04.2026 12:04",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:06:06.878289"
+    },
+    {
+      "id": 223,
+      "date": "14.04.2026 13:05",
+      "nick": "FeDeLTa",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T06:06:06.877294"
+    },
+    {
+      "id": 222,
+      "date": "14.04.2026 13:49",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 50,
+      "created_at": "2026-04-16T06:06:06.876320"
+    },
+    {
+      "id": 221,
+      "date": "14.04.2026 13:53",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 42,
+      "created_at": "2026-04-16T06:06:06.863681"
+    },
+    {
+      "id": 220,
+      "date": "14.04.2026 13:55",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 414,
+      "created_at": "2026-04-16T06:05:50.294141"
+    },
+    {
+      "id": 219,
+      "date": "14.04.2026 13:57",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Желчь скорпиона",
+      "quantity": -44978,
+      "created_at": "2026-04-16T06:05:50.293242"
+    },
+    {
+      "id": 218,
+      "date": "14.04.2026 13:57",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 49,
+      "created_at": "2026-04-16T06:05:50.291640"
+    },
+    {
+      "id": 217,
+      "date": "14.04.2026 13:57",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Большой энергетический настой",
+      "quantity": 4,
+      "created_at": "2026-04-16T06:05:50.290193"
+    },
+    {
+      "id": 216,
+      "date": "14.04.2026 13:57",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Энергетический настой",
+      "quantity": 60,
+      "created_at": "2026-04-16T06:05:50.289237"
+    },
+    {
+      "id": 215,
+      "date": "14.04.2026 13:57",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Большой энергетический настой",
+      "quantity": 22,
+      "created_at": "2026-04-16T06:05:50.288324"
+    },
+    {
+      "id": 214,
+      "date": "14.04.2026 13:58",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Великий энергетический настой",
+      "quantity": 8,
+      "created_at": "2026-04-16T06:05:50.287190"
+    },
+    {
+      "id": 213,
+      "date": "14.04.2026 13:58",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": 46,
+      "created_at": "2026-04-16T06:05:50.285839"
+    },
+    {
+      "id": 212,
+      "date": "14.04.2026 13:58",
+      "nick": "Попрыгушка",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 2,
+      "created_at": "2026-04-16T06:05:50.284458"
+    },
+    {
+      "id": 211,
+      "date": "14.04.2026 13:58",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Абсолютный энергетический настой",
+      "quantity": 10,
+      "created_at": "2026-04-16T06:05:50.283373"
+    },
+    {
+      "id": 210,
+      "date": "14.04.2026 13:58",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 20,
+      "created_at": "2026-04-16T06:05:50.282111"
+    },
+    {
+      "id": 209,
+      "date": "14.04.2026 14:00",
+      "nick": "Попрыгушка",
+      "operation_type": "Склад",
+      "object_name": "Груда бумаг",
+      "quantity": -1,
+      "created_at": "2026-04-16T06:05:50.279419"
+    },
+    {
+      "id": 208,
+      "date": "14.04.2026 14:01",
+      "nick": "Е-В-Г-Е-Н",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": 25,
+      "created_at": "2026-04-16T06:05:50.277812"
+    },
+    {
+      "id": 207,
+      "date": "14.04.2026 14:01",
+      "nick": "Е-В-Г-Е-Н",
+      "operation_type": "Склад",
+      "object_name": "Энергетический настой",
+      "quantity": 11,
+      "created_at": "2026-04-16T06:05:50.275331"
+    },
+    {
+      "id": 206,
+      "date": "14.04.2026 14:02",
+      "nick": "Попрыгушка",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 25,
+      "created_at": "2026-04-16T06:05:50.273486"
+    },
+    {
+      "id": 205,
+      "date": "14.04.2026 14:22",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": -71,
+      "created_at": "2026-04-16T06:05:50.272387"
+    },
+    {
+      "id": 204,
+      "date": "14.04.2026 14:22",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Энергетический настой",
+      "quantity": -71,
+      "created_at": "2026-04-16T06:05:50.271588"
+    },
+    {
+      "id": 203,
+      "date": "14.04.2026 14:22",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Большой энергетический настой",
+      "quantity": -26,
+      "created_at": "2026-04-16T06:05:50.270731"
+    },
+    {
+      "id": 202,
+      "date": "14.04.2026 14:22",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Великий энергетический настой",
+      "quantity": -8,
+      "created_at": "2026-04-16T06:05:50.269513"
+    },
+    {
+      "id": 201,
+      "date": "14.04.2026 14:22",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Абсолютный энергетический настой",
+      "quantity": -10,
+      "created_at": "2026-04-16T06:05:50.266347"
+    },
+    {
+      "id": 200,
+      "date": "14.04.2026 14:57",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 161,
+      "created_at": "2026-04-16T06:05:24.847657"
+    },
+    {
+      "id": 199,
+      "date": "14.04.2026 15:00",
+      "nick": "__-Afrodita-__",
+      "operation_type": "Склад",
+      "object_name": "Семя миагны",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:05:24.846934"
+    },
+    {
+      "id": 198,
+      "date": "14.04.2026 15:00",
+      "nick": "__-Afrodita-__",
+      "operation_type": "Склад",
+      "object_name": "Семена памелики",
+      "quantity": 2,
+      "created_at": "2026-04-16T06:05:24.845965"
+    },
+    {
+      "id": 197,
+      "date": "14.04.2026 15:03",
+      "nick": "__-Afrodita-__",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 200,
+      "created_at": "2026-04-16T06:05:24.844655"
+    },
+    {
+      "id": 196,
+      "date": "14.04.2026 15:03",
+      "nick": "__-Afrodita-__",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:05:24.843109"
+    },
+    {
+      "id": 195,
+      "date": "14.04.2026 15:03",
+      "nick": "__-Afrodita-__",
+      "operation_type": "Склад",
+      "object_name": "Великий энергетический настой",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:05:24.841341"
+    },
+    {
+      "id": 194,
+      "date": "14.04.2026 15:03",
+      "nick": "__-Afrodita-__",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 25,
+      "created_at": "2026-04-16T06:05:24.840370"
+    },
+    {
+      "id": 193,
+      "date": "14.04.2026 15:16",
+      "nick": "Drago71421",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": 120,
+      "created_at": "2026-04-16T06:05:24.838624"
+    },
+    {
+      "id": 192,
+      "date": "14.04.2026 15:38",
+      "nick": "Agni",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T06:05:24.836266"
+    },
+    {
+      "id": 191,
+      "date": "14.04.2026 16:23",
+      "nick": "probnik",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T06:05:24.834255"
+    },
+    {
+      "id": 190,
+      "date": "14.04.2026 16:26",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 3,
+      "created_at": "2026-04-16T06:05:24.832417"
+    },
+    {
+      "id": 189,
+      "date": "14.04.2026 16:27",
+      "nick": "Рояль",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T06:05:24.830712"
+    },
+    {
+      "id": 188,
+      "date": "14.04.2026 16:38",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 15,
+      "created_at": "2026-04-16T06:05:24.829918"
+    },
+    {
+      "id": 187,
+      "date": "14.04.2026 16:39",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:05:24.829122"
+    },
+    {
+      "id": 186,
+      "date": "14.04.2026 16:44",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 781,
+      "created_at": "2026-04-16T06:05:24.828332"
+    },
+    {
+      "id": 185,
+      "date": "14.04.2026 17:04",
+      "nick": "redsarmat",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T06:05:24.827519"
+    },
+    {
+      "id": 184,
+      "date": "14.04.2026 17:09",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Золотой хабус",
+      "quantity": 4,
+      "created_at": "2026-04-16T06:05:24.826657"
+    },
+    {
+      "id": 183,
+      "date": "14.04.2026 17:36",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": 8,
+      "created_at": "2026-04-16T06:05:24.825837"
+    },
+    {
+      "id": 182,
+      "date": "14.04.2026 17:38",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": -9600,
+      "created_at": "2026-04-16T06:05:24.824817"
+    },
+    {
+      "id": 181,
+      "date": "14.04.2026 17:38",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Малый энергетический настой",
+      "quantity": -1,
+      "created_at": "2026-04-16T06:05:24.821640"
+    },
+    {
+      "id": 180,
+      "date": "14.04.2026 17:38",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": -305,
+      "created_at": "2026-04-16T06:04:57.444351"
+    },
+    {
+      "id": 179,
+      "date": "14.04.2026 17:39",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Великий энергетический настой",
+      "quantity": -1,
+      "created_at": "2026-04-16T06:04:57.442512"
+    },
+    {
+      "id": 178,
+      "date": "14.04.2026 17:42",
+      "nick": "Seregkaa",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": 369,
+      "created_at": "2026-04-16T06:04:57.440282"
+    },
+    {
+      "id": 177,
+      "date": "14.04.2026 17:43",
+      "nick": "__-Afrodita-__",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": 100,
+      "created_at": "2026-04-16T06:04:57.437897"
+    },
+    {
+      "id": 176,
+      "date": "14.04.2026 17:43",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Клык опасного хищника»",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:04:57.436042"
+    },
+    {
+      "id": 175,
+      "date": "14.04.2026 17:43",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Когти редкого зверя»",
+      "quantity": 4,
+      "created_at": "2026-04-16T06:04:57.434498"
+    },
+    {
+      "id": 174,
+      "date": "14.04.2026 17:44",
+      "nick": "Naysayer",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": 5,
+      "created_at": "2026-04-16T06:04:57.432745"
+    },
+    {
+      "id": 173,
+      "date": "14.04.2026 17:45",
+      "nick": "__-Afrodita-__",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Клык опасного хищника»",
+      "quantity": 37,
+      "created_at": "2026-04-16T06:04:57.430952"
+    },
+    {
+      "id": 172,
+      "date": "14.04.2026 17:45",
+      "nick": "__-Afrodita-__",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Когти редкого зверя»",
+      "quantity": 8,
+      "created_at": "2026-04-16T06:04:57.429190"
+    },
+    {
+      "id": 171,
+      "date": "14.04.2026 17:45",
+      "nick": "__-Afrodita-__",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Чешуя черного дракона»",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:04:57.427231"
+    },
+    {
+      "id": 170,
+      "date": "14.04.2026 17:46",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 200,
+      "created_at": "2026-04-16T06:04:57.424869"
+    },
+    {
+      "id": 169,
+      "date": "14.04.2026 17:49",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": -15000,
+      "created_at": "2026-04-16T06:04:57.422479"
+    },
+    {
+      "id": 168,
+      "date": "14.04.2026 17:58",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Кристаллы истины",
+      "quantity": -2000,
+      "created_at": "2026-04-16T06:04:57.421633"
+    },
+    {
+      "id": 167,
+      "date": "14.04.2026 18:12",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Атши",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:57.420692"
+    },
+    {
+      "id": 166,
+      "date": "14.04.2026 18:12",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Горгульки",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:57.419135"
+    },
+    {
+      "id": 165,
+      "date": "14.04.2026 18:12",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Зигреда",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:57.417915"
+    },
+    {
+      "id": 164,
+      "date": "14.04.2026 18:12",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Игуарона",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:57.415860"
+    },
+    {
+      "id": 163,
+      "date": "14.04.2026 18:12",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Крэтса",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:57.412613"
+    },
+    {
+      "id": 162,
+      "date": "14.04.2026 18:12",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Паучка",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:57.410544"
+    },
+    {
+      "id": 161,
+      "date": "14.04.2026 18:12",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Щенка-демона",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:57.395245"
+    },
+    {
+      "id": 160,
+      "date": "14.04.2026 18:12",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Скелетона",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:37.303170"
+    },
+    {
+      "id": 159,
+      "date": "14.04.2026 18:13",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Щенка",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:37.302383"
+    },
+    {
+      "id": 158,
+      "date": "14.04.2026 18:13",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Линга",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:37.301184"
+    },
+    {
+      "id": 157,
+      "date": "14.04.2026 18:13",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Геланфика",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:37.299884"
+    },
+    {
+      "id": 156,
+      "date": "14.04.2026 18:13",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Дракоши",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:37.298600"
+    },
+    {
+      "id": 155,
+      "date": "14.04.2026 18:13",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Клеширчика",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:37.296856"
+    },
+    {
+      "id": 154,
+      "date": "14.04.2026 18:13",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Привидения",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:37.295340"
+    },
+    {
+      "id": 153,
+      "date": "14.04.2026 18:13",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Совенка",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:37.294540"
+    },
+    {
+      "id": 152,
+      "date": "14.04.2026 18:13",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Крошки-Феи",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:37.293734"
+    },
+    {
+      "id": 151,
+      "date": "14.04.2026 18:13",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Снеговичка",
+      "quantity": 400,
+      "created_at": "2026-04-16T06:04:37.292925"
+    },
+    {
+      "id": 150,
+      "date": "14.04.2026 18:21",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар нурида",
+      "quantity": -2,
+      "created_at": "2026-04-16T06:04:37.292112"
+    },
+    {
+      "id": 149,
+      "date": "14.04.2026 18:21",
+      "nick": "probnik",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар золотой шамсы",
+      "quantity": 2,
+      "created_at": "2026-04-16T06:04:37.291182"
+    },
+    {
+      "id": 148,
+      "date": "14.04.2026 20:14",
+      "nick": "Капитан Ша",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T06:04:37.289621"
+    },
+    {
+      "id": 147,
+      "date": "14.04.2026 20:15",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Редкая кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:04:37.288660"
+    },
+    {
+      "id": 146,
+      "date": "14.04.2026 21:00",
+      "nick": "Звизданутый",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T06:04:37.287487"
+    },
+    {
+      "id": 145,
+      "date": "14.04.2026 21:25",
+      "nick": "Звизданутый",
+      "operation_type": "Склад",
+      "object_name": "Семя кромпуса",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:04:37.285577"
+    },
+    {
+      "id": 144,
+      "date": "14.04.2026 21:26",
+      "nick": "Звизданутый",
+      "operation_type": "Склад",
+      "object_name": "Семя миагны",
+      "quantity": 2,
+      "created_at": "2026-04-16T06:04:37.284069"
+    },
+    {
+      "id": 143,
+      "date": "14.04.2026 21:26",
+      "nick": "Звизданутый",
+      "operation_type": "Склад",
+      "object_name": "Семя лазофара",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:04:37.282550"
+    },
+    {
+      "id": 142,
+      "date": "14.04.2026 21:26",
+      "nick": "Звизданутый",
+      "operation_type": "Склад",
+      "object_name": "Семя сминтии",
+      "quantity": 1,
+      "created_at": "2026-04-16T06:04:37.281221"
+    },
+    {
+      "id": 141,
+      "date": "14.04.2026 22:05",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Атши",
+      "quantity": -400,
+      "created_at": "2026-04-16T06:04:37.268015"
+    },
+    {
+      "id": 140,
+      "date": "15.04.2026 08:56",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Чууги",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:46:09.481440"
+    },
+    {
+      "id": 139,
+      "date": "15.04.2026 08:56",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Буяки",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:46:09.480820"
+    },
+    {
+      "id": 138,
+      "date": "15.04.2026 09:07",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Птенца Гур",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:46:09.479805"
+    },
+    {
+      "id": 137,
+      "date": "15.04.2026 09:07",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Жучка Пети",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:46:09.478651"
+    },
+    {
+      "id": 136,
+      "date": "15.04.2026 09:07",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Альканы",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:46:09.477754"
+    },
+    {
+      "id": 135,
+      "date": "15.04.2026 09:07",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Эльдрика",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:46:09.476405"
+    },
+    {
+      "id": 134,
+      "date": "15.04.2026 09:18",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Медвежонка",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:46:09.474539"
+    },
+    {
+      "id": 133,
+      "date": "15.04.2026 09:18",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Фееричного дракончика",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:46:09.473044"
+    },
+    {
+      "id": 132,
+      "date": "15.04.2026 09:18",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Кодрасенка",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:46:09.471658"
+    },
+    {
+      "id": 131,
+      "date": "15.04.2026 09:18",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Ежика",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:46:09.469872"
+    },
+    {
+      "id": 130,
+      "date": "15.04.2026 09:18",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Змейки",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:46:09.469002"
+    },
+    {
+      "id": 129,
+      "date": "15.04.2026 09:18",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Корра",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:46:09.468249"
+    },
+    {
+      "id": 128,
+      "date": "15.04.2026 09:18",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Снежного волчонка",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:46:09.467496"
+    },
+    {
+      "id": 127,
+      "date": "15.04.2026 09:18",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Древенька",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:46:09.465017"
+    },
+    {
+      "id": 126,
+      "date": "15.04.2026 07:59",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 31,
+      "created_at": "2026-04-16T05:45:50.420255"
+    },
+    {
+      "id": 125,
+      "date": "15.04.2026 08:00",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Центридо",
+      "quantity": -1,
+      "created_at": "2026-04-16T05:45:50.419589"
+    },
+    {
+      "id": 124,
+      "date": "15.04.2026 08:11",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 1,
+      "created_at": "2026-04-16T05:45:50.418571"
+    },
+    {
+      "id": 123,
+      "date": "15.04.2026 08:50",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 2,
+      "created_at": "2026-04-16T05:45:50.417423"
+    },
+    {
+      "id": 122,
+      "date": "15.04.2026 08:51",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семя лемпоцениуса",
+      "quantity": 1,
+      "created_at": "2026-04-16T05:45:50.415802"
+    },
+    {
+      "id": 121,
+      "date": "15.04.2026 08:51",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семя лазофара",
+      "quantity": 1,
+      "created_at": "2026-04-16T05:45:50.414395"
+    },
+    {
+      "id": 120,
+      "date": "15.04.2026 08:51",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семена маскабара",
+      "quantity": 1,
+      "created_at": "2026-04-16T05:45:50.413002"
+    },
+    {
+      "id": 119,
+      "date": "15.04.2026 08:51",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семена памелики",
+      "quantity": 1,
+      "created_at": "2026-04-16T05:45:50.410366"
+    },
+    {
+      "id": 118,
+      "date": "15.04.2026 08:51",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семя агваракуса",
+      "quantity": 2,
+      "created_at": "2026-04-16T05:45:50.408353"
+    },
+    {
+      "id": 117,
+      "date": "15.04.2026 08:51",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семена гасконтии",
+      "quantity": 2,
+      "created_at": "2026-04-16T05:45:50.407562"
+    },
+    {
+      "id": 116,
+      "date": "15.04.2026 08:51",
+      "nick": "Maoria",
+      "operation_type": "Склад",
+      "object_name": "Семя орушкана",
+      "quantity": 1,
+      "created_at": "2026-04-16T05:45:50.406765"
+    },
+    {
+      "id": 115,
+      "date": "15.04.2026 08:56",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 17,
+      "created_at": "2026-04-16T05:45:50.405971"
+    },
+    {
+      "id": 114,
+      "date": "15.04.2026 08:56",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Медвежонка",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:45:50.405173"
+    },
+    {
+      "id": 113,
+      "date": "15.04.2026 08:56",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Фееричного дракончика",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:45:50.404369"
+    },
+    {
+      "id": 112,
+      "date": "15.04.2026 08:56",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Кодрасенка",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:45:50.403571"
+    },
+    {
+      "id": 111,
+      "date": "15.04.2026 08:56",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Ежика",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:45:50.402774"
+    },
+    {
+      "id": 110,
+      "date": "15.04.2026 08:56",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Змейки",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:45:50.401957"
+    },
+    {
+      "id": 109,
+      "date": "15.04.2026 08:56",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Корра",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:45:50.401061"
+    },
+    {
+      "id": 108,
+      "date": "15.04.2026 08:56",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Снежного волчонка",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:45:50.399986"
+    },
+    {
+      "id": 107,
+      "date": "15.04.2026 08:56",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Древенька",
+      "quantity": 400,
+      "created_at": "2026-04-16T05:45:50.396725"
+    },
+    {
+      "id": 106,
+      "date": "14.04.2026 22:05",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Горгульки",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.224152"
+    },
+    {
+      "id": 105,
+      "date": "14.04.2026 22:05",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Зигреда",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.223173"
+    },
+    {
+      "id": 104,
+      "date": "14.04.2026 22:05",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Игуарона",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.222135"
+    },
+    {
+      "id": 103,
+      "date": "14.04.2026 22:05",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Крэтса",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.221059"
+    },
+    {
+      "id": 102,
+      "date": "14.04.2026 22:05",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Паучка",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.219215"
+    },
+    {
+      "id": 101,
+      "date": "14.04.2026 22:05",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Щенка-демона",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.217869"
+    },
+    {
+      "id": 100,
+      "date": "14.04.2026 22:05",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Скелетона",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.216745"
+    },
+    {
+      "id": 99,
+      "date": "14.04.2026 22:06",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Щенка",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.215936"
+    },
+    {
+      "id": 98,
+      "date": "14.04.2026 22:06",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Линга",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.214658"
+    },
+    {
+      "id": 97,
+      "date": "14.04.2026 22:06",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Геланфика",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.213775"
+    },
+    {
+      "id": 96,
+      "date": "14.04.2026 22:06",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Дракоши",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.212888"
+    },
+    {
+      "id": 95,
+      "date": "14.04.2026 22:06",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Клеширчика",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.212008"
+    },
+    {
+      "id": 94,
+      "date": "14.04.2026 22:06",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Привидения",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.211113"
+    },
+    {
+      "id": 93,
+      "date": "14.04.2026 22:06",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Совенка",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.210158"
+    },
+    {
+      "id": 92,
+      "date": "14.04.2026 22:06",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Крошки-Феи",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.209111"
+    },
+    {
+      "id": 91,
+      "date": "14.04.2026 22:06",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Снеговичка",
+      "quantity": -400,
+      "created_at": "2026-04-16T05:45:23.207838"
+    },
+    {
+      "id": 90,
+      "date": "14.04.2026 22:16",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-16T05:45:23.206335"
+    },
+    {
+      "id": 89,
+      "date": "14.04.2026 22:23",
+      "nick": "Master Snake",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 41,
+      "created_at": "2026-04-16T05:45:23.205014"
+    },
+    {
+      "id": 88,
+      "date": "15.04.2026 00:41",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Раритетная кость",
+      "quantity": 1,
+      "created_at": "2026-04-16T05:45:23.203418"
+    },
+    {
+      "id": 87,
+      "date": "15.04.2026 07:53",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -970,
+      "created_at": "2026-04-16T05:45:23.199810"
+    },
+    {
+      "id": 86,
+      "date": "16.04.2026 04:28",
+      "nick": "-Bagur-",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 26,
+      "created_at": "2026-04-16T05:44:34.590862"
+    },
+    {
+      "id": 85,
+      "date": "16.04.2026 06:01",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 3,
+      "created_at": "2026-04-16T05:44:34.589897"
+    },
+    {
+      "id": 84,
+      "date": "16.04.2026 06:49",
+      "nick": "CARBONARIUZ",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-16T05:44:34.588682"
+    },
+    {
+      "id": 83,
+      "date": "16.04.2026 08:21",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Кристаллы истины",
+      "quantity": -2000,
+      "created_at": "2026-04-16T05:44:34.587119"
+    },
+    {
+      "id": 82,
+      "date": "16.04.2026 08:21",
+      "nick": "-Витчер-",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": -236,
+      "created_at": "2026-04-16T05:44:34.585071"
+    },
+    {
+      "id": 81,
+      "date": "16.04.2026 08:40",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 17,
+      "created_at": "2026-04-16T05:44:34.579467"
+    },
+    {
+      "id": 80,
+      "date": "15.04.2026 09:18",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Чууги",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021073"
+    },
+    {
+      "id": 79,
+      "date": "15.04.2026 09:18",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Буяки",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021072"
+    },
+    {
+      "id": 78,
+      "date": "15.04.2026 09:18",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Птенца Гур",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021071"
+    },
+    {
+      "id": 77,
+      "date": "15.04.2026 09:19",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Жучка Пети",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021070"
+    },
+    {
+      "id": 76,
+      "date": "15.04.2026 09:19",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Альканы",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021069"
+    },
+    {
+      "id": 75,
+      "date": "15.04.2026 09:19",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Эльдрика",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021068"
+    },
+    {
+      "id": 74,
+      "date": "15.04.2026 09:36",
+      "nick": "Born To Chill",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 117,
+      "created_at": "2026-04-15T20:45:51.021067"
+    },
+    {
+      "id": 73,
+      "date": "15.04.2026 09:44",
+      "nick": "filinn",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 200,
+      "created_at": "2026-04-15T20:45:51.021066"
+    },
+    {
+      "id": 72,
+      "date": "15.04.2026 09:45",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021064"
+    },
+    {
+      "id": 71,
+      "date": "15.04.2026 09:45",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": -100,
+      "created_at": "2026-04-15T20:45:51.021063"
+    },
+    {
+      "id": 70,
+      "date": "15.04.2026 10:08",
+      "nick": "Родри",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар шахифрита",
+      "quantity": -1,
+      "created_at": "2026-04-15T20:45:51.021062"
+    },
+    {
+      "id": 69,
+      "date": "15.04.2026 14:18",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Трофей «Чешуя черного дракона»",
+      "quantity": -1,
+      "created_at": "2026-04-15T20:45:51.021061"
+    },
+    {
+      "id": 68,
+      "date": "15.04.2026 14:29",
+      "nick": "флегматичный Вик",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-15T20:45:51.021060"
+    },
+    {
+      "id": 67,
+      "date": "15.04.2026 14:53",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 31,
+      "created_at": "2026-04-15T20:45:51.021059"
+    },
+    {
+      "id": 66,
+      "date": "15.04.2026 14:54",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021058"
+    },
+    {
+      "id": 65,
+      "date": "15.04.2026 14:54",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": -100,
+      "created_at": "2026-04-15T20:45:51.021057"
+    },
+    {
+      "id": 64,
+      "date": "15.04.2026 15:10",
+      "nick": "Hozaika ozer",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 90,
+      "created_at": "2026-04-15T20:45:51.021055"
+    },
+    {
+      "id": 63,
+      "date": "15.04.2026 15:10",
+      "nick": "FeDeLTa",
+      "operation_type": "Деньги",
+      "object_name": "Монеты",
+      "quantity": 100,
+      "created_at": "2026-04-15T20:45:51.021054"
+    },
+    {
+      "id": 62,
+      "date": "15.04.2026 15:23",
+      "nick": "Naysayer",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 25,
+      "created_at": "2026-04-15T20:45:51.021053"
+    },
+    {
+      "id": 61,
+      "date": "15.04.2026 15:30",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Кристаллы истины",
+      "quantity": 117,
+      "created_at": "2026-04-15T20:45:51.021052"
+    },
+    {
+      "id": 60,
+      "date": "15.04.2026 15:51",
+      "nick": "старый чертенок",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 5,
+      "created_at": "2026-04-15T20:45:51.021051"
+    },
+    {
+      "id": 59,
+      "date": "15.04.2026 16:06",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Церрадорчика",
+      "quantity": 400,
+      "created_at": "2026-04-15T20:45:51.021050"
+    },
+    {
+      "id": 58,
+      "date": "15.04.2026 16:07",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Анлагри",
+      "quantity": 400,
+      "created_at": "2026-04-15T20:45:51.021049"
+    },
+    {
+      "id": 57,
+      "date": "15.04.2026 16:07",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Синего Кристаллемчика",
+      "quantity": 400,
+      "created_at": "2026-04-15T20:45:51.021048"
+    },
+    {
+      "id": 56,
+      "date": "15.04.2026 16:07",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Зеленого Кристаллемчика",
+      "quantity": 400,
+      "created_at": "2026-04-15T20:45:51.021047"
+    },
+    {
+      "id": 55,
+      "date": "15.04.2026 16:07",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Красного Кристаллемчика",
+      "quantity": 400,
+      "created_at": "2026-04-15T20:45:51.021045"
+    },
+    {
+      "id": 54,
+      "date": "15.04.2026 16:07",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Голема",
+      "quantity": 400,
+      "created_at": "2026-04-15T20:45:51.021044"
+    },
+    {
+      "id": 53,
+      "date": "15.04.2026 16:07",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Сущность Волнистого грифончика",
+      "quantity": 400,
+      "created_at": "2026-04-15T20:45:51.021043"
+    },
+    {
+      "id": 52,
+      "date": "15.04.2026 16:08",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Эликсир хаоса инзиж",
+      "quantity": 5,
+      "created_at": "2026-04-15T20:45:51.021042"
+    },
+    {
+      "id": 51,
+      "date": "15.04.2026 17:17",
+      "nick": "--физик--",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 3,
+      "created_at": "2026-04-15T20:45:51.021041"
+    },
+    {
+      "id": 50,
+      "date": "15.04.2026 17:27",
+      "nick": "Drago71421",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 60,
+      "created_at": "2026-04-15T20:45:51.021040"
+    },
+    {
+      "id": 49,
+      "date": "15.04.2026 18:34",
+      "nick": "CriticalDiller",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 275,
+      "created_at": "2026-04-15T20:45:51.021039"
+    },
+    {
+      "id": 48,
+      "date": "15.04.2026 18:35",
+      "nick": "CriticalDiller",
+      "operation_type": "Склад",
+      "object_name": "Боевое свидетельство",
+      "quantity": 1,
+      "created_at": "2026-04-15T20:45:51.021038"
+    },
+    {
+      "id": 47,
+      "date": "15.04.2026 19:20",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Церрадорчика",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021037"
+    },
+    {
+      "id": 46,
+      "date": "15.04.2026 19:20",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Анлагри",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021036"
+    },
+    {
+      "id": 45,
+      "date": "15.04.2026 19:20",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Синего Кристаллемчика",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021034"
+    },
+    {
+      "id": 44,
+      "date": "15.04.2026 19:20",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Зеленого Кристаллемчика",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021033"
+    },
+    {
+      "id": 43,
+      "date": "15.04.2026 19:20",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Красного Кристаллемчика",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021032"
+    },
+    {
+      "id": 42,
+      "date": "15.04.2026 19:20",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Голема",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021031"
+    },
+    {
+      "id": 41,
+      "date": "15.04.2026 19:20",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Сущность Волнистого грифончика",
+      "quantity": -400,
+      "created_at": "2026-04-15T20:45:51.021030"
+    },
+    {
+      "id": 40,
+      "date": "15.04.2026 19:28",
+      "nick": "redsarmat",
+      "operation_type": "Склад",
+      "object_name": "Великий энергетический настой",
+      "quantity": 19,
+      "created_at": "2026-04-15T20:45:51.021029"
+    },
+    {
+      "id": 39,
+      "date": "15.04.2026 19:28",
+      "nick": "redsarmat",
+      "operation_type": "Склад",
+      "object_name": "Кристаллизованный прах",
+      "quantity": 100,
+      "created_at": "2026-04-15T20:45:51.021028"
+    },
+    {
+      "id": 38,
+      "date": "15.04.2026 19:38",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 132,
+      "created_at": "2026-04-15T20:45:51.021027"
+    },
+    {
+      "id": 37,
+      "date": "15.04.2026 19:38",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семена гасконтии",
+      "quantity": -3,
+      "created_at": "2026-04-15T20:45:51.021026"
+    },
+    {
+      "id": 36,
+      "date": "15.04.2026 19:38",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя кромпуса",
+      "quantity": -2,
+      "created_at": "2026-04-15T20:45:51.021024"
+    },
+    {
+      "id": 35,
+      "date": "15.04.2026 19:38",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя лемпоцениуса",
+      "quantity": -1,
+      "created_at": "2026-04-15T20:45:51.021023"
+    },
+    {
+      "id": 34,
+      "date": "15.04.2026 19:38",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя лазофара",
+      "quantity": -5,
+      "created_at": "2026-04-15T20:45:51.021022"
+    },
+    {
+      "id": 33,
+      "date": "15.04.2026 19:38",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя миагны",
+      "quantity": -3,
+      "created_at": "2026-04-15T20:45:51.021021"
+    },
+    {
+      "id": 32,
+      "date": "15.04.2026 19:38",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семена маскабара",
+      "quantity": -1,
+      "created_at": "2026-04-15T20:45:51.021020"
+    },
+    {
+      "id": 31,
+      "date": "15.04.2026 19:38",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя орушкана",
+      "quantity": -2,
+      "created_at": "2026-04-15T20:45:51.021019"
+    },
+    {
+      "id": 30,
+      "date": "15.04.2026 19:38",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семена памелики",
+      "quantity": -5,
+      "created_at": "2026-04-15T20:45:51.021018"
+    },
+    {
+      "id": 29,
+      "date": "15.04.2026 19:39",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя агваракуса",
+      "quantity": -2,
+      "created_at": "2026-04-15T20:45:51.021017"
+    },
+    {
+      "id": 28,
+      "date": "15.04.2026 19:39",
+      "nick": "Manjunya86",
+      "operation_type": "Склад",
+      "object_name": "Семя сминтии",
+      "quantity": -4,
+      "created_at": "2026-04-15T20:45:51.021015"
+    },
+    {
+      "id": 27,
+      "date": "15.04.2026 19:42",
+      "nick": "redsarmat",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 50,
+      "created_at": "2026-04-15T20:45:51.021014"
+    },
+    {
+      "id": 26,
+      "date": "15.04.2026 19:57",
+      "nick": "CARBONARIUZ",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 24,
+      "created_at": "2026-04-15T20:45:51.021013"
+    },
+    {
+      "id": 25,
+      "date": "15.04.2026 20:19",
+      "nick": "Капитан Ша",
+      "operation_type": "Склад",
+      "object_name": "Древняя кость",
+      "quantity": 1,
+      "created_at": "2026-04-15T20:45:51.021012"
+    },
+    {
+      "id": 24,
+      "date": "15.04.2026 20:45",
+      "nick": "Рояль",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-15T20:45:51.021011"
+    },
+    {
+      "id": 23,
+      "date": "15.04.2026 21:20",
+      "nick": "С-ф-и-н-к-с",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 100,
+      "created_at": "2026-04-15T20:45:51.021010"
+    },
+    {
+      "id": 22,
+      "date": "15.04.2026 21:55",
+      "nick": "-Витчер-",
+      "operation_type": "Склад",
+      "object_name": "Великий энергетический настой",
+      "quantity": -19,
+      "created_at": "2026-04-15T20:45:51.021009"
+    },
+    {
+      "id": 21,
+      "date": "15.04.2026 22:26",
+      "nick": "__-Afrodita-__",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-15T20:45:51.021007"
+    },
+    {
+      "id": 20,
+      "date": "15.04.2026 10:08",
+      "nick": "Родри",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар чёрного лотоса",
+      "quantity": 1,
+      "created_at": "2026-04-15T20:45:51.021006"
+    },
+    {
+      "id": 19,
+      "date": "15.04.2026 10:57",
+      "nick": "Hozaika ozer",
+      "operation_type": "Склад",
+      "object_name": "Мо-датхар альвы благонравной",
+      "quantity": 10,
+      "created_at": "2026-04-15T20:45:51.021005"
+    },
+    {
+      "id": 18,
+      "date": "15.04.2026 11:02",
+      "nick": "прото",
+      "operation_type": "Склад",
+      "object_name": "Кристаллы истины",
+      "quantity": 1789,
+      "created_at": "2026-04-15T20:45:51.021004"
+    },
+    {
+      "id": 17,
+      "date": "15.04.2026 11:33",
+      "nick": "Лесник-",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 8,
+      "created_at": "2026-04-15T20:45:51.021003"
+    },
+    {
+      "id": 16,
+      "date": "15.04.2026 11:36",
+      "nick": "--Ухожу КРАСИВО-",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 96,
+      "created_at": "2026-04-15T20:45:51.021002"
+    },
+    {
+      "id": 15,
+      "date": "15.04.2026 11:53",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 56,
+      "created_at": "2026-04-15T20:45:51.021001"
+    },
+    {
+      "id": 14,
+      "date": "15.04.2026 11:53",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Жетон «Времена года»",
+      "quantity": 3,
+      "created_at": "2026-04-15T20:45:51.020999"
+    },
+    {
+      "id": 13,
+      "date": "15.04.2026 12:06",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 7,
+      "created_at": "2026-04-15T20:45:51.020998"
+    },
+    {
+      "id": 12,
+      "date": "15.04.2026 12:29",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-15T20:45:51.020997"
+    },
+    {
+      "id": 11,
+      "date": "15.04.2026 12:46",
+      "nick": "FeDeLTa",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 78,
+      "created_at": "2026-04-15T20:45:51.020996"
+    },
+    {
+      "id": 10,
+      "date": "15.04.2026 12:59",
+      "nick": "Born To Chill",
+      "operation_type": "Оракул",
+      "object_name": "Энергия",
+      "quantity": 23,
+      "created_at": "2026-04-15T20:45:51.020995"
+    },
+    {
+      "id": 9,
+      "date": "15.04.2026 13:31",
+      "nick": "O____O",
+      "operation_type": "Склад",
+      "object_name": "Страница из трактата «Единство клана»",
+      "quantity": 78,
+      "created_at": "2026-04-15T20:45:51.020994"
+    },
+    {
+      "id": 8,
+      "date": "15.04.2026 13:41",
+      "nick": "АнВи",
+      "operation_type": "Склад",
+      "object_name": "Старая кость",
+      "quantity": 1,
+      "created_at": "2026-04-15T20:45:51.020993"
+    },
+    {
+      "id": 7,
+      "date": "15.04.2026 13:56",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Доска",
+      "quantity": 30,
+      "created_at": "2026-04-15T20:45:51.020992"
+    },
+    {
+      "id": 6,
+      "date": "15.04.2026 13:56",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Строительный камень",
+      "quantity": 30,
+      "created_at": "2026-04-15T20:45:51.020990"
+    },
+    {
+      "id": 5,
+      "date": "15.04.2026 13:56",
+      "nick": "Hozaika ozer",
+      "operation_type": "Рынок",
+      "object_name": "Лист железа",
+      "quantity": 30,
+      "created_at": "2026-04-15T20:45:51.020989"
+    },
+    {
+      "id": 4,
+      "date": "15.04.2026 13:57",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Доска",
+      "quantity": 2,
+      "created_at": "2026-04-15T20:45:51.020988"
+    },
+    {
+      "id": 3,
+      "date": "15.04.2026 13:57",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Лист железа",
+      "quantity": 2,
+      "created_at": "2026-04-15T20:45:51.020987"
+    },
+    {
+      "id": 2,
+      "date": "15.04.2026 13:57",
+      "nick": "_Беллатрикс_",
+      "operation_type": "Склад",
+      "object_name": "Строительный камень",
+      "quantity": 2,
+      "created_at": "2026-04-15T20:45:51.020985"
+    },
+    {
+      "id": 1,
+      "date": "15.04.2026 14:18",
+      "nick": "A e r i s",
+      "operation_type": "Склад",
+      "object_name": "Эликсир хаоса инзиж",
+      "quantity": -10,
+      "created_at": "2026-04-15T20:45:51.020980"
+    }
+  ]
+}

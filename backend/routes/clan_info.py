@@ -554,7 +554,7 @@ def restore_treasury_backup(clan_id):
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury', methods=['GET'])
 def get_treasury_operations(clan_id):
-    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).limit(500).all()
+    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).all()
     return jsonify([{
         'id': op.id,
         'date': op.date,
