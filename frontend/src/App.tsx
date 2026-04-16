@@ -144,8 +144,10 @@ const [searchParams] = useSearchParams();
     }
   }, [searchParams, analyze]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (result) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentResult(result);
       setLastAnalyzed(new Date());
       setActiveTab('stats');

@@ -22,12 +22,12 @@ export function BackupPicker({ isOpen, onClose, clanId, mode, onSuccess }: Backu
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen && mode === 'restore') {
-      loadBackups();
-    } else {
+    if (!isOpen || mode !== 'restore') {
       setIsLoading(false);
+      return;
     }
-  }, [isOpen, mode, clanId]);
+    loadBackups();
+  }, [isOpen, mode, clanId, loadBackups]);
 
   const loadBackups = async () => {
     setIsLoading(true);

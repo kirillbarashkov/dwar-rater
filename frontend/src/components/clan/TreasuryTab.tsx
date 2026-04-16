@@ -145,14 +145,18 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
   };
 
   const handlePrevMonth = () => {
-    setCurrentYear((y) => (currentMonth === 1 ? y - 1 : y));
-    setCurrentMonth((m) => (m === 1 ? 12 : m - 1));
+    const newMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+    const newYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+    setCurrentYear(newYear);
+    setCurrentMonth(newMonth);
     setFilters((prev) => ({ ...prev, selectedDate: null }));
   };
 
   const handleNextMonth = () => {
-    setCurrentYear((y) => (currentMonth === 12 ? y + 1 : y));
-    setCurrentMonth((m) => (m === 12 ? 1 : m + 1));
+    const newMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+    const newYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+    setCurrentYear(newYear);
+    setCurrentMonth(newMonth);
     setFilters((prev) => ({ ...prev, selectedDate: null }));
   };
 
