@@ -198,6 +198,64 @@ export const TALENT_RESOURCES = [
 
 export type TalentResourceName = typeof TALENT_RESOURCES[number];
 
+export interface TalentResourceGroup {
+  name: string;
+  resources: readonly string[];
+}
+
+export const TALENT_RESOURCE_GROUPS: TalentResourceGroup[] = [
+  {
+    name: 'Универсальные ресурсы',
+    resources: ['Кристаллы истины'],
+  },
+  {
+    name: 'Трактат «Единство клана»',
+    resources: [
+      'Страница из трактата «Единство клана»',
+      'Трактат «Единство клана I»',
+      'Трактат «Единство клана II»',
+      'Трактат «Единство клана III»',
+      'Трактат «Единство клана IV»',
+      'Трактат «Единство клана V»',
+    ],
+  },
+  {
+    name: 'Жетон «Времена года»',
+    resources: ['Жетон «Времена года»'],
+  },
+  {
+    name: 'Кристаллический прах',
+    resources: ['Кристаллический прах'],
+  },
+  {
+    name: 'Мистрас: Ресурсы джиннов',
+    resources: [
+      'Браслеты джиннов',
+      'Мо-датхар альвы благонравной',
+      'Мо-датхар нурида',
+      'Мо-датхар золотой шамсы',
+    ],
+  },
+  {
+    name: 'Клановые',
+    resources: [
+      'Боевое свидетельство',
+      'Гиамбир',
+      'Эльдорилл',
+      'Золотой хабус',
+    ],
+  },
+  {
+    name: 'МКК',
+    resources: [
+      'Фосфорическая пыль',
+      'Звено цепи Лудьиал',
+      'Злое око',
+      'Эфирная пыль',
+    ],
+  },
+];
+
 export const TAX_OBJECT_NAME = 'Монеты';
 
 export const CLAN_TAX_NORM: Record<number, number> = {

@@ -150,3 +150,52 @@
   padding: 20px;
   font-size: 13px;
 }
+
+.talent-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.talent-group {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.talent-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+}
+
+.talent-group-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.talent-group-total {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.talent-group .talent-table {
+  font-size: 12px;
+}
+
+.talent-group .talent-table th,
+.talent-group .talent-table td {
+  padding: 6px 12px;
+}
+
+.talent-group .talent-table th {
+  font-size: 10px;
+}
+
+.talent-group .talent-resource {
+  font-size: 12px;
+}

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { TreasuryOperationData } from '../../types/clanInfo';
-import { isTalentOperation, isTalentResource, getOriginalOwner, TALENT_RESOURCES } from '../../utils/treasury';
+import { isTalentOperation, isTalentResource, getOriginalOwner, TALENT_RESOURCES, TALENT_RESOURCE_GROUPS } from '../../utils/treasury';
 import './TalentAnalytics.css';
 
 interface TalentAnalyticsProps {
@@ -18,6 +18,12 @@ interface ResourceSummary {
   resource: string;
   total: number;
   players: number;
+}
+
+interface GroupedResourceSummary {
+  groupName: string;
+  resources: ResourceSummary[];
+  totalUnits: number;
 }
 
 export function TalentAnalytics({ operations }: TalentAnalyticsProps) {
@@ -82,6 +88,22 @@ export function TalentAnalytics({ operations }: TalentAnalyticsProps) {
       .sort((a, b) => b.total - a.total);
   }, [talentOperations, operations]);
 
+  const groupedResourceSummaries = useMemo((): GroupedResourceSummary[] => {
+    return TALENT_RESOURCE_GROUPS.map(group => {
+      const groupResources = group.resources
+        .map(resName => resourceSummaries.find(r => r.resource === resName))
+        .filter((r): r is ResourceSummary => r !== undefined);
+      
+      const totalUnits = groupResources.reduce((sum, r) => sum + r.total, 0);
+      
+      return {
+        groupName: group.name,
+        resources: groupResources,
+        totalUnits,
+      };
+    }).filter(g => g.resources.length > 0);
+  }, [resourceSummaries]);
+
   const topContributors = useMemo(() => playerSummaries.slice(0, 10), [playerSummaries]);
 
   const avgContribution = playerSummaries.length > 0
@@ -120,27 +142,37 @@ export function TalentAnalytics({ operations }: TalentAnalyticsProps) {
       </div>
 
       <div className="talent-grid">
-        <section className="talent-section">
+        <section className="talent-section talent-section-wide">
           <h3 className="talent-section-title">Вклад по ресурсам</h3>
-          {resourceSummaries.length > 0 ? (
-            <table className="talent-table">
-              <thead>
-                <tr>
-                  <th>Ресурс</th>
-                  <th>Всего</th>
-                  <th>Игроков</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resourceSummaries.map(r => (
-                  <tr key={r.resource}>
-                    <td className="talent-resource">{r.resource}</td>
-                    <td>{r.total}</td>
-                    <td>{r.players}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {groupedResourceSummaries.length > 0 ? (
+            <div className="talent-groups">
+              {groupedResourceSummaries.map(group => (
+                <div key={group.groupName} className="talent-group">
+                  <div className="talent-group-header">
+                    <span className="talent-group-name">{group.groupName}</span>
+                    <span className="talent-group-total">{group.totalUnits} ед.</span>
+                  </div>
+                  <table className="talent-table">
+                    <thead>
+                      <tr>
+                        <th>Ресурс</th>
+                        <th>Всего</th>
+                        <th>Игроков</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.resources.map(r => (
+                        <tr key={r.resource}>
+                          <td className="talent-resource">{r.resource}</td>
+                          <td>{r.total}</td>
+                          <td>{r.players}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="talent-empty">Нет данных</div>
           )}
