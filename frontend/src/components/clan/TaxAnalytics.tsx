@@ -313,6 +313,13 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
   const paidDelayedPlayers = filteredPlayers.filter(p => p.status === 'paid_delayed');
   const compensatedPlayers = filteredPlayers.filter(p => p.status === 'compensated');
   const notPaidPlayers = filteredPlayers.filter(p => p.status === 'not_paid');
+  const futureMemberPlayers = filteredPlayers.filter(p => p.status === 'future_member');
+  const overpaidPlayers = filteredPlayers.filter(p => p.isOver);
+  const paidOnTimePlayers = filteredPlayers.filter(p => p.status === 'paid' && !p.isOver);
+
+  const totalExpected = monthSummary.players.reduce((sum, p) => sum + (p.status === 'future_member' ? 0 : p.normAmount), 0);
+  const totalCollected = monthSummary.players.reduce((sum, p) => sum + p.totalPaid, 0);
+  const totalNotCollected = Math.max(0, totalExpected - totalCollected);
 
   const renderStatusBadge = (summary: PlayerTaxSummary) => {
     if (summary.status === 'future_member') {
@@ -403,20 +410,47 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
         <>
           <div className="tax-kpi">
             <div className="tax-kpi-card">
-              <span className="tax-kpi-value">{filteredPlayers.length}</span>
-              <span className="tax-kpi-label">Показано</span>
+              <span className="tax-kpi-value">{totalExpected.toLocaleString()}</span>
+              <span className="tax-kpi-label">Ожидалось</span>
             </div>
             <div className="tax-kpi-card">
-              <span className="tax-kpi-value">{monthSummary.expectedTotal.toLocaleString()}</span>
-              <span className="tax-kpi-label">Ожидалось</span>
+              <span className="tax-kpi-value">{totalCollected.toLocaleString()}</span>
+              <span className="tax-kpi-label">Собрано</span>
+            </div>
+            <div className="tax-kpi-card tax-kpi-danger">
+              <span className="tax-kpi-value">{totalNotCollected.toLocaleString()}</span>
+              <span className="tax-kpi-label">Не собрано</span>
+            </div>
+          </div>
+
+          <div className="tax-kpi tax-kpi-row2">
+            <div className="tax-kpi-card">
+              <span className="tax-kpi-value">{filteredPlayers.length}</span>
+              <span className="tax-kpi-label">Всего</span>
+            </div>
+            <div className="tax-kpi-card">
+              <span className="tax-kpi-value">{overpaidPlayers.length}</span>
+              <span className="tax-kpi-label">Заплатил+сверхнормы</span>
+            </div>
+            <div className="tax-kpi-card">
+              <span className="tax-kpi-value">{paidOnTimePlayers.length}</span>
+              <span className="tax-kpi-label">Заплатил</span>
+            </div>
+            <div className="tax-kpi-card">
+              <span className="tax-kpi-value">{paidDelayedPlayers.length}</span>
+              <span className="tax-kpi-label">Заплатил+задержано</span>
+            </div>
+            <div className="tax-kpi-card tax-kpi-danger">
+              <span className="tax-kpi-value">{notPaidPlayers.length}</span>
+              <span className="tax-kpi-label">Не заплатил</span>
             </div>
             <div className="tax-kpi-card">
               <span className="tax-kpi-value">{compensatedPlayers.length}</span>
               <span className="tax-kpi-label">Зачтено</span>
             </div>
-            <div className="tax-kpi-card tax-kpi-danger">
-              <span className="tax-kpi-value">{notPaidPlayers.length}</span>
-              <span className="tax-kpi-label">Не заплатил</span>
+            <div className="tax-kpi-card">
+              <span className="tax-kpi-value">{futureMemberPlayers.length}</span>
+              <span className="tax-kpi-label">Новичок</span>
             </div>
           </div>
 
