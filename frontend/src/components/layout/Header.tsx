@@ -1,12 +1,7 @@
 import { useAuth } from '../../hooks/useAuth';
 import './Header.css';
 
-interface HeaderProps {
-  onToggleChat?: () => void;
-  chatOpen?: boolean;
-}
-
-export function Header({ onToggleChat: _onToggleChat, chatOpen: _chatOpen }: HeaderProps) {
+export function Header() {
   const { user, logout } = useAuth();
 
   return (

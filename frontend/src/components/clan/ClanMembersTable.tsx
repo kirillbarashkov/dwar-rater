@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ClanMemberData } from '../../types/clanInfo';
+import type { ClanInfoData } from '../../utils/parseMembers';
 import { getClanMembers, addClanMember, updateClanMember, deleteClanMember, importClanMembers } from '../../api/clanInfo';
 import { useAuth } from '../../hooks/useAuth';
 import { parseMembersFile } from '../../utils/parseMembers';
@@ -49,6 +50,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   const [editingMember, setEditingMember] = useState<(ClanMemberData & { id?: number }) | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importedMembers, setImportedMembers] = useState<Partial<ClanMemberData>[]>([]);
+  const [importedClanInfo, setImportedClanInfo] = useState<ClanInfoData | undefined>();
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [importSkipped, setImportSkipped] = useState(0);
   const [overwriteExisting, setOverwriteExisting] = useState(false);
@@ -194,8 +196,9 @@ if (sortConfig.key) {
 
     try {
       const text = await file.text();
-      const { members: parsed, errors } = parseMembersFile(text);
+      const { members: parsed, clanInfo, errors } = parseMembersFile(text);
       setImportedMembers(parsed);
+      setImportedClanInfo(clanInfo);
       setImportErrors(errors);
     } catch (err) {
       setImportErrors([`Ошибка чтения файла: ${err}`]);
@@ -208,8 +211,9 @@ if (sortConfig.key) {
 
     try {
       const text = await file.text();
-      const { members: parsed, errors } = parseMembersFile(text);
+      const { members: parsed, clanInfo, errors } = parseMembersFile(text);
       setImportedMembers(parsed);
+      setImportedClanInfo(clanInfo);
       setImportErrors(errors);
     } catch (err) {
       setImportErrors([`Ошибка чтения файла: ${err}`]);
@@ -220,11 +224,12 @@ if (sortConfig.key) {
     if (importedMembers.length === 0) return;
     setIsImporting(true);
     try {
-      const result = await importClanMembers(clanId, importedMembers, overwriteExisting);
+      const result = await importClanMembers(clanId, importedMembers, overwriteExisting, importedClanInfo);
       if (result.success > 0) {
         loadMembers();
         setShowImportModal(false);
         setImportedMembers([]);
+        setImportedClanInfo(undefined);
         setImportErrors([]);
         setOverwriteExisting(false);
       }
@@ -243,6 +248,7 @@ if (sortConfig.key) {
 
   const openImportModal = () => {
     setImportedMembers([]);
+    setImportedClanInfo(undefined);
     setImportErrors([]);
     setImportSkipped(0);
     setOverwriteExisting(false);

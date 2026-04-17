@@ -23,8 +23,20 @@ def parse_clan_info(html, clan_id):
     name_match = re.search(r'<div class="h-txt">\s*(.*?)\s*</div>', html)
     result['name'] = clean_html(name_match.group(1)) if name_match else ''
 
-    logo_match = re.search(r'<img src="([^"]*clan_logos/[^"]+)"', html)
-    result['logo_url'] = logo_match.group(1) if logo_match else ''
+    logo_match = re.search(r'<img[^>]+src="([^"]*(?:clan_logos|data/clans/)[^"]+)"', html)
+    if logo_match:
+        logo_path = logo_match.group(1)
+        result['logo_url'] = logo_path
+        if '/m/' in logo_path:
+            result['logo_big'] = logo_path.replace('/m/', '/l/').replace('_m.', '_l.')
+            result['logo_small'] = logo_path.replace('/m/', '/s/').replace('_m.', '_s.')
+        else:
+            result['logo_big'] = logo_path
+            result['logo_small'] = logo_path
+    else:
+        result['logo_url'] = ''
+        result['logo_big'] = ''
+        result['logo_small'] = ''
 
     desc_match = re.search(r'<table class="coll w100 p6v p10h p2v brd2-all">\s*<tbody>\s*<tr class="bg_l">\s*<td[^>]*>(.*?)</td>', html, re.DOTALL)
     if desc_match:
@@ -47,6 +59,11 @@ def parse_clan_info(html, clan_id):
     talents_match = re.search(r'Развитие талантов клана:\s*(\d+)', html)
     if talents_match:
         result['talents'] = int(talents_match.group(1))
+
+    members_count_match = re.search(r'Участников:\s*<b>\s*(\d+)\s*/\s*(\d+)', html)
+    if members_count_match:
+        result['current_players'] = int(members_count_match.group(1))
+        result['total_players'] = int(members_count_match.group(2))
 
     return result
 
@@ -110,3 +127,71 @@ def parse_clan_members(html, clan_id):
         members.append(current_member)
 
     return members
+
+
+def fetch_clan_treasury_report(session=None, page=0, filters=None):
+    """Fetch clan treasury operations report page."""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
+    }
+    
+    url = f'https://w1.dwar.ru/clan_management.php?f=1&mode=clancell&submode=report&page={page}'
+    
+    if session is None:
+        session = requests.Session()
+    
+    resp = session.get(url, headers=headers, timeout=15)
+    resp.encoding = 'utf-8'
+    return resp.text, session
+
+
+def parse_clan_treasury_operations(html):
+    """Parse treasury operations from report HTML."""
+    operations = []
+    
+    rows = re.findall(r'<tr(?:\s+class="bg_l")?>(.*?)</tr>', html, re.DOTALL)
+    
+    for row_html in rows:
+        cells = re.findall(r'<td[^>]*class="brd-all p6h"[^>]*>(.*?)</td>', row_html, re.DOTALL)
+        
+        if len(cells) < 5:
+            continue
+        
+        date_match = re.search(r'(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})', cells[0])
+        if not date_match:
+            continue
+        
+        date = date_match.group(1)
+        
+        nick_match = re.search(r'userToTag\(\'([^)]+)\'\)', cells[1])
+        if not nick_match:
+            nick_match = re.search(r'>([^<]+)\s*\[(\d+)\]</a>', cells[1])
+        nick = nick_match.group(1) if nick_match else 'Unknown'
+        
+        operation_type = clean_html(cells[2]).strip()
+        
+        obj_match = re.search(r'<a[^>]*>([^<]+)</a>', cells[3])
+        if not obj_match:
+            obj_match = re.search(r'<b>([^<]+)</b>', cells[3])
+        obj_name = obj_match.group(1).strip() if obj_match else clean_html(cells[3]).strip()
+        
+        quantity_match = re.search(r'color:\s*(?:green|red)[^>]*>.*?(\d+)', cells[4])
+        if not quantity_match:
+            quantity_match = re.search(r'color:(?:green|red)[^>]*>.*?(\d+)', cells[4])
+        
+        color_match = re.search(r'color:\s*(green|red)', cells[4])
+        direction = 1 if color_match and color_match.group(1) == 'green' else -1
+        
+        quantity = int(quantity_match.group(1)) if quantity_match else 0
+        
+        operations.append({
+            'date': date,
+            'nick': nick,
+            'type': operation_type,
+            'object': obj_name,
+            'quantity': quantity * direction,
+        })
+    
+    return operations

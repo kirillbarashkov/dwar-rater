@@ -63,27 +63,25 @@ class ClanMemberInfo(db.Model):
     is_deleted = db.Column(db.Boolean, default=False)
 
     clan = db.relationship('ClanInfo', foreign_keys=[clan_id], primaryjoin='ClanMemberInfo.clan_id == ClanInfo.clan_id')
-
+    
     def __repr__(self):
         return f'<ClanMemberInfo {self.nick}>'
 
 
-class ClanHierarchy(db.Model):
-    __tablename__ = 'clan_hierarchy'
+class TreasuryOperation(db.Model):
+    __tablename__ = 'treasury_operations'
     id = db.Column(db.Integer, primary_key=True)
     clan_id = db.Column(db.Integer, db.ForeignKey('clan_info.clan_id'), nullable=False, index=True)
-    role_name = db.Column(db.String(100), nullable=False)
-    level = db.Column(db.Integer, default=0)
-    color = db.Column(db.String(20), default='#00d4aa')
-    icon = db.Column(db.String(10), default='')
-    sort_order = db.Column(db.Integer, default=0)
-    can_invite = db.Column(db.Boolean, default=False)
-    can_kick = db.Column(db.Boolean, default=False)
-    can_edit = db.Column(db.Boolean, default=False)
-    can_analyze = db.Column(db.Boolean, default=True)
-    min_level = db.Column(db.Integer, default=0)
+    date = db.Column(db.String(20), default='')
+    nick = db.Column(db.String(100), default='')
+    operation_type = db.Column(db.String(100), default='')
+    object_name = db.Column(db.String(200), default='')
+    quantity = db.Column(db.Integer, default=0)
+    compensation_flag = db.Column(db.Boolean, default=False)
+    compensation_comment = db.Column(db.String(500), default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    clan = db.relationship('ClanInfo', foreign_keys=[clan_id], primaryjoin='ClanHierarchy.clan_id == ClanInfo.clan_id')
+    clan = db.relationship('ClanInfo', foreign_keys=[clan_id], primaryjoin='TreasuryOperation.clan_id == ClanInfo.clan_id')
 
     def __repr__(self):
-        return f'<ClanHierarchy {self.role_name}>'
+        return f'<TreasuryOperation {self.date} {self.nick}>'

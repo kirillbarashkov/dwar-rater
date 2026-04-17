@@ -67,6 +67,9 @@ ENV/
 # Instance folder (SQLite DB, user data)
 instance/
 
+# Backup files
+backup/
+
 # User credentials
 users.json
 .env
@@ -79,3 +82,4 @@ frontend/dist/
 # OS
 .DS_Store
 Thumbs.db
+logs/

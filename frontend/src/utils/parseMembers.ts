@@ -1,7 +1,21 @@
-import type { ClanMemberData } from '../types/clanInfo';
+import type { ClanMemberData, ClanStructure } from '../types/clanInfo';
+
+export interface ClanInfoData {
+  name?: string;
+  logo_big?: string;
+  logo_small?: string;
+  clan_rank?: string;
+  clan_level?: number;
+  step?: number;
+  talents?: number;
+  total_players?: number;
+  current_players?: number;
+  clan_structure?: ClanStructure;
+}
 
 export interface ParseResult {
   members: Partial<ClanMemberData>[];
+  clanInfo?: ClanInfoData;
   errors: string[];
 }
 
@@ -26,6 +40,146 @@ interface RawMember {
 }
 
 const DEFAULT_CLAN_ROLE = 'Рыцарь Ордена';
+
+function parseClanInfo(content: string): ClanInfoData | undefined {
+  const lines = content.split(/\r?\n/);
+  const result: ClanInfoData = {};
+  let inStructure = false;
+  let structureText = '';
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    if (trimmed.startsWith('## Лого')) continue;
+    if (trimmed.startsWith('## Характеристики')) continue;
+    if (trimmed.startsWith('## Количество игроков')) continue;
+    if (trimmed.startsWith('## Члены клана')) break;
+    
+    if (trimmed.startsWith('## Структура клана')) {
+      inStructure = true;
+      continue;
+    }
+    
+    if (trimmed.startsWith('#')) continue;
+    
+    if (inStructure) {
+      structureText += trimmed + '\n';
+    }
+    
+    if (trimmed.startsWith('- Лого (big):')) {
+      result.logo_big = trimmed.replace('- Лого (big):', '').trim();
+    }
+    
+    const levelMatch = trimmed.match(/^- Уровень клана:\s*(\d+)/);
+    if (levelMatch) {
+      result.clan_level = parseInt(levelMatch[1], 10);
+    }
+    
+    const stepMatch = trimmed.match(/^- Ступень клана:\s*(\d+)/);
+    if (stepMatch) {
+      result.step = parseInt(stepMatch[1], 10);
+    }
+    
+    const talentsMatch = trimmed.match(/^- Развитие талантов клана:\s*(\d+)/);
+    if (talentsMatch) {
+      result.talents = parseInt(talentsMatch[1], 10);
+    }
+    
+    const rankMatch = trimmed.match(/^- Звание клана:\s*(.+)/);
+    if (rankMatch) {
+      result.clan_rank = rankMatch[1].trim();
+    }
+    
+    if (trimmed.includes('Всего доступно:')) {
+      const totalMatch = trimmed.match(/Всего доступно:\s*(\d+)/);
+      if (totalMatch) result.total_players = parseInt(totalMatch[1], 10);
+    }
+    
+    if (trimmed.includes('Текущее:')) {
+      const currentMatch = trimmed.match(/Текущее:\s*(\d+)/);
+      if (currentMatch) result.current_players = parseInt(currentMatch[1], 10);
+    }
+  }
+  
+  if (structureText) {
+    result.clan_structure = parseClanStructure(structureText);
+  }
+  
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+function parseClanStructure(text: string): ClanStructure | undefined {
+  const structure: ClanStructure = {
+    leader: undefined,
+    deputies: [],
+    council: [],
+    commander: undefined,
+    has_members: true
+  };
+  
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  
+  let pendingSection = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (!trimmed || trimmed.startsWith('```')) continue;
+    
+    if (trimmed.startsWith('Глава клана') || trimmed.startsWith('Лидер')) {
+      pendingSection = 'leader';
+      continue;
+    }
+    
+    if (trimmed.includes('Зам.главы') || trimmed.includes('Зам. Главы')) {
+      pendingSection = 'deputy';
+      continue;
+    }
+    
+    if (trimmed.includes('Совет клана')) {
+      pendingSection = 'council';
+      continue;
+    }
+    
+    if (trimmed.includes('Воевода')) {
+      pendingSection = 'commander';
+      continue;
+    }
+    
+    if (trimmed.includes('Члены клана')) {
+      pendingSection = 'members';
+      continue;
+    }
+    
+    const memberMatch = trimmed.match(/^[├│└─┬┼─\s]+([^:]+?)\s*:\s*(.+)/);
+    if (memberMatch) {
+      let name = memberMatch[1].trim();
+      if (name.endsWith('-')) {
+        name = name.slice(0, -1);
+      }
+      const desc = memberMatch[2].trim();
+      
+      if (structure.leader === undefined) {
+        structure.leader = { nick: name, description: desc };
+      } else if (pendingSection === 'deputy' || (pendingSection === 'leader' && name !== '-Витчер-')) {
+        structure.deputies?.push({ nick: name, description: desc });
+      } else if (pendingSection === 'council') {
+        structure.council?.push({ nick: name, description: desc });
+      } else if (pendingSection === 'commander') {
+        structure.commander = { nick: name, description: desc };
+      }
+    }
+    
+    if (trimmed.startsWith('Глава клана') || trimmed.startsWith('Лидер')) {
+      pendingSection = 'leader';
+    } else if (!trimmed.includes(':') && !trimmed.match(/^[├│└─┬┼]/)) {
+      if (trimmed !== 'Глава клана' && trimmed !== 'Лидер') {
+        pendingSection = '';
+      }
+    }
+  }
+  
+  return structure;
+}
 
 const CLAN_ROLES = [
   'Глава Ордена', 'Зам. Главы', 'Совесть', 'Рыцарь Ордена', 'Леди Ордена',
@@ -91,7 +245,7 @@ function parseMarkdownTable(content: string): ParseResult {
       continue;
     }
 
-    if (line.match(/^[\|\s-]+$/)) continue;
+    if (line.match(/^[|\s-]+$/)) continue;
 
     const parts = parseMarkdownTableLine(line);
 
@@ -406,24 +560,30 @@ export function parseMembersFile(content: string): ParseResult {
   const firstLine = trimmed.split(/\r?\n/)[0];
 
   if (trimmed.startsWith('#')) {
+    const clanInfo = parseClanInfo(trimmed);
+    
     const codeBlockMatch = trimmed.match(/```[\s\S]*?\|[\s\S]*?\|[\s\S]*?```/);
     if (codeBlockMatch) {
       const tableContent = codeBlockMatch[0].replace(/```\w*\n?/g, '').trim();
-      return parseMarkdownTable(tableContent);
+      const result = parseMarkdownTable(tableContent);
+      return { ...result, clanInfo };
     }
     
     const directTableMatch = trimmed.match(/\|[\s\S]*?\|[\s\S]*?\n\|[\s|-]+[\s\S]*?\|[\s\S]*?(?=```|$)/);
     if (directTableMatch) {
-      return parseMarkdownTable(directTableMatch[0]);
+      const result = parseMarkdownTable(directTableMatch[0]);
+      return { ...result, clanInfo };
     }
     
-    return { members: [], errors: ['Не найдена таблица участников в markdown файле'] };
+    return { members: [], errors: ['Не найдена таблица участников в markdown файле'], clanInfo };
   }
 
   const hasMarkdownTable = firstLine.includes('|') && firstLine.includes('Боевое звание');
 
   if (hasMarkdownTable || (firstLine.includes('|') && trimmed.includes('---'))) {
-    return parseMarkdownTable(trimmed);
+    const result = parseMarkdownTable(trimmed);
+    const clanInfo = parseClanInfo(trimmed);
+    return { ...result, clanInfo };
   }
 
   const hasTabDelimiter = firstLine.includes('\t');

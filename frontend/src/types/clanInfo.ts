@@ -52,16 +52,13 @@ export interface ClanMemberData {
   is_deleted?: boolean;
 }
 
-export interface ClanHierarchyData {
-  id?: number;
-  role_name: string;
-  level: number;
-  color: string;
-  icon: string;
-  sort_order: number;
-  can_invite: boolean;
-  can_kick: boolean;
-  can_edit: boolean;
-  can_analyze: boolean;
-  min_level: number;
+export interface TreasuryOperationData {
+  id: number;
+  date: string;
+  nick: string;
+  operation_type: string;
+  object_name: string;
+  quantity: number;
+  compensation_flag: boolean;
+  compensation_comment: string;
 }

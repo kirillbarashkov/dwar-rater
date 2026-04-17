@@ -34,25 +34,5 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  postgres:
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-dwar_rater}
-      - POSTGRES_USER=${POSTGRES_USER:-dwar}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dwar} -d ${POSTGRES_DB:-dwar_rater}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
 volumes:
   sqlite_data:
-  postgres_data:

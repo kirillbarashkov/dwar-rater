@@ -3,8 +3,8 @@ import type { EquipmentItem } from '../../types/character';
 import './EquipmentTab.css';
 
 interface EquipmentTabProps {
-  equipment: Record<string, EquipmentItem[]>;
-  sets: Record<string, string[]>;
+  equipment?: Record<string, EquipmentItem[]>;
+  sets?: Record<string, string[]>;
 }
 
 interface EquipSection {
@@ -44,24 +44,6 @@ function ItemCard({ item }: { item: EquipmentItem }) {
         <span className="item-durability">{item.durability}</span>
         {item.set && <span className="item-set">Сет: {item.set}</span>}
       </div>
-      {(item.rune || item.rune2 || item.runicSetting || item.plate || item.lacquer || item.enhancement) && (
-        <div className="item-enhancements">
-          {item.rune && <span className="enhance-tag">Руна: {item.rune}</span>}
-          {item.rune2 && <span className="enhance-tag">Руна 2: {item.rune2}</span>}
-          {item.runicSetting && <span className="enhance-tag">Оправа: {item.runicSetting}</span>}
-          {item.plate && <span className="enhance-tag">Пластина: {item.plate}</span>}
-          {item.lacquer && <span className="enhance-tag">Лак: {item.lacquer}</span>}
-          {item.enhancement && <span className="enhance-tag">Усиление: {item.enhancement}</span>}
-        </div>
-      )}
-      {item.symbols && item.symbols.length > 0 && (
-        <div className="item-symbols">
-          <span className="symbol-label">Символы:</span>
-          {item.symbols.map((s, i) => (
-            <span key={i} className="symbol-tag">{s}</span>
-          ))}
-        </div>
-      )}
       {item.skills.length > 0 && (
         <div className="item-skills">
           {item.skills.map((s, i) => (
@@ -80,7 +62,8 @@ function ItemCard({ item }: { item: EquipmentItem }) {
   );
 }
 
-function mapToSections(equipment: Record<string, EquipmentItem[]>): Map<EquipSection, EquipmentItem[]> {
+function mapToSections(equipment: Record<string, EquipmentItem[]> | undefined): Map<EquipSection, EquipmentItem[]> {
+  if (!equipment) return new Map();
   const result = new Map<EquipSection, EquipmentItem[]>();
   const misc: EquipmentItem[] = [];
   
