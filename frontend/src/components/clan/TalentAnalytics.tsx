@@ -26,9 +26,9 @@ const RESOURCE_GROUPS: GroupConfig[] = [
     name: 'Универсальные',
     resources: [
       { key: 'crystal', name: 'Кристаллы истины', shortName: 'Кристаллы' },
-      { key: 'treaty_page', name: 'Страница из трактата «Единство клана»', shortName: 'Страница' },
+      { key: 'treaty_page', name: 'Страница из трактата «Единство клана»', shortName: 'Страницы' },
       { key: 'treaties', name: 'Трактаты I-V', shortName: 'Трактаты I-V' },
-      { key: 'token', name: 'Жетон «Времена года»', shortName: 'Жетон' },
+      { key: 'token', name: 'Жетон «Времена года»', shortName: 'Жетоны' },
       { key: 'dust', name: 'Кристаллический прах', shortName: 'Прах' },
     ],
   },
