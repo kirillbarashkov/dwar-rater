@@ -113,10 +113,15 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
     if (joinInfo.year < currentYear) {
       return null;
     }
-    if (joinInfo.year === currentYear && joinInfo.month === currentMonth) {
-      const nextMonth = currentMonth + 1;
-      return nextMonth <= 12 ? nextMonth : null;
+    
+    if (joinInfo.year === currentYear) {
+      if (joinInfo.month === currentMonth) {
+        const nextMonth = currentMonth + 1;
+        return nextMonth <= 12 ? nextMonth : null;
+      }
+      return joinInfo.month;
     }
+    
     return null;
   };
 
@@ -589,8 +594,8 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                   return (
                     <>
                       <p>
-                        {minMonth 
-                          ? `Участник с ${joinInfo ? MONTHS_RU[joinInfo.month] + ' ' + joinInfo.year : ''}. Компенсация возможна с ${MONTHS_RU[minMonth]}.`
+                        {minMonth !== null
+                          ? `Вступил: ${joinInfo ? MONTHS_RU[joinInfo.month] + ' ' + joinInfo.year : 'неизвестно'}. Доступны месяцы с ${MONTHS_RU[minMonth]}.`
                           : 'Выберите месяцы для компенсации:'}
                       </p>
                       <div className="tax-modal-months-grid">

@@ -385,20 +385,39 @@
 .tax-modal-month-checkbox {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   font-size: 12px;
   cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.tax-modal-month-checkbox:hover:not(.tax-modal-month-disabled) {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+}
+
+.tax-modal-month-checkbox:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--accent);
 }
 
 .tax-modal-month-disabled {
   color: var(--text-muted);
   opacity: 0.5;
   cursor: not-allowed;
-}
+  background: var(--bg-primary);
 }
 
 .tax-modal-month-checkbox input {
   cursor: pointer;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
 }
 
 .tax-modal-actions {
