@@ -37,9 +37,9 @@ const RESOURCE_GROUPS: GroupConfig[] = [
     name: 'Мистрас',
     resources: [
       { key: 'bracelet', name: 'Браслеты джиннов', shortName: 'Браслеты' },
-      { key: 'mo_dathar_1', name: 'Мо-датхар альвы благонравной', shortName: 'Мо-датхар 1' },
-      { key: 'mo_dathar_2', name: 'Мо-датхар нурида', shortName: 'Мо-датхар 2' },
-      { key: 'mo_dathar_3', name: 'Мо-датхар золотой шамсы', shortName: 'Мо-датхар 3' },
+      { key: 'mo_dathar_1', name: 'Мо-датхар альвы благонравной', shortName: 'мо-датхары альвы' },
+      { key: 'mo_dathar_2', name: 'Мо-датхар нурида', shortName: 'мо-датхары нурида' },
+      { key: 'mo_dathar_3', name: 'Мо-датхар золотой шамсы', shortName: 'мо-датхары шамсы' },
     ],
   },
   {
