@@ -631,7 +631,7 @@ def create_treasury_compensation(clan_id):
     
     created = []
     for month in months:
-        date_str = f'15.{month:02d}.{year}'
+        date_str = f'15.{month:02d}.{year} 00:00'
         
         treasury_op = TreasuryOperation(
             clan_id=clan_id,
