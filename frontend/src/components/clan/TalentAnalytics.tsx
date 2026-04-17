@@ -399,7 +399,10 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
                 }}
                 title="Копировать таблицу"
               >
-                📋
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
               </button>
             </div>
           </div>
@@ -459,10 +462,30 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
         </section>
 
         <section className="talent-section">
-          <h3 className="talent-section-title">
-            <span className="talent-status-dot talent-status-submitted" />
-            Сдал ({sortedSubmittedPlayers.length})
-          </h3>
+          <div className="talent-section-header">
+            <h3 className="talent-section-title">
+              <span className="talent-status-dot talent-status-submitted" />
+              Сдал ({sortedSubmittedPlayers.length})
+            </h3>
+            {sortedSubmittedPlayers.length > 0 && (
+              <div className="talent-section-actions">
+                <button 
+                  className="talent-copy-btn" 
+                  onClick={() => {
+                    const headers = ['Игрок', 'Ресурсов'];
+                    const rows = sortedSubmittedPlayers.map(p => [p.nick, Object.values(p.resources).reduce((s, v) => s + v, 0)].join('\t')).join('\n');
+                    navigator.clipboard.writeText([headers.join('\t'), rows].join('\n')).then(() => { setCopyStatus('Скопировано!'); setTimeout(() => setCopyStatus(null), 2000); });
+                  }}
+                  title="Копировать таблицу"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
           {sortedSubmittedPlayers.length > 0 ? (
             <div className="talent-table-wrapper">
             <table className="talent-table">
@@ -494,10 +517,30 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
         </section>
 
         <section className="talent-section">
-          <h3 className="talent-section-title">
-            <span className="talent-status-dot talent-status-notsubmitted" />
-            Не сдавал ({sortedNotSubmittedPlayers.length})
-          </h3>
+          <div className="talent-section-header">
+            <h3 className="talent-section-title">
+              <span className="talent-status-dot talent-status-notsubmitted" />
+              Не сдавал ({sortedNotSubmittedPlayers.length})
+            </h3>
+            {sortedNotSubmittedPlayers.length > 0 && (
+              <div className="talent-section-actions">
+                <button 
+                  className="talent-copy-btn" 
+                  onClick={() => {
+                    const headers = ['Игрок'];
+                    const rows = sortedNotSubmittedPlayers.map(p => p.nick).join('\n');
+                    navigator.clipboard.writeText([headers.join('\t'), rows].join('\n')).then(() => { setCopyStatus('Скопировано!'); setTimeout(() => setCopyStatus(null), 2000); });
+                  }}
+                  title="Копировать таблицу"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
           {sortedNotSubmittedPlayers.length > 0 ? (
             <div className="talent-table-wrapper">
             <table className="talent-table">

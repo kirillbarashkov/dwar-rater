@@ -227,6 +227,12 @@
   border-color: var(--accent);
 }
 
+.talent-copy-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
 .talent-copy-status {
   font-size: 12px;
   color: #22c55e;

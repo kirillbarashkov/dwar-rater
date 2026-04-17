@@ -669,7 +669,10 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                     onClick={() => handleCopyTable(sortedFilteredPlayers, 'Сводная')}
                     title="Копировать таблицу"
                   >
-                    📋
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -727,10 +730,30 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
             </section>
 
             <section className="tax-section">
-              <h3 className="tax-section-title">
-                <span className="tax-status-dot tax-status-notpaid" />
-                Не заплатил ({sortedNotPaidPlayers.length})
-              </h3>
+              <div className="tax-section-header">
+                <h3 className="tax-section-title">
+                  <span className="tax-status-dot tax-status-notpaid" />
+                  Не заплатил ({sortedNotPaidPlayers.length})
+                </h3>
+                {sortedNotPaidPlayers.length > 0 && (
+                  <div className="tax-section-actions">
+                    <button 
+                      className="tax-copy-btn" 
+                      onClick={() => {
+                        const headers = ['Игрок', 'Уровень', 'Норма'];
+                        const rows = sortedNotPaidPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.normAmount].join('\t')).join('\n');
+                        navigator.clipboard.writeText([headers.join('\t'), rows].join('\n')).then(() => { setCopyStatus('Скопировано!'); setTimeout(() => setCopyStatus(null), 2000); });
+                      }}
+                      title="Копировать таблицу"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
               {sortedNotPaidPlayers.length > 0 ? (
                 <div className="tax-table-wrapper">
                 <table className="tax-table">
@@ -759,10 +782,28 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
 
             {compensatedPlayers.length > 0 && (
               <section className="tax-section">
-                <h3 className="tax-section-title">
-                  <span className="tax-status-dot tax-status-compensated" />
-                  Зачтено ({sortedCompensatedPlayers.length})
-                </h3>
+                <div className="tax-section-header">
+                  <h3 className="tax-section-title">
+                    <span className="tax-status-dot tax-status-compensated" />
+                    Зачтено ({sortedCompensatedPlayers.length})
+                  </h3>
+                  <div className="tax-section-actions">
+                    <button 
+                      className="tax-copy-btn" 
+                      onClick={() => {
+                        const headers = ['Игрок', 'Уровень', 'Сумма'];
+                        const rows = sortedCompensatedPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.normAmount].join('\t')).join('\n');
+                        navigator.clipboard.writeText([headers.join('\t'), rows].join('\n')).then(() => { setCopyStatus('Скопировано!'); setTimeout(() => setCopyStatus(null), 2000); });
+                      }}
+                      title="Копировать таблицу"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
                 <div className="tax-table-wrapper">
                 <table className="tax-table">
                   <thead>
@@ -788,10 +829,28 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
 
             {paidDelayedPlayers.length > 0 && (
               <section className="tax-section">
-                <h3 className="tax-section-title">
-                  <span className="tax-status-dot tax-status-delayed" />
-                  Заплатил + Задержано ({sortedPaidDelayedPlayers.length})
-                </h3>
+                <div className="tax-section-header">
+                  <h3 className="tax-section-title">
+                    <span className="tax-status-dot tax-status-delayed" />
+                    Заплатил + Задержано ({sortedPaidDelayedPlayers.length})
+                  </h3>
+                  <div className="tax-section-actions">
+                    <button 
+                      className="tax-copy-btn" 
+                      onClick={() => {
+                        const headers = ['Игрок', 'Уровень', 'Уплачено'];
+                        const rows = sortedPaidDelayedPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.totalPaid].join('\t')).join('\n');
+                        navigator.clipboard.writeText([headers.join('\t'), rows].join('\n')).then(() => { setCopyStatus('Скопировано!'); setTimeout(() => setCopyStatus(null), 2000); });
+                      }}
+                      title="Копировать таблицу"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
                 <div className="tax-table-wrapper">
                 <table className="tax-table">
                   <thead>

@@ -245,6 +245,12 @@
   border-color: var(--accent);
 }
 
+.tax-copy-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
 .tax-copy-status {
   font-size: 12px;
   color: #22c55e;
