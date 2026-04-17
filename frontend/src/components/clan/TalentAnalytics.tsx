@@ -14,6 +14,13 @@ interface PlayerTalentSummary {
   status: 'submitted' | 'not_submitted';
 }
 
+type SortDirection = 'asc' | 'desc';
+
+interface SortConfig {
+  column: string | null;
+  direction: SortDirection;
+}
+
 interface GroupConfig {
   key: string;
   name: string;
@@ -95,6 +102,9 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
   const [filters, setFilters] = useState({
     search: '',
   });
+  const [mainSort, setMainSort] = useState<SortConfig>({ column: 'status', direction: 'asc' });
+  const [submittedSort, setSubmittedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
+  const [notSubmittedSort, setNotSubmittedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
 
   const talentOperations = useMemo(() => {
     return operations.filter(op => {
@@ -221,6 +231,75 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
   const activeGroup = RESOURCE_GROUPS.find(g => g.key === activeTab);
   const groupTotals = getGroupTotals(filteredPlayers, activeTab?.key || 'universal');
 
+  const sortedFilteredPlayers = useMemo(() => {
+    if (!mainSort.column) return filteredPlayers;
+    
+    return [...filteredPlayers].sort((a, b) => {
+      let cmp = 0;
+      switch (mainSort.column) {
+        case 'nick':
+          cmp = a.nick.localeCompare(b.nick);
+          break;
+        case 'status':
+          cmp = (a.status === 'submitted' ? 0 : 1) - (b.status === 'submitted' ? 0 : 1);
+          break;
+        default:
+          if (mainSort.column.startsWith('res_')) {
+            const resKey = mainSort.column.replace('res_', '');
+            const aVal = getResourceValue(a, resKey);
+            const bVal = getResourceValue(b, resKey);
+            cmp = bVal - aVal;
+          }
+      }
+      return mainSort.direction === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredPlayers, mainSort]);
+
+  const sortedSubmittedPlayers = useMemo(() => {
+    if (!submittedSort.column) return submittedPlayers;
+    
+    return [...submittedPlayers].sort((a, b) => {
+      let cmp = 0;
+      switch (submittedSort.column) {
+        case 'nick':
+          cmp = a.nick.localeCompare(b.nick);
+          break;
+        case 'total':
+          const aTotal = Object.values(a.resources).reduce((s, v) => s + v, 0);
+          const bTotal = Object.values(b.resources).reduce((s, v) => s + v, 0);
+          cmp = bTotal - aTotal;
+          break;
+      }
+      return submittedSort.direction === 'asc' ? cmp : -cmp;
+    });
+  }, [submittedPlayers, submittedSort]);
+
+  const sortedNotSubmittedPlayers = useMemo(() => {
+    if (!notSubmittedSort.column) return notSubmittedPlayers;
+    
+    return [...notSubmittedPlayers].sort((a, b) => {
+      const cmp = a.nick.localeCompare(b.nick);
+      return notSubmittedSort.direction === 'asc' ? cmp : -cmp;
+    });
+  }, [notSubmittedPlayers, notSubmittedSort]);
+
+  const handleSort = (table: 'main' | 'submitted' | 'notSubmitted', column: string) => {
+    const setSort = table === 'main' ? setMainSort : table === 'submitted' ? setSubmittedSort : setNotSubmittedSort;
+    const currentSort = table === 'main' ? mainSort : table === 'submitted' ? submittedSort : notSubmittedSort;
+    
+    if (currentSort.column === column) {
+      setSort({ column, direction: currentSort.direction === 'asc' ? 'desc' : 'asc' });
+    } else {
+      setSort({ column, direction: 'desc' });
+    }
+  };
+
+  const renderSortIcon = (table: 'main' | 'submitted' | 'notSubmitted', column: string) => {
+    const currentSort = table === 'main' ? mainSort : table === 'submitted' ? submittedSort : notSubmittedSort;
+    if (currentSort.column !== column) return <span className="talent-sort-icon">↕</span>;
+    return <span className="talent-sort-icon talent-sort-active">{currentSort.direction === 'asc' ? '↑' : '↓'}</span>;
+  };
+
   const renderStatusBadge = (status: 'submitted' | 'not_submitted') => {
     if (status === 'not_submitted') {
       return <span className="talent-badge talent-badge-notsubmitted">Не сдавал</span>;
@@ -296,23 +375,32 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
               ))}
             </div>
           </div>
-          {filteredPlayers.length > 0 ? (
+          {sortedFilteredPlayers.length > 0 ? (
             <div className="talent-table-wrapper">
               <table className="talent-table talent-table-wide">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Игрок</th>
-                    <th>Статус</th>
+                    <th className="talent-sortable">#</th>
+                    <th className="talent-sortable" onClick={() => handleSort('main', 'nick')}>
+                      Игрок {renderSortIcon('main', 'nick')}
+                    </th>
+                    <th className="talent-sortable" onClick={() => handleSort('main', 'status')}>
+                      Статус {renderSortIcon('main', 'status')}
+                    </th>
                     {activeGroup?.resources.map(res => (
-                      <th key={res.key} title={res.name}>
-                        {res.shortName || res.name}
+                      <th 
+                        key={res.key} 
+                        className="talent-sortable" 
+                        title={res.name}
+                        onClick={() => handleSort('main', 'res_' + res.key)}
+                      >
+                        {res.shortName || res.name} {renderSortIcon('main', 'res_' + res.key)}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPlayers.map((p, idx) => (
+                  {sortedFilteredPlayers.map((p, idx) => (
                     <tr key={p.nick}>
                       <td className="talent-rank">{idx + 1}</td>
                       <td className="talent-nick">{p.nick}</td>
@@ -338,18 +426,22 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
         <section className="talent-section">
           <h3 className="talent-section-title">
             <span className="talent-status-dot talent-status-submitted" />
-            Сдал ({submittedPlayers.length})
+            Сдал ({sortedSubmittedPlayers.length})
           </h3>
-          {submittedPlayers.length > 0 ? (
+          {sortedSubmittedPlayers.length > 0 ? (
             <table className="talent-table">
               <thead>
                 <tr>
-                  <th>Игрок</th>
-                  <th>Ресурсов</th>
+                  <th className="talent-sortable" onClick={() => handleSort('submitted', 'nick')}>
+                    Игрок {renderSortIcon('submitted', 'nick')}
+                  </th>
+                  <th className="talent-sortable" onClick={() => handleSort('submitted', 'total')}>
+                    Ресурсов {renderSortIcon('submitted', 'total')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {submittedPlayers.map(p => (
+                {sortedSubmittedPlayers.map(p => (
                   <tr key={p.nick}>
                     <td className="talent-nick">{p.nick}</td>
                     <td className="talent-submitted">
@@ -367,17 +459,19 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
         <section className="talent-section">
           <h3 className="talent-section-title">
             <span className="talent-status-dot talent-status-notsubmitted" />
-            Не сдавал ({notSubmittedPlayers.length})
+            Не сдавал ({sortedNotSubmittedPlayers.length})
           </h3>
-          {notSubmittedPlayers.length > 0 ? (
+          {sortedNotSubmittedPlayers.length > 0 ? (
             <table className="talent-table">
               <thead>
                 <tr>
-                  <th>Игрок</th>
+                  <th className="talent-sortable" onClick={() => handleSort('notSubmitted', 'nick')}>
+                    Игрок {renderSortIcon('notSubmitted', 'nick')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {notSubmittedPlayers.map(p => (
+                {sortedNotSubmittedPlayers.map(p => (
                   <tr key={p.nick}>
                     <td className="talent-nick">{p.nick}</td>
                   </tr>

@@ -298,6 +298,25 @@
   color: #22c55e;
 }
 
+.talent-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.talent-sortable:hover {
+  color: var(--accent);
+}
+
+.talent-sort-icon {
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+.talent-sort-active {
+  color: var(--accent);
+}
+
 .talent-badge {
   display: inline-block;
   padding: 2px 8px;
