@@ -248,7 +248,7 @@
 
 .talent-table-wrapper {
   overflow-x: auto;
-  max-height: 350px;
+  max-height: calc(20 * (24px + 1px));
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);

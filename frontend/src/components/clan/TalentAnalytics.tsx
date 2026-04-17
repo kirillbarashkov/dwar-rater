@@ -428,6 +428,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
             Сдал ({sortedSubmittedPlayers.length})
           </h3>
           {sortedSubmittedPlayers.length > 0 ? (
+            <div className="talent-table-wrapper">
             <table className="talent-table">
               <thead>
                 <tr>
@@ -450,6 +451,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
                 ))}
               </tbody>
             </table>
+            </div>
           ) : (
             <div className="talent-empty">Нет сдавших</div>
           )}
@@ -461,6 +463,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
             Не сдавал ({sortedNotSubmittedPlayers.length})
           </h3>
           {sortedNotSubmittedPlayers.length > 0 ? (
+            <div className="talent-table-wrapper">
             <table className="talent-table">
               <thead>
                 <tr>
@@ -477,6 +480,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
                 ))}
               </tbody>
             </table>
+            </div>
           ) : (
             <div className="talent-empty">Нет должников</div>
           )}

@@ -223,6 +223,13 @@
   font-size: 12px;
 }
 
+.tax-table-wrapper {
+  max-height: calc(20 * (24px + 1px));
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
 .tax-table {
   width: 100%;
   border-collapse: collapse;

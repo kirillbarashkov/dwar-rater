@@ -623,6 +623,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
             <section className="tax-section tax-section-wide">
               <h3 className="tax-section-title">Сводная — {periodLabel}</h3>
               {sortedFilteredPlayers.length > 0 ? (
+                <div className="tax-table-wrapper">
                 <table className="tax-table">
                   <thead>
                     <tr>
@@ -668,6 +669,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                     ))}
                   </tbody>
                 </table>
+                </div>
               ) : (
                 <div className="tax-empty">Нет данных за период</div>
               )}
@@ -679,6 +681,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                 Не заплатил ({sortedNotPaidPlayers.length})
               </h3>
               {sortedNotPaidPlayers.length > 0 ? (
+                <div className="tax-table-wrapper">
                 <table className="tax-table">
                   <thead>
                     <tr>
@@ -697,6 +700,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                     ))}
                   </tbody>
                 </table>
+                </div>
               ) : (
                 <div className="tax-empty">Нет должников</div>
               )}
@@ -708,6 +712,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                   <span className="tax-status-dot tax-status-compensated" />
                   Зачтено ({sortedCompensatedPlayers.length})
                 </h3>
+                <div className="tax-table-wrapper">
                 <table className="tax-table">
                   <thead>
                     <tr>
@@ -726,6 +731,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                     ))}
                   </tbody>
                 </table>
+                </div>
               </section>
             )}
 
@@ -735,6 +741,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                   <span className="tax-status-dot tax-status-delayed" />
                   Заплатил + Задержано ({sortedPaidDelayedPlayers.length})
                 </h3>
+                <div className="tax-table-wrapper">
                 <table className="tax-table">
                   <thead>
                     <tr>
@@ -753,6 +760,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                     ))}
                   </tbody>
                 </table>
+                </div>
               </section>
             )}
           </div>
