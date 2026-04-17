@@ -196,6 +196,13 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.talent-section-totals + .talent-table-wrapper,
+.talent-section-totals + .talent-empty {
+  margin-top: 12px;
 }
 
 .talent-total-badge {
