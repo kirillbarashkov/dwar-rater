@@ -207,6 +207,31 @@
   color: var(--text-muted);
 }
 
+.talent-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.talent-copy-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.talent-copy-btn:hover {
+  border-color: var(--accent);
+}
+
+.talent-copy-status {
+  font-size: 12px;
+  color: #22c55e;
+}
+
 .talent-status-dot {
   width: 8px;
   height: 8px;

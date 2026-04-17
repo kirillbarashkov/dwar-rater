@@ -218,6 +218,38 @@
   background: rgba(139, 92, 246, 0.25);
 }
 
+.tax-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.tax-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tax-copy-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.tax-copy-btn:hover {
+  border-color: var(--accent);
+}
+
+.tax-copy-status {
+  font-size: 12px;
+  color: #22c55e;
+}
+
 .tax-compensated {
   color: #8b5cf6;
   font-size: 12px;

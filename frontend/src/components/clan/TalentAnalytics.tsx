@@ -105,6 +105,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
   const [mainSort, setMainSort] = useState<SortConfig>({ column: 'status', direction: 'asc' });
   const [submittedSort, setSubmittedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
   const [notSubmittedSort, setNotSubmittedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
   const talentOperations = useMemo(() => {
     return operations.filter(op => {
@@ -299,6 +300,28 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
     return <span className="talent-sort-icon talent-sort-active">{currentSort.direction === 'asc' ? '↑' : '↓'}</span>;
   };
 
+  const handleCopyTable = async (players: PlayerTalentSummary[], headers: string[]) => {
+    if (players.length === 0) return;
+    
+    const rows = players.map((p, idx) => [
+      idx + 1,
+      p.nick,
+      ...activeGroup?.resources.map(res => getResourceValue(p, res.key) || 0) || []
+    ].join('\t')).join('\n');
+    
+    const text = [headers.join('\t'), rows].join('\n');
+    
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyStatus('Скопировано!');
+      setTimeout(() => setCopyStatus(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      setCopyStatus('Ошибка копирования');
+      setTimeout(() => setCopyStatus(null), 2000);
+    }
+  };
+
   const renderStatusBadge = (status: 'submitted' | 'not_submitted') => {
     if (status === 'not_submitted') {
       return <span className="talent-badge talent-badge-notsubmitted">Не сдавал</span>;
@@ -366,13 +389,26 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
         <section className="talent-section talent-section-wide">
           <div className="talent-section-header">
             <h3 className="talent-section-title">Сводная — {periodLabel}</h3>
-            <div className="talent-section-totals">
-              {activeGroup?.resources.map(res => (
-                <span key={res.key} className="talent-total-badge" title={res.name}>
-                  {res.shortName || res.name}: {groupTotals[res.key] || 0}
-                </span>
-              ))}
+            <div className="talent-section-actions">
+              {copyStatus && <span className="talent-copy-status">{copyStatus}</span>}
+              <button 
+                className="talent-copy-btn" 
+                onClick={() => {
+                  const headers = ['#', 'Игрок', 'Статус', ...(activeGroup?.resources.map(r => r.shortName || r.name) || [])];
+                  handleCopyTable(sortedFilteredPlayers, headers);
+                }}
+                title="Копировать таблицу"
+              >
+                📋
+              </button>
             </div>
+          </div>
+          <div className="talent-section-totals">
+            {activeGroup?.resources.map(res => (
+              <span key={res.key} className="talent-total-badge" title={res.name}>
+                {res.shortName || res.name}: {groupTotals[res.key] || 0}
+              </span>
+            ))}
           </div>
           {sortedFilteredPlayers.length > 0 ? (
             <div className="talent-table-wrapper">

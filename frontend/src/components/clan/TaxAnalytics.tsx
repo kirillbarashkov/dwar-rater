@@ -81,6 +81,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
   const [notPaidSort, setNotPaidSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
   const [compensatedSort, setCompensatedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
   const [paidDelayedSort, setPaidDelayedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
   const memberLevels = useMemo(() => {
     const map: Record<string, number> = {};
@@ -433,6 +434,44 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
     return <span className="tax-sort-icon tax-sort-active">{currentSort.direction === 'asc' ? '↑' : '↓'}</span>;
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'paid': return 'Заплатил';
+      case 'paid_delayed': return 'Заплатил + Задержано';
+      case 'compensated': return 'Зачтено';
+      case 'not_paid': return 'Не заплатил';
+      case 'future_member': return 'Оплата с';
+      default: return status;
+    }
+  };
+
+  const handleCopyTable = async (players: PlayerTaxSummary[], title: string) => {
+    if (players.length === 0) return;
+    
+    const headers = ['#', 'Игрок', 'Уровень', 'Уплачено', 'Норма', 'Статус', 'Комментарий'];
+    const rows = players.map((p, idx) => [
+      idx + 1,
+      p.nick,
+      p.playerLevel ?? '-',
+      p.totalPaid,
+      p.normAmount,
+      getStatusLabel(p.status),
+      p.compensationComment || ''
+    ].join('\t')).join('\n');
+    
+    const text = [headers.join('\t'), rows].join('\n');
+    
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyStatus('Скопировано!');
+      setTimeout(() => setCopyStatus(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      setCopyStatus('Ошибка копирования');
+      setTimeout(() => setCopyStatus(null), 2000);
+    }
+  };
+
   const renderStatusBadge = (summary: PlayerTaxSummary) => {
     if (summary.status === 'future_member') {
       const ps = summary.paymentStartMonth;
@@ -621,7 +660,19 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
 
           <div className="tax-shortlists">
             <section className="tax-section tax-section-wide">
-              <h3 className="tax-section-title">Сводная — {periodLabel}</h3>
+              <div className="tax-section-header">
+                <h3 className="tax-section-title">Сводная — {periodLabel}</h3>
+                <div className="tax-section-actions">
+                  {copyStatus && <span className="tax-copy-status">{copyStatus}</span>}
+                  <button 
+                    className="tax-copy-btn" 
+                    onClick={() => handleCopyTable(sortedFilteredPlayers, 'Сводная')}
+                    title="Копировать таблицу"
+                  >
+                    📋
+                  </button>
+                </div>
+              </div>
               {sortedFilteredPlayers.length > 0 ? (
                 <div className="tax-table-wrapper">
                 <table className="tax-table">
