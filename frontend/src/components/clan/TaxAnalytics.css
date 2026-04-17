@@ -257,6 +257,25 @@
   width: 30px;
 }
 
+.tax-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.tax-sortable:hover {
+  color: var(--accent);
+}
+
+.tax-sort-icon {
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+.tax-sort-active {
+  color: var(--accent);
+}
+
 .tax-paid {
   color: #22c55e;
 }

@@ -46,6 +46,13 @@ interface MonthSummary {
   expectedTotal: number;
 }
 
+type SortDirection = 'asc' | 'desc';
+
+interface SortConfig {
+  column: string | null;
+  direction: SortDirection;
+}
+
 const DEFAULT_NORM = 10;
 
 function getNormForLevel(level: number): number {
@@ -70,6 +77,10 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
     status: '',
     hasCompensation: '',
   });
+  const [mainSort, setMainSort] = useState<SortConfig>({ column: 'status', direction: 'asc' });
+  const [notPaidSort, setNotPaidSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
+  const [compensatedSort, setCompensatedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
+  const [paidDelayedSort, setPaidDelayedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
 
   const memberLevels = useMemo(() => {
     const map: Record<string, number> = {};
@@ -321,6 +332,107 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
   const totalCollected = monthSummary.players.reduce((sum, p) => sum + p.totalPaid, 0);
   const totalNotCollected = Math.max(0, totalExpected - totalCollected);
 
+  const sortedFilteredPlayers = useMemo(() => {
+    if (!mainSort.column) return filteredPlayers;
+    
+    return [...filteredPlayers].sort((a, b) => {
+      let cmp = 0;
+      switch (mainSort.column) {
+        case 'nick':
+          cmp = a.nick.localeCompare(b.nick);
+          break;
+        case 'level':
+          cmp = (a.playerLevel || 0) - (b.playerLevel || 0);
+          break;
+        case 'paid':
+          cmp = b.totalPaid - a.totalPaid;
+          break;
+        case 'norm':
+          cmp = a.normAmount - b.normAmount;
+          break;
+        case 'status':
+          const statusOrder: Record<string, number> = { paid: 0, paid_delayed: 1, compensated: 2, not_paid: 3, future_member: 4 };
+          cmp = (statusOrder[a.status] || 5) - (statusOrder[b.status] || 5);
+          break;
+      }
+      return mainSort.direction === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredPlayers, mainSort]);
+
+  const sortedNotPaidPlayers = useMemo(() => {
+    if (!notPaidSort.column) return notPaidPlayers;
+    return [...notPaidPlayers].sort((a, b) => {
+      let cmp = 0;
+      switch (notPaidSort.column) {
+        case 'nick':
+          cmp = a.nick.localeCompare(b.nick);
+          break;
+        case 'level':
+          cmp = (a.playerLevel || 0) - (b.playerLevel || 0);
+          break;
+        case 'norm':
+          cmp = a.normAmount - b.normAmount;
+          break;
+      }
+      return notPaidSort.direction === 'asc' ? cmp : -cmp;
+    });
+  }, [notPaidPlayers, notPaidSort]);
+
+  const sortedCompensatedPlayers = useMemo(() => {
+    if (!compensatedSort.column) return compensatedPlayers;
+    return [...compensatedPlayers].sort((a, b) => {
+      let cmp = 0;
+      switch (compensatedSort.column) {
+        case 'nick':
+          cmp = a.nick.localeCompare(b.nick);
+          break;
+        case 'level':
+          cmp = (a.playerLevel || 0) - (b.playerLevel || 0);
+          break;
+        case 'norm':
+          cmp = a.normAmount - b.normAmount;
+          break;
+      }
+      return compensatedSort.direction === 'asc' ? cmp : -cmp;
+    });
+  }, [compensatedPlayers, compensatedSort]);
+
+  const sortedPaidDelayedPlayers = useMemo(() => {
+    if (!paidDelayedSort.column) return paidDelayedPlayers;
+    return [...paidDelayedPlayers].sort((a, b) => {
+      let cmp = 0;
+      switch (paidDelayedSort.column) {
+        case 'nick':
+          cmp = a.nick.localeCompare(b.nick);
+          break;
+        case 'level':
+          cmp = (a.playerLevel || 0) - (b.playerLevel || 0);
+          break;
+        case 'paid':
+          cmp = b.totalPaid - a.totalPaid;
+          break;
+      }
+      return paidDelayedSort.direction === 'asc' ? cmp : -cmp;
+    });
+  }, [paidDelayedPlayers, paidDelayedSort]);
+
+  const handleSort = (table: 'main' | 'notPaid' | 'compensated' | 'paidDelayed', column: string) => {
+    const setSort = table === 'main' ? setMainSort : table === 'notPaid' ? setNotPaidSort : table === 'compensated' ? setCompensatedSort : setPaidDelayedSort;
+    const currentSort = table === 'main' ? mainSort : table === 'notPaid' ? notPaidSort : table === 'compensated' ? compensatedSort : paidDelayedSort;
+    
+    if (currentSort.column === column) {
+      setSort({ column, direction: currentSort.direction === 'asc' ? 'desc' : 'asc' });
+    } else {
+      setSort({ column, direction: 'desc' });
+    }
+  };
+
+  const renderSortIcon = (table: 'main' | 'notPaid' | 'compensated' | 'paidDelayed', column: string) => {
+    const currentSort = table === 'main' ? mainSort : table === 'notPaid' ? notPaidSort : table === 'compensated' ? compensatedSort : paidDelayedSort;
+    if (currentSort.column !== column) return <span className="tax-sort-icon">↕</span>;
+    return <span className="tax-sort-icon tax-sort-active">{currentSort.direction === 'asc' ? '↑' : '↓'}</span>;
+  };
+
   const renderStatusBadge = (summary: PlayerTaxSummary) => {
     if (summary.status === 'future_member') {
       const ps = summary.paymentStartMonth;
@@ -510,22 +622,22 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
           <div className="tax-shortlists">
             <section className="tax-section tax-section-wide">
               <h3 className="tax-section-title">Сводная — {periodLabel}</h3>
-              {filteredPlayers.length > 0 ? (
+              {sortedFilteredPlayers.length > 0 ? (
                 <table className="tax-table">
                   <thead>
                     <tr>
-                      <th>#</th>
-                      <th>Игрок</th>
-                      <th>Уровень</th>
-                      <th>Уплачено</th>
-                      <th>Норма</th>
-                      <th>Статус</th>
+                      <th className="tax-sortable">#</th>
+                      <th className="tax-sortable" onClick={() => handleSort('main', 'nick')}>Игрок {renderSortIcon('main', 'nick')}</th>
+                      <th className="tax-sortable" onClick={() => handleSort('main', 'level')}>Уровень {renderSortIcon('main', 'level')}</th>
+                      <th className="tax-sortable" onClick={() => handleSort('main', 'paid')}>Уплачено {renderSortIcon('main', 'paid')}</th>
+                      <th className="tax-sortable" onClick={() => handleSort('main', 'norm')}>Норма {renderSortIcon('main', 'norm')}</th>
+                      <th className="tax-sortable" onClick={() => handleSort('main', 'status')}>Статус {renderSortIcon('main', 'status')}</th>
                       <th>Компенсация</th>
                       <th>Комментарий</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredPlayers.map((p, idx) => (
+                    {sortedFilteredPlayers.map((p, idx) => (
                       <tr key={p.nick}>
                         <td className="tax-rank">{idx + 1}</td>
                         <td className="tax-nick">{p.nick}</td>
@@ -564,19 +676,19 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
             <section className="tax-section">
               <h3 className="tax-section-title">
                 <span className="tax-status-dot tax-status-notpaid" />
-                Не заплатил ({notPaidPlayers.length})
+                Не заплатил ({sortedNotPaidPlayers.length})
               </h3>
-              {notPaidPlayers.length > 0 ? (
+              {sortedNotPaidPlayers.length > 0 ? (
                 <table className="tax-table">
                   <thead>
                     <tr>
-                      <th>Игрок</th>
-                      <th>Уровень</th>
-                      <th>Норма</th>
+                      <th className="tax-sortable" onClick={() => handleSort('notPaid', 'nick')}>Игрок {renderSortIcon('notPaid', 'nick')}</th>
+                      <th className="tax-sortable" onClick={() => handleSort('notPaid', 'level')}>Уровень {renderSortIcon('notPaid', 'level')}</th>
+                      <th className="tax-sortable" onClick={() => handleSort('notPaid', 'norm')}>Норма {renderSortIcon('notPaid', 'norm')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {notPaidPlayers.map(p => (
+                    {sortedNotPaidPlayers.map(p => (
                       <tr key={p.nick}>
                         <td className="tax-nick">{p.nick}</td>
                         <td>{p.playerLevel ?? '-'}</td>
@@ -594,18 +706,18 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
               <section className="tax-section">
                 <h3 className="tax-section-title">
                   <span className="tax-status-dot tax-status-compensated" />
-                  Зачтено ({compensatedPlayers.length})
+                  Зачтено ({sortedCompensatedPlayers.length})
                 </h3>
                 <table className="tax-table">
                   <thead>
                     <tr>
-                      <th>Игрок</th>
-                      <th>Уровень</th>
-                      <th>Сумма</th>
+                      <th className="tax-sortable" onClick={() => handleSort('compensated', 'nick')}>Игрок {renderSortIcon('compensated', 'nick')}</th>
+                      <th className="tax-sortable" onClick={() => handleSort('compensated', 'level')}>Уровень {renderSortIcon('compensated', 'level')}</th>
+                      <th className="tax-sortable" onClick={() => handleSort('compensated', 'norm')}>Сумма {renderSortIcon('compensated', 'norm')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {compensatedPlayers.map(p => (
+                    {sortedCompensatedPlayers.map(p => (
                       <tr key={p.nick}>
                         <td className="tax-nick">{p.nick}</td>
                         <td>{p.playerLevel ?? '-'}</td>
@@ -621,18 +733,18 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
               <section className="tax-section">
                 <h3 className="tax-section-title">
                   <span className="tax-status-dot tax-status-delayed" />
-                  Заплатил + Задержано ({paidDelayedPlayers.length})
+                  Заплатил + Задержано ({sortedPaidDelayedPlayers.length})
                 </h3>
                 <table className="tax-table">
                   <thead>
                     <tr>
-                      <th>Игрок</th>
-                      <th>Уровень</th>
-                      <th>Уплачено</th>
+                      <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'nick')}>Игрок {renderSortIcon('paidDelayed', 'nick')}</th>
+                      <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'level')}>Уровень {renderSortIcon('paidDelayed', 'level')}</th>
+                      <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'paid')}>Уплачено {renderSortIcon('paidDelayed', 'paid')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {paidDelayedPlayers.map(p => (
+                    {sortedPaidDelayedPlayers.map(p => (
                       <tr key={p.nick}>
                         <td className="tax-nick">{p.nick}</td>
                         <td>{p.playerLevel ?? '-'}</td>
