@@ -119,6 +119,10 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
   const playerSummaries = useMemo((): PlayerTalentSummary[] => {
     const byPlayer: Record<string, { resources: Record<string, number> }> = {};
 
+    // DEBUG
+    console.log('DEBUG talentOperations count:', talentOperations.length);
+    console.log('DEBUG selectedMonth:', selectedMonth, 'selectedYear:', selectedYear);
+
     for (const op of talentOperations) {
       if (op.quantity <= 0) continue;
 
@@ -137,6 +141,11 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
       
       const resName = op.object_name;
       byPlayer[owner].resources[resName] = (byPlayer[owner].resources[resName] || 0) + op.quantity;
+      
+      // DEBUG - log first few
+      if (Object.keys(byPlayer).length <= 3) {
+        console.log('DEBUG op:', op.nick, op.object_name, op.quantity, 'parsed:', parsed);
+      }
     }
 
     const result: PlayerTalentSummary[] = Object.entries(byPlayer)
@@ -145,6 +154,12 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
         resources: data.resources,
         status: 'submitted' as const,
       }));
+
+    // DEBUG
+    console.log('DEBUG result count (with submissions):', result.length);
+    if (result.length > 0) {
+      console.log('DEBUG first result resources:', result[0].nick, result[0].resources);
+    }
 
     const submittedNicks = new Set(result.map(p => p.nick.toLowerCase()));
     for (const m of members) {
@@ -230,6 +245,14 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
 
   const activeGroup = RESOURCE_GROUPS.find(g => g.key === activeTab);
   const groupTotals = getGroupTotals(filteredPlayers, activeTab?.key || 'universal');
+
+  // DEBUG
+  console.log('DEBUG activeTab:', activeTab);
+  console.log('DEBUG filteredPlayers count:', filteredPlayers.length);
+  console.log('DEBUG groupTotals:', groupTotals);
+  if (filteredPlayers.length > 0) {
+    console.log('DEBUG first player resources:', filteredPlayers[0].nick, filteredPlayers[0].resources);
+  }
 
   const sortedFilteredPlayers = useMemo(() => {
     if (!mainSort.column) return filteredPlayers;
