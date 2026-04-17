@@ -32,8 +32,9 @@ interface PlayerTaxSummary {
   delayedPaid: number;
   compensationAmount: number;
   compensationComment: string;
-  status: 'paid' | 'paid_delayed' | 'compensated' | 'not_paid';
+  status: 'paid' | 'paid_delayed' | 'compensated' | 'not_paid' | 'future_member';
   isOver: boolean;
+  paymentStartMonth?: { month: number; year: number } | null;
 }
 
 interface MonthSummary {
@@ -126,6 +127,25 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
     return null;
   };
 
+  const getPaymentStartMonth = (nick: string): { month: number; year: number } | null => {
+    const joinInfo = memberJoinDates[nick.toLowerCase()];
+    if (!joinInfo) return null;
+    
+    if (joinInfo.month === 12) {
+      return { month: 1, year: joinInfo.year + 1 };
+    }
+    return { month: joinInfo.month + 1, year: joinInfo.year };
+  };
+
+  const isPaymentDue = (nick: string): boolean => {
+    const joinInfo = memberJoinDates[nick.toLowerCase()];
+    if (!joinInfo) return true;
+    
+    if (selectedYear > joinInfo.year) return true;
+    if (selectedYear === joinInfo.year && selectedMonth > joinInfo.month) return true;
+    return false;
+  };
+
   const taxPayments = useMemo(() => {
     const payments: TaxPayment[] = [];
 
@@ -206,11 +226,14 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
       });
     }
 
-    const paidNicks = new Set(playerSummaries.filter(p => p.status !== 'not_paid').map(p => p.nick.toLowerCase()));
+    const paidNicks = new Set(playerSummaries.filter(p => p.status !== 'not_paid' && p.status !== 'future_member').map(p => p.nick.toLowerCase()));
 
     for (const m of members) {
       const nickLower = m.nick.toLowerCase();
       if (!paidNicks.has(nickLower)) {
+        const paymentStart = getPaymentStartMonth(nickLower);
+        const isFuture = !isPaymentDue(nickLower);
+        
         playerSummaries.push({
           nick: m.nick,
           playerLevel: m.level,
@@ -220,14 +243,15 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
           delayedPaid: 0,
           compensationAmount: 0,
           compensationComment: '',
-          status: 'not_paid',
+          status: isFuture ? 'future_member' : 'not_paid',
           isOver: false,
+          paymentStartMonth: paymentStart,
         });
       }
     }
 
     playerSummaries.sort((a, b) => {
-      const order = { paid: 0, paid_delayed: 1, compensated: 2, not_paid: 3 };
+      const order = { paid: 0, paid_delayed: 1, compensated: 2, not_paid: 3, future_member: 4 };
       if (order[a.status] !== order[b.status]) {
         return order[a.status] - order[b.status];
       }
@@ -236,7 +260,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
 
     const totalCollected = Object.values(paymentsByPlayer).reduce((sum, v) => sum + v.onTime + v.delayed, 0);
     const delayedTotal = Object.values(paymentsByPlayer).reduce((sum, v) => sum + v.delayed, 0);
-    const expectedTotal = playerSummaries.reduce((sum, p) => sum + p.normAmount, 0);
+    const expectedTotal = playerSummaries.reduce((sum, p) => sum + (p.status === 'future_member' ? 0 : p.normAmount), 0);
 
     return {
       month: selectedMonth,
@@ -291,6 +315,10 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
   const notPaidPlayers = filteredPlayers.filter(p => p.status === 'not_paid');
 
   const renderStatusBadge = (summary: PlayerTaxSummary) => {
+    if (summary.status === 'future_member') {
+      const monthLabel = summary.paymentStartMonth ? MONTHS_RU[summary.paymentStartMonth.month] : '';
+      return <span className="tax-badge tax-badge-future">Оплата с {monthLabel}</span>;
+    }
     if (summary.status === 'not_paid') {
       return <span className="tax-badge tax-badge-notpaid">Не заплатил</span>;
     }

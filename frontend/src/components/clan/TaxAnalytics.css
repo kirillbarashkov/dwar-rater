@@ -288,6 +288,11 @@
   color: #8b5cf6;
 }
 
+.tax-badge-future {
+  background: rgba(156, 163, 175, 0.15);
+  color: #6b7280;
+}
+
 .tax-comment-cell {
   font-size: 12px;
   color: var(--text-muted);
