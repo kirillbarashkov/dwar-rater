@@ -316,8 +316,9 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
 
   const renderStatusBadge = (summary: PlayerTaxSummary) => {
     if (summary.status === 'future_member') {
-      const monthLabel = summary.paymentStartMonth ? MONTHS_RU[summary.paymentStartMonth.month] : '';
-      return <span className="tax-badge tax-badge-future">Оплата с {monthLabel}</span>;
+      const ps = summary.paymentStartMonth;
+      const dateStr = ps ? `01.${ps.month.toString().padStart(2, '0')}.${ps.year}` : '';
+      return <span className="tax-badge tax-badge-future">Оплата с {dateStr}</span>;
     }
     if (summary.status === 'not_paid') {
       return <span className="tax-badge tax-badge-notpaid">Не заплатил</span>;
