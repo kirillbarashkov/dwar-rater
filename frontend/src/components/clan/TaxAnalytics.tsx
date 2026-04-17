@@ -10,6 +10,7 @@ interface TaxAnalyticsProps {
   members?: ClanMemberData[];
   clanId?: number;
   isAdmin?: boolean;
+  onRefresh?: () => void;
 }
 
 interface TaxPayment {
@@ -50,7 +51,7 @@ function getNormForLevel(level: number): number {
   return CLAN_TAX_NORM[level] || DEFAULT_NORM;
 }
 
-export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false }: TaxAnalyticsProps) {
+export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false, onRefresh }: TaxAnalyticsProps) {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [editingCompensation, setEditingCompensation] = useState<{
@@ -348,7 +349,9 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
       );
 
       setEditingCompensation(null);
-      window.location.reload();
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (err) {
       console.error('Failed to save compensation:', err);
     } finally {

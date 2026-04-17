@@ -71,7 +71,7 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
 
       <div className="ta-tab-content">
         {activeTab === 'tax' && (
-          <TaxAnalytics operations={operations} members={members} clanId={clanId} isAdmin={isAdmin} />
+          <TaxAnalytics operations={operations} members={members} clanId={clanId} isAdmin={isAdmin} onRefresh={loadData} />
         )}
         {activeTab === 'talent' && <TalentAnalytics operations={operations} />}
         {activeTab === 'misc' && <MiscAnalytics operations={operations} />}
