@@ -56,6 +56,8 @@ export function TalentAnalytics({ operations }: TalentAnalyticsProps) {
     const byPlayer: Record<string, { total: number; resources: Record<string, number> }> = {};
 
     for (const op of talentOperations) {
+      if (op.quantity <= 0) continue;
+
       const parsed = parseDate(op.date);
       if (!parsed) continue;
       if (parsed.month !== selectedMonth || parsed.year !== selectedYear) continue;
@@ -68,12 +70,13 @@ export function TalentAnalytics({ operations }: TalentAnalyticsProps) {
       if (!byPlayer[owner]) {
         byPlayer[owner] = { total: 0, resources: {} };
       }
-      byPlayer[owner].total += Math.abs(op.quantity);
-      byPlayer[owner].resources[op.object_name] = (byPlayer[owner].resources[op.object_name] || 0) + Math.abs(op.quantity);
+      byPlayer[owner].total += op.quantity;
+      byPlayer[owner].resources[op.object_name] = (byPlayer[owner].resources[op.object_name] || 0) + op.quantity;
     }
 
     const totalPlayers = new Set<string>();
     for (const op of operations) {
+      if (op.quantity <= 0) continue;
       if (isTalentOperation(op) || (op.operation_type === 'Возвращено главой' && isTalentResource(op.object_name))) {
         totalPlayers.add(op.nick);
       }
