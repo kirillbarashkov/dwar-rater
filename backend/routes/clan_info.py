@@ -621,6 +621,7 @@ def create_treasury_compensation(clan_id):
     norm_amount = data.get('norm_amount', 0)
     comment = data.get('comment', '')
     months = data.get('months', [])
+    year = data.get('year', datetime.now().year)
     
     if not nick:
         return jsonify({'error': 'nick обязателен'}), 400
@@ -630,7 +631,7 @@ def create_treasury_compensation(clan_id):
     
     created = []
     for month in months:
-        date_str = f'15.{month:02d}.{datetime.now().year}'
+        date_str = f'15.{month:02d}.{year}'
         
         treasury_op = TreasuryOperation(
             clan_id=clan_id,

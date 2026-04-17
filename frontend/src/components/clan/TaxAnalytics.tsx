@@ -343,7 +343,8 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
         editingCompensation.nick,
         editingCompensation.normAmount,
         compensationComment,
-        selectedMonths
+        selectedMonths,
+        selectedYear
       );
 
       setEditingCompensation(null);

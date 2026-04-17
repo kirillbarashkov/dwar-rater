@@ -146,13 +146,15 @@ export async function createTreasuryCompensation(
   nick: string,
   normAmount: number,
   comment: string,
-  months: number[]
+  months: number[],
+  year?: number
 ): Promise<{ created: number; operations: TreasuryOperationData[] }> {
   const response = await apiClient.post(`/api/clan/${clanId}/treasury/compensation`, {
     nick,
     norm_amount: normAmount,
     comment,
     months,
+    year,
   });
   return response.data;
 }
