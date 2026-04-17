@@ -50,6 +50,22 @@ export interface ClanMemberData {
   join_date: string;
   trial_until: string;
   is_deleted?: boolean;
+  left_date?: string;
+  leave_reason?: string;
+}
+
+export interface LeftMemberData {
+  id: number;
+  nick: string;
+  icon?: string;
+  game_rank: string;
+  level: number;
+  profession: string;
+  profession_level: number;
+  clan_role: string;
+  join_date: string;
+  left_date: string;
+  leave_reason: string;
 }
 
 export interface TreasuryOperationData {

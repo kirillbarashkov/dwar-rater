@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { ClanInfoData, ClanMemberData, TreasuryOperationData } from '../types/clanInfo';
+import type { ClanInfoData, ClanMemberData, TreasuryOperationData, LeftMemberData } from '../types/clanInfo';
 
 export async function getClanInfo(clanId: number): Promise<ClanInfoData> {
   const response = await apiClient.get(`/api/clan/${clanId}/info`);
@@ -26,8 +26,15 @@ export async function updateClanMember(clanId: number, memberId: number, data: P
   return response.data;
 }
 
-export async function deleteClanMember(clanId: number, memberId: number): Promise<void> {
-  await apiClient.delete(`/api/clan/${clanId}/members/${memberId}`);
+export async function deleteClanMember(clanId: number, memberId: number, leaveReason?: string, leftDate?: string): Promise<void> {
+  await apiClient.delete(`/api/clan/${clanId}/members/${memberId}`, {
+    data: { leave_reason: leaveReason, left_date: leftDate },
+  });
+}
+
+export async function getLeftMembers(clanId: number): Promise<LeftMemberData[]> {
+  const response = await apiClient.get(`/api/clan/${clanId}/members/left`);
+  return response.data;
 }
 
 export interface ImportResult {

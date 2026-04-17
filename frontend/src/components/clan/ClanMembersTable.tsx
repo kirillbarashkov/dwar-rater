@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ClanMemberData } from '../../types/clanInfo';
+import type { ClanMemberData, LeftMemberData } from '../../types/clanInfo';
 import type { ClanInfoData } from '../../utils/parseMembers';
-import { getClanMembers, addClanMember, updateClanMember, deleteClanMember, importClanMembers } from '../../api/clanInfo';
+import { getClanMembers, addClanMember, updateClanMember, deleteClanMember, importClanMembers, getLeftMembers } from '../../api/clanInfo';
 import { useAuth } from '../../hooks/useAuth';
 import { parseMembersFile } from '../../utils/parseMembers';
 import { Button } from '../ui/Button';
@@ -42,6 +42,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [members, setMembers] = useState<(ClanMemberData & { id?: number })[]>([]);
+  const [leftMembers, setLeftMembers] = useState<LeftMemberData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -58,9 +59,15 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [form, setForm] = useState({ nick: '', icon: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' });
   const [sortConfig, setSortConfig] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'nick', dir: 'asc' });
+  const [deletingMember, setDeletingMember] = useState<(ClanMemberData & { id?: number }) | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [leftSearch, setLeftSearch] = useState('');
+  const [leftDateFilter, setLeftDateFilter] = useState('');
+  const [leftReasonFilter, setLeftReasonFilter] = useState('');
 
   useEffect(() => {
     loadMembers();
+    loadLeftMembers();
   }, [clanId]);
 
   const loadMembers = async () => {
@@ -69,6 +76,13 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
       setMembers(data);
     } catch { /* ignore */ }
     finally { setIsLoading(false); }
+  };
+
+  const loadLeftMembers = async () => {
+    try {
+      const data = await getLeftMembers(clanId);
+      setLeftMembers(data);
+    } catch { /* ignore */ }
   };
 
   const uniqueRoles = useMemo(() => {
@@ -114,6 +128,25 @@ if (sortConfig.key) {
     return result;
   }, [members, roleFilter, search, levelFilter, sortConfig]);
 
+  const filteredLeft = useMemo(() => {
+    return leftMembers.filter((m) => {
+      if (leftSearch && !m.nick.toLowerCase().includes(leftSearch.toLowerCase())) return false;
+      if (leftDateFilter && m.left_date !== leftDateFilter) return false;
+      if (leftReasonFilter && m.leave_reason !== leftReasonFilter) return false;
+      return true;
+    });
+  }, [leftMembers, leftSearch, leftDateFilter, leftReasonFilter]);
+
+  const uniqueLeftDates = useMemo(() => {
+    const dates = new Set(leftMembers.map((m) => m.left_date));
+    return Array.from(dates).sort().reverse();
+  }, [leftMembers]);
+
+  const uniqueLeftReasons = useMemo(() => {
+    const reasons = new Set(leftMembers.map((m) => m.leave_reason).filter(Boolean));
+    return Array.from(reasons).sort();
+  }, [leftMembers]);
+
   const handleSort = (key: string) => {
     setSortConfig((prev) => ({
       key,
@@ -140,12 +173,21 @@ if (sortConfig.key) {
     } catch { /* ignore */ }
   };
 
-  const handleDelete = async (member: ClanMemberData & { id?: number }) => {
+  const handleDelete = (member: ClanMemberData & { id?: number }) => {
     if (!member.id) return;
-    if (!confirm(`Удалить ${member.nick} из клана?`)) return;
+    setDeletingMember(member);
+    setDeleteReason('');
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingMember?.id) return;
     try {
-      await deleteClanMember(clanId, member.id);
-      setMembers((prev) => prev.filter((m) => m.id !== member.id));
+      const today = new Date().toLocaleDateString('ru-RU');
+      await deleteClanMember(clanId, deletingMember.id, deleteReason, today);
+      setMembers((prev) => prev.filter((m) => m.id !== deletingMember.id));
+      loadLeftMembers();
+      setDeletingMember(null);
+      setDeleteReason('');
     } catch { /* ignore */ }
   };
 
@@ -388,6 +430,72 @@ if (sortConfig.key) {
 
       {filtered.length === 0 && <p className="cm-no-results">Никого не найдено</p>}
 
+      {leftMembers.length > 0 && (
+        <div className="cm-left-section">
+          <h3 className="cm-left-title">Выбывшие участники ({filteredLeft.length})</h3>
+          <div className="cm-filters cm-left-filters">
+            <input
+              className="cm-search"
+              placeholder="Поиск по нику..."
+              value={leftSearch}
+              onChange={(e) => setLeftSearch(e.target.value)}
+            />
+            <select
+              className="cm-role-filter"
+              value={leftDateFilter}
+              onChange={(e) => setLeftDateFilter(e.target.value)}
+            >
+              <option value="">Все даты</option>
+              {uniqueLeftDates.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+            <select
+              className="cm-role-filter"
+              value={leftReasonFilter}
+              onChange={(e) => setLeftReasonFilter(e.target.value)}
+            >
+              <option value="">Все причины</option>
+              {uniqueLeftReasons.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            {leftSearch || leftDateFilter || leftReasonFilter ? (
+              <button className="cm-search-clear" onClick={() => { setLeftSearch(''); setLeftDateFilter(''); setLeftReasonFilter(''); }}>×</button>
+            ) : null}
+          </div>
+          <table className="cm-table">
+            <thead>
+              <tr>
+                <th className="cm-number">#</th>
+                <th className="cm-sortable">Ник</th>
+                <th className="cm-sortable">Дата ухода</th>
+                <th className="cm-sortable">Причина ухода</th>
+                <th className="cm-actions-header">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredLeft.map((m, i) => (
+                <tr key={m.id}>
+                  <td className="cm-number">{i + 1}</td>
+                  <td className="cm-nick">
+                    {m.icon && <span className="cm-icon">{m.icon}</span>}
+                    <span>{m.nick}</span>
+                    <span className="cm-level">[{m.level}]</span>
+                  </td>
+                  <td className="cm-join">{m.left_date}</td>
+                  <td className="cm-reason">{m.leave_reason || '—'}</td>
+                  <td className="cm-actions">
+                    <button className="cm-btn-analyze" onClick={() => handleAnalyze(m.nick)} title="Анализировать">📊</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredLeft.length === 0 && <p className="cm-no-results">Никого не найдено</p>}
+        </div>
+      )}
+
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Добавить участника">
         {formFields}
         <div className="cm-modal-actions">
@@ -466,6 +574,25 @@ if (sortConfig.key) {
           <Button variant="primary" onClick={handleImportConfirm} disabled={importedMembers.length === 0 || isImporting}>
             {isImporting ? 'Импорт...' : `Импортировать (${importedMembers.length})`}
           </Button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!deletingMember} onClose={() => setDeletingMember(null)} title="Удалить участника">
+        <p>Удалить {deletingMember?.nick} из клана?</p>
+        <div className="cm-form-group">
+          <label className="cm-form-label">Причина ухода</label>
+          <select className="cm-form-select" value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)}>
+            <option value="">Выберите причину</option>
+            <option value="Вышел сам">Вышел сам</option>
+            <option value="Исключен">Исключен</option>
+            <option value="Переведен в другой клан">Переведен в другой клан</option>
+            <option value="Не активен">Не активен</option>
+            <option value="Другое">Другое</option>
+          </select>
+        </div>
+        <div className="cm-modal-actions">
+          <Button variant="ghost" onClick={() => setDeletingMember(null)}>Отмена</Button>
+          <Button variant="primary" onClick={confirmDelete}>Подтвердить</Button>
         </div>
       </Modal>
     </div>

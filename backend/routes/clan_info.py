@@ -161,6 +161,24 @@ def get_clan_members(clan_id):
     } for m in members])
 
 
+@clan_info_bp.route('/api/clan/<int:clan_id>/members/left', methods=['GET'])
+def get_left_members(clan_id):
+    members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=True).all()
+    return jsonify([{
+        'id': m.id,
+        'nick': m.nick,
+        'icon': m.icon,
+        'game_rank': m.game_rank,
+        'level': m.level,
+        'profession': m.profession,
+        'profession_level': m.profession_level,
+        'clan_role': m.clan_role,
+        'join_date': m.join_date,
+        'left_date': m.left_date,
+        'leave_reason': m.leave_reason,
+    } for m in members])
+
+
 @clan_info_bp.route('/api/clan/<int:clan_id>/members', methods=['POST'])
 def add_clan_member(clan_id):
     data = request.json
@@ -331,10 +349,14 @@ def delete_clan_member(clan_id, member_id):
     if not member:
         data_logger.warning(f'[DELETE] Member {member_id} not found in clan {clan_id}')
         return jsonify({'error': 'Участник не найден'}), 404
+    
+    data = request.json or {}
     member_nick = member.nick
     member.is_deleted = True
+    member.left_date = data.get('left_date', '')
+    member.leave_reason = data.get('leave_reason', '')
     db.session.commit()
-    data_logger.info(f'[DELETE] Soft-deleted member {member_nick} (id={member_id}) from clan {clan_id}')
+    data_logger.info(f'[DELETE] Soft-deleted member {member_nick} (id={member_id}) from clan {clan_id}, reason={member.leave_reason}')
     return jsonify({'status': 'deleted'})
 
 

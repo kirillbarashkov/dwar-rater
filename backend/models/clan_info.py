@@ -61,6 +61,8 @@ class ClanMemberInfo(db.Model):
     join_date = db.Column(db.String(20), default='')
     trial_until = db.Column(db.String(20), default='')
     is_deleted = db.Column(db.Boolean, default=False)
+    left_date = db.Column(db.String(20), default='')
+    leave_reason = db.Column(db.String(200), default='')
 
     clan = db.relationship('ClanInfo', foreign_keys=[clan_id], primaryjoin='ClanMemberInfo.clan_id == ClanInfo.clan_id')
     
