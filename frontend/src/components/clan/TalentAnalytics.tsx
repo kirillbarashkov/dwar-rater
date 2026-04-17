@@ -249,26 +249,38 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
             <section className="talent-section talent-section-wide">
               <h3 className="talent-section-title">Сводная — {periodLabel}</h3>
               {filteredPlayers.length > 0 ? (
-                <table className="talent-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Игрок</th>
-                      <th>Сдано</th>
-                      <th>Статус</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPlayers.map((p, idx) => (
-                      <tr key={p.nick}>
-                        <td className="talent-rank">{idx + 1}</td>
-                        <td className="talent-nick">{p.nick}</td>
-                        <td className={p.status === 'submitted' ? 'talent-submitted' : 'talent-notsubmitted'}>{p.totalContributed}</td>
-                        <td>{renderStatusBadge(p)}</td>
+                <div className="talent-table-wrapper">
+                  <table className="talent-table talent-table-wide">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Игрок</th>
+                        <th>Статус</th>
+                        {TALENT_RESOURCE_GROUPS.map(group => (
+                          group.resources.map(resource => (
+                            <th key={resource} title={resource}>{resource.length > 12 ? resource.slice(0, 12) + '...' : resource}</th>
+                          ))
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredPlayers.map((p, idx) => (
+                        <tr key={p.nick}>
+                          <td className="talent-rank">{idx + 1}</td>
+                          <td className="talent-nick">{p.nick}</td>
+                          <td>{renderStatusBadge(p)}</td>
+                          {TALENT_RESOURCE_GROUPS.map(group => (
+                            group.resources.map(resource => (
+                              <td key={resource} className={p.resources[resource] ? 'talent-submitted' : ''}>
+                                {p.resources[resource] || '-'}
+                              </td>
+                            ))
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <div className="talent-empty">Нет данных за период</div>
               )}

@@ -216,6 +216,23 @@
   border-bottom: none;
 }
 
+.talent-table-wrapper {
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.talent-table-wide {
+  min-width: 800px;
+}
+
+.talent-table-wide th,
+.talent-table-wide td {
+  padding: 6px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .talent-nick {
   font-weight: 500;
 }
