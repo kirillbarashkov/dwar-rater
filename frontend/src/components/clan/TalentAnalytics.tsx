@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import type { TreasuryOperationData } from '../../types/clanInfo';
+import type { TreasuryOperationData, ClanMemberData } from '../../types/clanInfo';
 import { isTalentOperation, isTalentResource, getOriginalOwner, TALENT_RESOURCE_GROUPS } from '../../utils/treasury';
 import './TalentAnalytics.css';
 
 interface TalentAnalyticsProps {
   operations: TreasuryOperationData[];
+  members?: ClanMemberData[];
 }
 
 interface PlayerTalentSummary {
@@ -24,7 +25,7 @@ interface MonthSummary {
 
 const NORM_PER_PLAYER = 1;
 
-export function TalentAnalytics({ operations }: TalentAnalyticsProps) {
+export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsProps) {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [filters, setFilters] = useState({
@@ -74,14 +75,6 @@ export function TalentAnalytics({ operations }: TalentAnalyticsProps) {
       byPlayer[owner].resources[op.object_name] = (byPlayer[owner].resources[op.object_name] || 0) + op.quantity;
     }
 
-    const totalPlayers = new Set<string>();
-    for (const op of operations) {
-      if (op.quantity <= 0) continue;
-      if (isTalentOperation(op) || (op.operation_type === 'Возвращено главой' && isTalentResource(op.object_name))) {
-        totalPlayers.add(op.nick);
-      }
-    }
-
     const result: PlayerTalentSummary[] = Object.entries(byPlayer)
       .map(([nick, data]) => ({
         nick,
@@ -92,10 +85,10 @@ export function TalentAnalytics({ operations }: TalentAnalyticsProps) {
       }));
 
     const submittedNicks = new Set(result.map(p => p.nick.toLowerCase()));
-    for (const nick of totalPlayers) {
-      if (!submittedNicks.has(nick.toLowerCase())) {
+    for (const m of members) {
+      if (!submittedNicks.has(m.nick.toLowerCase())) {
         result.push({
-          nick,
+          nick: m.nick,
           totalContributed: 0,
           resourceCount: 0,
           resources: {},

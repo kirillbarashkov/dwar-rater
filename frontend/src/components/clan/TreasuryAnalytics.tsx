@@ -73,7 +73,7 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
         {activeTab === 'tax' && (
           <TaxAnalytics operations={operations} members={members} clanId={clanId} isAdmin={isAdmin} onRefresh={loadData} />
         )}
-        {activeTab === 'talent' && <TalentAnalytics operations={operations} />}
+        {activeTab === 'talent' && <TalentAnalytics operations={operations} members={members} />}
         {activeTab === 'misc' && <MiscAnalytics operations={operations} />}
       </div>
     </div>
