@@ -232,8 +232,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
     return player.resources[resName] || 0;
   };
 
-  const getGroupTotals = (players: PlayerTalentSummary[], groupKey: TabKey) => {
-    const group = RESOURCE_GROUPS.find(g => g.key === groupKey);
+  const getGroupTotals = (players: PlayerTalentSummary[], group: GroupConfig | undefined) => {
     if (!group) return {};
 
     const totals: Record<string, number> = {};
@@ -244,10 +243,11 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
   };
 
   const activeGroup = RESOURCE_GROUPS.find(g => g.key === activeTab);
-  const groupTotals = getGroupTotals(filteredPlayers, activeTab?.key || 'universal');
+  const groupTotals = getGroupTotals(filteredPlayers, activeGroup);
 
   // DEBUG
   console.log('DEBUG activeTab:', activeTab);
+  console.log('DEBUG activeGroup:', activeGroup?.name, activeGroup?.resources.map(r => r.key));
   console.log('DEBUG filteredPlayers count:', filteredPlayers.length);
   console.log('DEBUG groupTotals:', groupTotals);
   if (filteredPlayers.length > 0) {
