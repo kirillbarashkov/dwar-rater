@@ -1,32 +1,47 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { TreasuryOperationData } from '../../types/clanInfo';
-import { isTalentOperation, isTalentResource, getOriginalOwner, TALENT_RESOURCES, TALENT_RESOURCE_GROUPS } from '../../utils/treasury';
+import { isTalentOperation, isTalentResource, getOriginalOwner, TALENT_RESOURCE_GROUPS } from '../../utils/treasury';
 import './TalentAnalytics.css';
 
 interface TalentAnalyticsProps {
   operations: TreasuryOperationData[];
 }
 
-interface PlayerResourceSummary {
+interface PlayerTalentSummary {
   nick: string;
   totalContributed: number;
   resourceCount: number;
   resources: Record<string, number>;
+  status: 'submitted' | 'not_submitted';
 }
 
-interface ResourceSummary {
-  resource: string;
-  total: number;
-  players: number;
+interface MonthSummary {
+  players: PlayerTalentSummary[];
+  totalCollected: number;
+  expectedByNorm: number;
+  expectedByAvg: number;
 }
 
-interface GroupedResourceSummary {
-  groupName: string;
-  resources: ResourceSummary[];
-  totalUnits: number;
-}
+const NORM_PER_PLAYER = 1;
 
 export function TalentAnalytics({ operations }: TalentAnalyticsProps) {
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [filters, setFilters] = useState({
+    search: '',
+    group: '',
+  });
+
+  const allResources = useMemo(() => {
+    const resources = new Set<string>();
+    for (const group of TALENT_RESOURCE_GROUPS) {
+      for (const res of group.resources) {
+        resources.add(res);
+      }
+    }
+    return Array.from(resources);
+  }, []);
+
   const talentOperations = useMemo(() => {
     return operations.filter(op => {
       if (isTalentOperation(op)) return true;
@@ -37,10 +52,14 @@ export function TalentAnalytics({ operations }: TalentAnalyticsProps) {
     });
   }, [operations]);
 
-  const playerSummaries = useMemo((): PlayerResourceSummary[] => {
+  const playerSummaries = useMemo((): PlayerTalentSummary[] => {
     const byPlayer: Record<string, { total: number; resources: Record<string, number> }> = {};
 
     for (const op of talentOperations) {
+      const parsed = parseDate(op.date);
+      if (!parsed) continue;
+      if (parsed.month !== selectedMonth || parsed.year !== selectedYear) continue;
+
       let owner = op.nick;
       if (op.operation_type === 'Возвращено главой') {
         owner = getOriginalOwner(op, operations);
@@ -53,219 +72,296 @@ export function TalentAnalytics({ operations }: TalentAnalyticsProps) {
       byPlayer[owner].resources[op.object_name] = (byPlayer[owner].resources[op.object_name] || 0) + Math.abs(op.quantity);
     }
 
-    return Object.entries(byPlayer)
+    const totalPlayers = new Set<string>();
+    for (const op of operations) {
+      if (isTalentOperation(op) || (op.operation_type === 'Возвращено главой' && isTalentResource(op.object_name))) {
+        totalPlayers.add(op.nick);
+      }
+    }
+
+    const result: PlayerTalentSummary[] = Object.entries(byPlayer)
       .map(([nick, data]) => ({
         nick,
         totalContributed: data.total,
         resourceCount: Object.keys(data.resources).length,
         resources: data.resources,
-      }))
-      .sort((a, b) => b.totalContributed - a.totalContributed);
-  }, [talentOperations, operations]);
+        status: 'submitted' as const,
+      }));
 
-  const resourceSummaries = useMemo((): ResourceSummary[] => {
-    const byResource: Record<string, { total: number; players: Set<string> }> = {};
-
-    for (const op of talentOperations) {
-      if (!byResource[op.object_name]) {
-        byResource[op.object_name] = { total: 0, players: new Set() };
+    const submittedNicks = new Set(result.map(p => p.nick.toLowerCase()));
+    for (const nick of totalPlayers) {
+      if (!submittedNicks.has(nick.toLowerCase())) {
+        result.push({
+          nick,
+          totalContributed: 0,
+          resourceCount: 0,
+          resources: {},
+          status: 'not_submitted',
+        });
       }
-      byResource[op.object_name].total += Math.abs(op.quantity);
-      
-      let owner = op.nick;
-      if (op.operation_type === 'Возвращено главой') {
-        owner = getOriginalOwner(op, operations);
-      }
-      byResource[op.object_name].players.add(owner);
     }
 
-    return Object.entries(byResource)
-      .map(([resource, data]) => ({
-        resource,
-        total: data.total,
-        players: data.players.size,
-      }))
-      .sort((a, b) => b.total - a.total);
-  }, [talentOperations, operations]);
+    return result.sort((a, b) => {
+      const order = { submitted: 0, not_submitted: 1 };
+      if (order[a.status] !== order[b.status]) {
+        return order[a.status] - order[b.status];
+      }
+      return b.totalContributed - a.totalContributed;
+    });
+  }, [talentOperations, operations, selectedMonth, selectedYear]);
 
-  const groupedResourceSummaries = useMemo((): GroupedResourceSummary[] => {
-    return TALENT_RESOURCE_GROUPS.map(group => {
-      const groupResources = group.resources
-        .map(resName => resourceSummaries.find(r => r.resource === resName))
-        .filter((r): r is ResourceSummary => r !== undefined);
-      
-      const totalUnits = groupResources.reduce((sum, r) => sum + r.total, 0);
-      
-      return {
-        groupName: group.name,
-        resources: groupResources,
-        totalUnits,
-      };
-    }).filter(g => g.resources.length > 0);
-  }, [resourceSummaries]);
+  const monthSummary = useMemo((): MonthSummary | null => {
+    const totalCollected = playerSummaries.reduce((sum, p) => sum + p.totalContributed, 0);
+    const playerCount = playerSummaries.length;
+    const expectedByNorm = playerCount * NORM_PER_PLAYER * allResources.length;
+    const avgContribution = playerCount > 0 ? totalCollected / playerCount : 0;
+    const expectedByAvg = playerCount * avgContribution;
 
-  const topContributors = useMemo(() => playerSummaries.slice(0, 10), [playerSummaries]);
+    return {
+      players: playerSummaries,
+      totalCollected,
+      expectedByNorm,
+      expectedByAvg,
+    };
+  }, [playerSummaries, allResources.length]);
 
-  const avgContribution = playerSummaries.length > 0
-    ? playerSummaries.reduce((sum, p) => sum + p.totalContributed, 0) / playerSummaries.length
-    : 0;
+  const filteredPlayers = useMemo(() => {
+    if (!monthSummary) return [];
+    
+    return monthSummary.players.filter(p => {
+      if (filters.search && !p.nick.toLowerCase().includes(filters.search.toLowerCase())) {
+        return false;
+      }
+      if (filters.group) {
+        const group = TALENT_RESOURCE_GROUPS.find(g => g.name === filters.group);
+        if (group) {
+          const hasResourceInGroup = Object.keys(p.resources).some(r => group.resources.includes(r));
+          if (!hasResourceInGroup && p.status === 'submitted') {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+  }, [monthSummary, filters]);
 
-  const belowAveragePlayers = useMemo(() => {
-    return playerSummaries.filter(p => p.totalContributed < avgContribution * 0.5);
-  }, [playerSummaries, avgContribution]);
+  const submittedPlayers = filteredPlayers.filter(p => p.status === 'submitted');
+  const notSubmittedPlayers = filteredPlayers.filter(p => p.status === 'not_submitted');
 
-  const totalResourceUnits = talentOperations.reduce((sum, op) => sum + Math.abs(op.quantity), 0);
+  const periodLabel = monthSummary
+    ? `${MONTHS_RU[selectedMonth]} ${selectedYear}`
+    : '';
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 1) {
+      setSelectedMonth(12);
+      setSelectedYear(y => y - 1);
+    } else {
+      setSelectedMonth(m => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 12) {
+      setSelectedMonth(1);
+      setSelectedYear(y => y + 1);
+    } else {
+      setSelectedMonth(m => m + 1);
+    }
+  };
+
+  const renderStatusBadge = (summary: PlayerTalentSummary) => {
+    if (summary.status === 'not_submitted') {
+      return <span className="talent-badge talent-badge-notsubmitted">Не сдавал</span>;
+    }
+    return <span className="talent-badge talent-badge-submitted">Сдал</span>;
+  };
+
+  const uniqueGroups = TALENT_RESOURCE_GROUPS.map(g => g.name);
 
   return (
     <div className="talent-analytics">
       <header className="talent-header">
-        <h2 className="talent-title">Ресурсы для прокачки талантов</h2>
+        <h2 className="talent-title">Ресурсы талантов</h2>
+        <div className="talent-period-nav">
+          <button onClick={handlePrevMonth}>←</button>
+          <span className="talent-period-label">{periodLabel}</span>
+          <button onClick={handleNextMonth}>→</button>
+        </div>
       </header>
 
-      <div className="talent-kpi">
-        <div className="talent-kpi-card">
-          <span className="talent-kpi-value">{totalResourceUnits.toLocaleString()}</span>
-          <span className="talent-kpi-label">Всего единиц</span>
-        </div>
-        <div className="talent-kpi-card">
-          <span className="talent-kpi-value">{TALENT_RESOURCES.length}</span>
-          <span className="talent-kpi-label">Видов ресурсов</span>
-        </div>
-        <div className="talent-kpi-card">
-          <span className="talent-kpi-value">{playerSummaries.length}</span>
-          <span className="talent-kpi-label">Участников</span>
-        </div>
-        <div className="talent-kpi-card">
-          <span className="talent-kpi-value">{avgContribution.toFixed(1)}</span>
-          <span className="talent-kpi-label">Среднее на игрока</span>
-        </div>
-      </div>
-
-      <div className="talent-grid">
-        <section className="talent-section talent-section-wide">
-          <h3 className="talent-section-title">Вклад по ресурсам</h3>
-          {groupedResourceSummaries.length > 0 ? (
-            <div className="talent-groups">
-              {groupedResourceSummaries.map(group => (
-                <div key={group.groupName} className="talent-group">
-                  <div className="talent-group-header">
-                    <span className="talent-group-name">{group.groupName}</span>
-                    <span className="talent-group-total">{group.totalUnits} ед.</span>
-                  </div>
-                  <table className="talent-table">
-                    <thead>
-                      <tr>
-                        <th>Ресурс</th>
-                        <th>Всего</th>
-                        <th>Игроков</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.resources.map(r => (
-                        <tr key={r.resource}>
-                          <td className="talent-resource">{r.resource}</td>
-                          <td>{r.total}</td>
-                          <td>{r.players}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
+      {monthSummary && (
+        <>
+          <div className="talent-kpi">
+            <div className="talent-kpi-card">
+              <span className="talent-kpi-value">{monthSummary.totalCollected.toLocaleString()}</span>
+              <span className="talent-kpi-label">Сдано</span>
             </div>
-          ) : (
-            <div className="talent-empty">Нет данных</div>
-          )}
-        </section>
+            <div className="talent-kpi-card">
+              <span className="talent-kpi-value">{monthSummary.expectedByNorm.toLocaleString()}</span>
+              <span className="talent-kpi-label">План по норме</span>
+            </div>
+            <div className="talent-kpi-card">
+              <span className="talent-kpi-value">{monthSummary.expectedByAvg > 0 ? monthSummary.expectedByAvg.toFixed(0) : 0}</span>
+              <span className="talent-kpi-label">План по среднему</span>
+            </div>
+          </div>
 
-        <section className="talent-section">
-          <h3 className="talent-section-title">Топ вкладчиков</h3>
-          {topContributors.length > 0 ? (
-            <table className="talent-table">
-              <thead>
-                <tr>
-                  <th>Игрок</th>
-                  <th>Всего</th>
-                  <th>Видов</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topContributors.map((p, idx) => (
-                  <tr key={p.nick}>
-                    <td className="talent-nick">
-                      <span className="talent-rank">{idx + 1}</span>
-                      {p.nick}
-                    </td>
-                    <td className="talent-amount">{p.totalContributed}</td>
-                    <td>{p.resourceCount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="talent-empty">Нет данных</div>
-          )}
-        </section>
+          <div className="talent-kpi talent-kpi-row2">
+            <div className="talent-kpi-card">
+              <span className="talent-kpi-value">{filteredPlayers.length}</span>
+              <span className="talent-kpi-label">Всего</span>
+            </div>
+            <div className="talent-kpi-card">
+              <span className="talent-kpi-value">{submittedPlayers.length}</span>
+              <span className="talent-kpi-label">Сдал</span>
+            </div>
+            <div className="talent-kpi-card talent-kpi-danger">
+              <span className="talent-kpi-value">{notSubmittedPlayers.length}</span>
+              <span className="talent-kpi-label">Не сдавал</span>
+            </div>
+          </div>
 
-        <section className="talent-section talent-section-wide">
-          <h3 className="talent-section-title">
-            Детализация по игрокам
-            <span className="talent-section-subtitle"> ({playerSummaries.length} участников)</span>
-          </h3>
-          {playerSummaries.length > 0 ? (
-            <table className="talent-table talent-table-wide">
-              <thead>
-                <tr>
-                  <th>Игрок</th>
-                  <th>Всего</th>
-                  {TALENT_RESOURCES.slice(0, 5).map(r => (
-                    <th key={r}>{r.length > 15 ? r.slice(0, 15) + '...' : r}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {playerSummaries.slice(0, 20).map(p => (
-                  <tr key={p.nick}>
-                    <td className="talent-nick">{p.nick}</td>
-                    <td className="talent-amount">{p.totalContributed}</td>
-                    {TALENT_RESOURCES.slice(0, 5).map(r => (
-                      <td key={r}>{p.resources[r] || '-'}</td>
+          <div className="talent-filters">
+            <input
+              type="text"
+              className="talent-filter-search"
+              placeholder="Поиск по игроку..."
+              value={filters.search}
+              onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
+            />
+            <select
+              value={filters.group}
+              onChange={e => setFilters(f => ({ ...f, group: e.target.value }))}
+            >
+              <option value="">Все группы</option>
+              {uniqueGroups.map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+            {(filters.search || filters.group) && (
+              <button
+                className="talent-filter-clear"
+                onClick={() => setFilters({ search: '', group: '' })}
+              >
+                Сбросить
+              </button>
+            )}
+          </div>
+
+          <div className="talent-shortlists">
+            <section className="talent-section talent-section-wide">
+              <h3 className="talent-section-title">Сводная — {periodLabel}</h3>
+              {filteredPlayers.length > 0 ? (
+                <table className="talent-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Игрок</th>
+                      <th>Сдано</th>
+                      <th>Статус</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPlayers.map((p, idx) => (
+                      <tr key={p.nick}>
+                        <td className="talent-rank">{idx + 1}</td>
+                        <td className="talent-nick">{p.nick}</td>
+                        <td className={p.status === 'submitted' ? 'talent-submitted' : 'talent-notsubmitted'}>{p.totalContributed}</td>
+                        <td>{renderStatusBadge(p)}</td>
+                      </tr>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="talent-empty">Нет данных</div>
-          )}
-        </section>
+                  </tbody>
+                </table>
+              ) : (
+                <div className="talent-empty">Нет данных за период</div>
+              )}
+            </section>
 
-        {belowAveragePlayers.length > 0 && (
-          <section className="talent-section">
-            <h3 className="talent-section-title talent-section-warning">
-              Ниже среднего ({belowAveragePlayers.length})
-            </h3>
-            <table className="talent-table">
-              <thead>
-                <tr>
-                  <th>Игрок</th>
-                  <th>Вклад</th>
-                  <th>Дефицит</th>
-                </tr>
-              </thead>
-              <tbody>
-                {belowAveragePlayers.slice(0, 10).map(p => (
-                  <tr key={p.nick}>
-                    <td className="talent-nick">{p.nick}</td>
-                    <td>{p.totalContributed}</td>
-                    <td className="talent-deficit">-{Math.max(0, Math.round(avgContribution - p.totalContributed))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        )}
-      </div>
+            <section className="talent-section">
+              <h3 className="talent-section-title">
+                <span className="talent-status-dot talent-status-submitted" />
+                Сдал ({submittedPlayers.length})
+              </h3>
+              {submittedPlayers.length > 0 ? (
+                <table className="talent-table">
+                  <thead>
+                    <tr>
+                      <th>Игрок</th>
+                      <th>Сдано</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {submittedPlayers.map(p => (
+                      <tr key={p.nick}>
+                        <td className="talent-nick">{p.nick}</td>
+                        <td className="talent-submitted">{p.totalContributed}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="talent-empty">Нет сдавших</div>
+              )}
+            </section>
+
+            <section className="talent-section">
+              <h3 className="talent-section-title">
+                <span className="talent-status-dot talent-status-notsubmitted" />
+                Не сдавал ({notSubmittedPlayers.length})
+              </h3>
+              {notSubmittedPlayers.length > 0 ? (
+                <table className="talent-table">
+                  <thead>
+                    <tr>
+                      <th>Игрок</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {notSubmittedPlayers.map(p => (
+                      <tr key={p.nick}>
+                        <td className="talent-nick">{p.nick}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="talent-empty">Нет должников</div>
+              )}
+            </section>
+          </div>
+        </>
+      )}
+
+      {!monthSummary && (
+        <div className="talent-empty">Нет данных по ресурсам</div>
+      )}
     </div>
   );
 }
+
+function parseDate(dateStr: string): { day: number; month: number; year: number } | null {
+  const match = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+  if (!match) return null;
+  return {
+    day: parseInt(match[1], 10),
+    month: parseInt(match[2], 10),
+    year: parseInt(match[3], 10),
+  };
+}
+
+const MONTHS_RU = [
+  '',
+  'Январь',
+  'Февраль',
+  'Март',
+  'Апрель',
+  'Май',
+  'Июнь',
+  'Июль',
+  'Август',
+  'Сентябрь',
+  'Октябрь',
+  'Ноябрь',
+  'Декабрь',
+];
