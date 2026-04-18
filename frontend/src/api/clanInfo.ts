@@ -141,10 +141,19 @@ export async function updateTreasuryCompensation(
   compensationFlag: boolean,
   compensationComment: string
 ): Promise<TreasuryOperationData> {
-  const response = await apiClient.put(`/api/clan/${clanId}/treasury/${operationId}/compensation`, {
+  const response = await apiClient.put(`/api/clan/${clanId}/treasury/${operationId}`, {
     compensation_flag: compensationFlag,
     compensation_comment: compensationComment,
   });
+  return response.data;
+}
+
+export async function updateTreasuryOperation(
+  clanId: number,
+  operationId: number,
+  data: { quantity?: number; compensation_flag?: boolean; compensation_comment?: string }
+): Promise<TreasuryOperationData> {
+  const response = await apiClient.put(`/api/clan/${clanId}/treasury/${operationId}`, data);
   return response.data;
 }
 

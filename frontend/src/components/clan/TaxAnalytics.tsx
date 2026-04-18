@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { TreasuryOperationData } from '../../types/clanInfo';
 import type { ClanMemberData } from '../../types/clanInfo';
 import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU } from '../../utils/treasury';
-import { createTreasuryCompensation } from '../../api/clanInfo';
+import { createTreasuryCompensation, updateTreasuryOperation } from '../../api/clanInfo';
 import './TaxAnalytics.css';
 
 interface TaxAnalyticsProps {
@@ -35,6 +35,7 @@ interface PlayerTaxSummary {
   status: 'paid' | 'paid_delayed' | 'compensated' | 'not_paid' | 'future_member';
   isOver: boolean;
   paymentStartMonth?: { month: number; year: number } | null;
+  operationId?: number;
 }
 
 interface MonthSummary {
@@ -82,6 +83,8 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
   const [compensatedSort, setCompensatedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
   const [paidDelayedSort, setPaidDelayedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [editingRow, setEditingRow] = useState<string | null>(null);
+  const [editingData, setEditingData] = useState<{ quantity: number; compensationFlag: boolean; compensationComment: string } | null>(null);
 
   const memberLevels = useMemo(() => {
     const map: Record<string, number> = {};
@@ -236,6 +239,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
         compensationComment: data.comment,
         status,
         isOver,
+        operationId: data.opId || undefined,
       });
       addedNicks.add(nickLower);
     }
@@ -547,6 +551,43 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
     }
   };
 
+  const startInlineEdit = (player: PlayerTaxSummary) => {
+    setEditingRow(player.nick);
+    setEditingData({
+      quantity: player.totalPaid,
+      compensationFlag: player.status === 'compensated',
+      compensationComment: player.compensationComment || '',
+    });
+  };
+
+  const cancelInlineEdit = () => {
+    setEditingRow(null);
+    setEditingData(null);
+  };
+
+  const saveInlineEdit = async (player: PlayerTaxSummary) => {
+    if (!clanId || !editingData || !player.operationId) return;
+
+    setIsSaving(true);
+    try {
+      await updateTreasuryOperation(clanId, player.operationId, {
+        quantity: editingData.quantity,
+        compensation_flag: editingData.compensationFlag,
+        compensation_comment: editingData.compensationComment,
+      });
+
+      setEditingRow(null);
+      setEditingData(null);
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (err) {
+      console.error('Failed to save:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="tax-analytics">
       <header className="tax-header">
@@ -690,6 +731,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                       <th className="tax-sortable" onClick={() => handleSort('main', 'status')}>Статус {renderSortIcon('main', 'status')}</th>
                       <th>Компенсация</th>
                       <th>Комментарий</th>
+                      <th>Действия</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -698,27 +740,95 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                         <td className="tax-rank">{idx + 1}</td>
                         <td className="tax-nick">{p.nick}</td>
                         <td>{p.playerLevel ?? '-'}</td>
-                        <td className={p.isOver ? 'tax-over' : 'tax-paid'}>{p.totalPaid}</td>
-                        <td>{p.normAmount}</td>
-                        <td>{renderStatusBadge(p)}</td>
-                        <td>
-                          {isAdmin && p.status === 'not_paid' && (
+                        {editingRow === p.nick ? (
+                          <>
+                            <td>
+                              <input
+                                type="number"
+                                className="tax-edit-input"
+                                value={editingData?.quantity ?? 0}
+                                onChange={(e) => setEditingData(prev => prev ? { ...prev, quantity: parseInt(e.target.value) || 0 } : null)}
+                                min="0"
+                              />
+                            </td>
+                            <td>{p.normAmount}</td>
+                            <td>{renderStatusBadge(p)}</td>
+                            <td>
+                              <label className="tax-edit-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={editingData?.compensationFlag ?? false}
+                                  onChange={(e) => setEditingData(prev => prev ? { ...prev, compensationFlag: e.target.checked } : null)}
+                                />
+                                Зачтено
+                              </label>
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                className="tax-edit-input tax-edit-comment"
+                                value={editingData?.compensationComment ?? ''}
+                                onChange={(e) => setEditingData(prev => prev ? { ...prev, compensationComment: e.target.value } : null)}
+                                placeholder="Комментарий"
+                              />
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className={p.isOver ? 'tax-over' : 'tax-paid'}>{p.totalPaid}</td>
+                            <td>{p.normAmount}</td>
+                            <td>{renderStatusBadge(p)}</td>
+                            <td>
+                              {isAdmin && p.status === 'not_paid' && (
+                                <button
+                                  className="tax-compensate-btn"
+                                  onClick={() => handleCompensate(p.nick, p.playerLevel || 1, p.normAmount)}
+                                >
+                                  Зачесть
+                                </button>
+                              )}
+                              {p.status === 'compensated' && (
+                                <span className="tax-compensated">Зачтено</span>
+                              )}
+                              {!isAdmin && p.status === 'compensated' && (
+                                <span className="tax-compensated">Да</span>
+                              )}
+                            </td>
+                            <td className="tax-comment-cell" title={p.compensationComment || undefined}>
+                              {p.compensationComment || '-'}
+                            </td>
+                          </>
+                        )}
+                        <td className="tax-actions">
+                          {isAdmin && editingRow !== p.nick && (
                             <button
-                              className="tax-compensate-btn"
-                              onClick={() => handleCompensate(p.nick, p.playerLevel || 1, p.normAmount)}
+                              className="tax-edit-btn"
+                              onClick={() => startInlineEdit(p)}
+                              title="Редактировать"
                             >
-                              Зачесть
+                              ✏️
                             </button>
                           )}
-                          {p.status === 'compensated' && (
-                            <span className="tax-compensated">Зачтено</span>
+                          {editingRow === p.nick && (
+                            <>
+                              <button
+                                className="tax-save-btn"
+                                onClick={() => saveInlineEdit(p)}
+                                disabled={isSaving}
+                                title="Сохранить"
+                              >
+                                ✓
+                              </button>
+                              <button
+                                className="tax-cancel-btn"
+                                onClick={cancelInlineEdit}
+                                disabled={isSaving}
+                                title="Отмена"
+                              >
+                                ✕
+                              </button>
+                            </>
                           )}
-                          {!isAdmin && p.status === 'compensated' && (
-                            <span className="tax-compensated">Да</span>
-                          )}
-                        </td>
-                        <td className="tax-comment-cell" title={p.compensationComment || undefined}>
-                          {p.compensationComment || '-'}
                         </td>
                       </tr>
                     ))}

@@ -595,13 +595,13 @@ def get_treasury_operations(clan_id):
     } for op in operations])
 
 
-@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/<int:operation_id>/compensation', methods=['PUT'])
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/<int:operation_id>', methods=['PUT'])
 @require_auth
-def update_treasury_compensation(clan_id, operation_id):
+def update_treasury_operation(clan_id, operation_id):
     from flask import g
     
     if not g.current_user or g.current_user.role != 'admin':
-        return jsonify({'error': 'Только администратор может изменять компенсации'}), 403
+        return jsonify({'error': 'Только администратор может изменять операции'}), 403
     
     operation = TreasuryOperation.query.filter_by(id=operation_id, clan_id=clan_id).first()
     if not operation:
@@ -609,14 +609,16 @@ def update_treasury_compensation(clan_id, operation_id):
     
     data = request.json
     
+    if 'quantity' in data:
+        operation.quantity = int(data['quantity'])
     if 'compensation_flag' in data:
-        operation.compensation_flag = data['compensation_flag']
+        operation.compensation_flag = bool(data['compensation_flag'])
     if 'compensation_comment' in data:
         operation.compensation_comment = data['compensation_comment']
     
     db.session.commit()
     
-    data_logger.info(f'[TREASURY] Updated compensation for operation {operation_id}: flag={operation.compensation_flag}, comment={operation.compensation_comment}')
+    data_logger.info(f'[TREASURY] Updated operation {operation_id}: qty={operation.quantity}, comp={operation.compensation_flag}, comment={operation.compensation_comment}')
     
     return jsonify({
         'id': operation.id,
