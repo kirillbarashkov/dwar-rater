@@ -24,8 +24,17 @@ export function parseTreasuryOperations(html: string): ParsedTreasuryOperation[]
       .trim();
   };
 
+  const allRows: string[] = [];
   let rowMatch;
   while ((rowMatch = rowRegex.exec(html)) !== null) {
+    allRows.push(rowMatch[0]);
+  }
+  console.log('[parseTreasuryOperations] Found rows by regex:', allRows.length);
+  console.log('[parseTreasuryOperations] Row tags found:', allRows.map((r, i) => `${i}: ${r.substring(0, 80)}...`));
+
+  let rowIndex = 0;
+  const rowRegex2 = /<tr\s*class="[^"]*">(.*?)<\/tr>/gs;
+  while ((rowMatch = rowRegex2.exec(html)) !== null) {
     const rowHtml = rowMatch[1];
     const cells: string[] = [];
     const cellStyles: string[] = [];
@@ -37,14 +46,28 @@ export function parseTreasuryOperations(html: string): ParsedTreasuryOperation[]
       cells.push(tdMatch[2]);
     }
 
-    if (cells.length < 5) continue;
+    console.log(`[parseTreasuryOperations] Row ${rowIndex}: cells.length=${cells.length}, cells[0] preview: ${(cells[0] || '').substring(0, 50)}`);
+
+    if (cells.length < 5) {
+      console.log(`[parseTreasuryOperations] Row ${rowIndex} SKIPPED: cells.length ${cells.length} < 5`);
+      rowIndex++;
+      continue;
+    }
 
     const dateMatch = dateRegex.exec(cells[0]);
-    if (!dateMatch) continue;
+    if (!dateMatch) {
+      console.log(`[parseTreasuryOperations] Row ${rowIndex} SKIPPED: no date match in "${(cells[0] || '').substring(0, 50)}"`);
+      rowIndex++;
+      continue;
+    }
     const date = dateMatch[1];
 
     const nickMatch = nickRegex.exec(cells[1]);
-    if (!nickMatch) continue;
+    if (!nickMatch) {
+      console.log(`[parseTreasuryOperations] Row ${rowIndex} SKIPPED: no nick match in "${(cells[1] || '').substring(0, 80)}"`);
+      rowIndex++;
+      continue;
+    }
     const nick = nickMatch[1];
 
     const operation_type = cleanHtml(cells[2]);
@@ -68,8 +91,15 @@ export function parseTreasuryOperations(html: string): ParsedTreasuryOperation[]
     }
 
     const key = `${date}|${nick}|${operation_type}|${objectName}|${quantity}`;
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {
+      console.log(`[parseTreasuryOperations] Row ${rowIndex} SKIPPED (duplicate): key=${key}`);
+      seen.add(key);
+      rowIndex++;
+      continue;
+    }
     seen.add(key);
+
+    console.log(`[parseTreasuryOperations] Row ${rowIndex} ADDED: ${date}|${nick}|${operation_type}|${objectName}|${quantity * direction}`);
 
     operations.push({
       date,
@@ -78,8 +108,10 @@ export function parseTreasuryOperations(html: string): ParsedTreasuryOperation[]
       object_name: objectName,
       quantity: quantity * direction,
     });
+    rowIndex++;
   }
 
+  console.log('[parseTreasuryOperations] Total operations parsed:', operations.length);
   return operations;
 }
 
