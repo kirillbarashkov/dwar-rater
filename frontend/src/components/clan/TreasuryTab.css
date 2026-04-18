@@ -5,14 +5,48 @@
 .treasury-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.treasury-header-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .treasury-title {
   margin: 0;
   font-size: 18px;
   color: var(--text-primary);
+}
+
+.treasury-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.treasury-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.treasury-stat-label {
+  color: var(--text-secondary);
+}
+
+.treasury-stat-value {
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
 }
 
 .treasury-header-actions {

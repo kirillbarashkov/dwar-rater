@@ -189,6 +189,27 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
     return set;
   }, [operations]);
 
+  const todayCount = useMemo(() => {
+    const now = new Date();
+    const today = formatDateKey(now.getDate(), now.getMonth() + 1, now.getFullYear());
+    return operations.filter((op) => {
+      const parsed = parseDate(op.date);
+      if (!parsed) return false;
+      return formatDateKey(parsed.day, parsed.month, parsed.year) === today;
+    }).length;
+  }, [operations]);
+
+  const monthCount = useMemo(() => {
+    const now = new Date();
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return operations.filter((op) => {
+      const parsed = parseDate(op.date);
+      if (!parsed) return false;
+      const opMonthStr = `${parsed.year}-${String(parsed.month).padStart(2, '0')}`;
+      return opMonthStr === currentMonthStr;
+    }).length;
+  }, [operations]);
+
   const monthDays = useMemo((): MonthDay[] => {
     return getMonthDays(currentYear, currentMonth).map((d) => ({
       ...d,
@@ -333,7 +354,23 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
   return (
     <div className="treasury-tab">
       <header className="treasury-header">
-        <h2 className="treasury-title">Казна</h2>
+        <div className="treasury-header-top">
+          <h2 className="treasury-title">Казна</h2>
+          <div className="treasury-stats">
+            <span className="treasury-stat">
+              <span className="treasury-stat-label">Сегодня:</span>
+              <span className="treasury-stat-value">{todayCount}</span>
+            </span>
+            <span className="treasury-stat">
+              <span className="treasury-stat-label">Текущий месяц:</span>
+              <span className="treasury-stat-value">{monthCount}</span>
+            </span>
+            <span className="treasury-stat">
+              <span className="treasury-stat-label">Всего:</span>
+              <span className="treasury-stat-value">{operations.length}</span>
+            </span>
+          </div>
+        </div>
         <div className="treasury-header-actions">
           <Button variant="secondary" size="small" onClick={() => handleShowBackupPicker('save')}>
             Экспорт
