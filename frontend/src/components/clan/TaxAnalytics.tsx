@@ -209,6 +209,8 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
 
     const playerSummaries: PlayerTaxSummary[] = [];
 
+    const addedNicks = new Set<string>();
+
     for (const [nickLower, data] of Object.entries(paymentsByPlayer)) {
       const level = memberLevels[nickLower];
       const normAmount = memberNorms[nickLower] || DEFAULT_NORM;
@@ -235,13 +237,12 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
         status,
         isOver,
       });
+      addedNicks.add(nickLower);
     }
-
-    const paidNicks = new Set(playerSummaries.filter(p => p.status !== 'not_paid' && p.status !== 'future_member').map(p => p.nick.toLowerCase()));
 
     for (const m of members) {
       const nickLower = m.nick.toLowerCase();
-      if (!paidNicks.has(nickLower)) {
+      if (!addedNicks.has(nickLower)) {
         const paymentStart = getPaymentStartMonth(nickLower);
         const isFuture = !isPaymentDue(nickLower);
         
@@ -258,6 +259,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
           isOver: false,
           paymentStartMonth: paymentStart,
         });
+        addedNicks.add(nickLower);
       }
     }
 
