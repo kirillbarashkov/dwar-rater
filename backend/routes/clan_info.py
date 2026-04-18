@@ -737,11 +737,26 @@ def import_treasury_operations(clan_id):
             ).first()
             
             if existing:
-                data_logger.debug(f'[TREASURY] Op {i} will update: {date}|{nick}|{operation_type}|{object_name}')
-                existing.quantity = quantity
-                existing.compensation_flag = compensation_flag
-                existing.compensation_comment = compensation_comment
-                updated += 1
+                if existing.quantity == quantity:
+                    data_logger.debug(f'[TREASURY] Op {i} will update: {date}|{nick}|{operation_type}|{object_name}|{quantity}')
+                    existing.quantity = quantity
+                    existing.compensation_flag = compensation_flag
+                    existing.compensation_comment = compensation_comment
+                    updated += 1
+                else:
+                    data_logger.debug(f'[TREASURY] Op {i} will insert NEW (different qty): {date}|{nick}|{operation_type}|{object_name}|{quantity} (existing qty={existing.quantity})')
+                    treasury_op = TreasuryOperation(
+                        clan_id=clan_id,
+                        date=date,
+                        nick=nick,
+                        operation_type=operation_type,
+                        object_name=object_name,
+                        quantity=quantity,
+                        compensation_flag=compensation_flag,
+                        compensation_comment=compensation_comment,
+                    )
+                    db.session.add(treasury_op)
+                    imported += 1
             else:
                 data_logger.debug(f'[TREASURY] Op {i} will insert: {date}|{nick}|{operation_type}|{object_name}|{quantity}')
                 treasury_op = TreasuryOperation(
