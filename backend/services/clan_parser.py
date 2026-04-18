@@ -2,6 +2,7 @@ import re
 from urllib.parse import urlparse
 import requests
 from utils.formatters import clean_html
+from services.data_logger import data_logger
 
 
 def fetch_clan_page(clan_id, mode='news'):
@@ -138,29 +139,35 @@ def fetch_clan_treasury_report(session=None, page=0, filters=None):
     }
     
     url = f'https://w1.dwar.ru/clan_management.php?f=1&mode=clancell&submode=report&page={page}'
+    data_logger.info(f'[PARSER] Fetching treasury report page={page}, url={url}')
     
     if session is None:
         session = requests.Session()
     
     resp = session.get(url, headers=headers, timeout=15)
     resp.encoding = 'utf-8'
+    data_logger.info(f'[PARSER] Received response: status={resp.status_code}, content_length={len(resp.text)}')
     return resp.text, session
 
 
 def parse_clan_treasury_operations(html):
     """Parse treasury operations from report HTML."""
     operations = []
+    skipped_rows = []
     
     rows = re.findall(r'<tr(?:\s+class="bg_l")?>(.*?)</tr>', html, re.DOTALL)
+    data_logger.info(f'[PARSER] Found {len(rows)} table rows in HTML')
     
-    for row_html in rows:
+    for i, row_html in enumerate(rows):
         cells = re.findall(r'<td[^>]*class="brd-all p6h"[^>]*>(.*?)</td>', row_html, re.DOTALL)
         
         if len(cells) < 5:
+            skipped_rows.append({'row': i, 'reason': f'cells={len(cells)} < 5', 'cells_preview': str(cells[:3])})
             continue
         
         date_match = re.search(r'(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})', cells[0])
         if not date_match:
+            skipped_rows.append({'row': i, 'reason': 'no date match', 'cell0': cells[0][:100]})
             continue
         
         date = date_match.group(1)
@@ -169,6 +176,9 @@ def parse_clan_treasury_operations(html):
         if not nick_match:
             nick_match = re.search(r'>([^<]+)\s*\[(\d+)\]</a>', cells[1])
         nick = nick_match.group(1) if nick_match else 'Unknown'
+        if nick == 'Unknown':
+            skipped_rows.append({'row': i, 'reason': 'no nick match', 'cell1': cells[1][:100]})
+            continue
         
         operation_type = clean_html(cells[2]).strip()
         
@@ -185,6 +195,11 @@ def parse_clan_treasury_operations(html):
         direction = 1 if color_match and color_match.group(1) == 'green' else -1
         
         quantity = int(quantity_match.group(1)) if quantity_match else 0
+        if quantity_match is None:
+            skipped_rows.append({'row': i, 'reason': 'no quantity match', 'cell4': cells[4][:100]})
+            continue
+        
+        data_logger.debug(f'[PARSER] Row {i}: date={date}, nick={nick}, type={operation_type}, obj={obj_name}, qty={quantity * direction}')
         
         operations.append({
             'date': date,
@@ -194,4 +209,8 @@ def parse_clan_treasury_operations(html):
             'quantity': quantity * direction,
         })
     
+    if skipped_rows:
+        data_logger.warning(f'[PARSER] Skipped {len(skipped_rows)} rows: {skipped_rows[:10]}')
+    
+    data_logger.info(f'[PARSER] Parsed {len(operations)} operations, skipped {len(skipped_rows)} rows')
     return operations

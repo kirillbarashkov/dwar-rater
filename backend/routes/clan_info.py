@@ -709,8 +709,11 @@ def import_treasury_operations(clan_id):
     imported = 0
     updated = 0
     skipped = 0
+    skip_reasons = []
     
-    for op in operations_data:
+    data_logger.info(f'[TREASURY] Processing {len(operations_data)} operations from frontend')
+    
+    for i, op in enumerate(operations_data):
         try:
             date = op.get('date', '')
             nick = op.get('nick', '')
@@ -721,6 +724,7 @@ def import_treasury_operations(clan_id):
             compensation_comment = op.get('compensation_comment', '')
             
             if not date or not nick:
+                skip_reasons.append(f'op {i}: empty date or nick')
                 skipped += 1
                 continue
             
@@ -733,11 +737,13 @@ def import_treasury_operations(clan_id):
             ).first()
             
             if existing:
+                data_logger.debug(f'[TREASURY] Op {i} will update: {date}|{nick}|{operation_type}|{object_name}')
                 existing.quantity = quantity
                 existing.compensation_flag = compensation_flag
                 existing.compensation_comment = compensation_comment
                 updated += 1
             else:
+                data_logger.debug(f'[TREASURY] Op {i} will insert: {date}|{nick}|{operation_type}|{object_name}|{quantity}')
                 treasury_op = TreasuryOperation(
                     clan_id=clan_id,
                     date=date,
@@ -751,8 +757,12 @@ def import_treasury_operations(clan_id):
                 db.session.add(treasury_op)
                 imported += 1
         except Exception as e:
-            data_logger.error(f'[TREASURY] Error importing operation: {str(e)}')
+            data_logger.error(f'[TREASURY] Error importing operation {i}: {str(e)}')
+            skip_reasons.append(f'op {i}: exception {str(e)}')
             skipped += 1
+    
+    if skip_reasons:
+        data_logger.warning(f'[TREASURY] Skipped operations: {skip_reasons}')
     
     db.session.commit()
     

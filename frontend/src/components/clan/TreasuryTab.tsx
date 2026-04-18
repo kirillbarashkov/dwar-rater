@@ -84,6 +84,8 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
 
     try {
       const parsed = parseTreasuryOperations(pastedHtml);
+      console.log('[TreasuryTab] Parsed operations count:', parsed.length);
+      console.log('[TreasuryTab] Operations:', JSON.stringify(parsed, null, 2));
 
       if (parsed.length === 0) {
         setMessage({
@@ -95,6 +97,7 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
       }
 
       const result = await importTreasuryOperations(clanId, parsed);
+      console.log('[TreasuryTab] Import result:', result);
 
       if (result.success) {
         setMessage({
