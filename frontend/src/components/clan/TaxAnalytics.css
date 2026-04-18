@@ -600,33 +600,52 @@
 .tax-save-btn,
 .tax-cancel-btn {
   background: none;
-  border: none;
+  border: 1px solid var(--border);
   cursor: pointer;
-  font-size: 12px;
-  padding: 2px 4px;
+  padding: 4px;
   border-radius: 4px;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tax-edit-btn {
+  color: var(--text-secondary);
 }
 
 .tax-edit-btn:hover {
-  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tax-edit-btn svg,
+.tax-save-btn svg,
+.tax-cancel-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 
 .tax-save-btn {
   color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.3);
 }
 
 .tax-save-btn:hover {
   background: rgba(34, 197, 94, 0.15);
+  border-color: #22c55e;
 }
 
 .tax-cancel-btn {
   color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
   margin-left: 4px;
 }
 
 .tax-cancel-btn:hover {
   background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
 }
 
 .tax-edit-btn:disabled,
