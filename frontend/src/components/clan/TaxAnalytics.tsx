@@ -183,7 +183,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
   }, [operations]);
 
   const monthSummary = useMemo((): MonthSummary | null => {
-    const paymentsByPlayer: Record<string, { onTime: number; delayed: number; compensation: number; opId: number; flag: boolean; comment: string }> = {};
+    const paymentsByPlayer: Record<string, { onTime: number; delayed: number; compensation: number; opId: number; flag: boolean; comment: string; originalNick: string }> = {};
 
     for (const p of taxPayments) {
       const parsed = parseDate(p.date);
@@ -192,7 +192,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
 
       const key = p.nick.toLowerCase();
       if (!paymentsByPlayer[key]) {
-        paymentsByPlayer[key] = { onTime: 0, delayed: 0, compensation: 0, opId: 0, flag: false, comment: '' };
+        paymentsByPlayer[key] = { onTime: 0, delayed: 0, compensation: 0, opId: 0, flag: false, comment: '', originalNick: p.nick };
       }
       if (p.day <= 15) {
         paymentsByPlayer[key].onTime += p.amount;
@@ -223,9 +223,8 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
 
       const isOver = totalPaid > normAmount || data.compensation >= normAmount;
 
-      const displayNick = nickLower.charAt(0).toUpperCase() + nickLower.slice(1);
       playerSummaries.push({
-        nick: displayNick,
+        nick: data.originalNick,
         playerLevel: level,
         normAmount,
         totalPaid,
