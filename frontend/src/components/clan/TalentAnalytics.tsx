@@ -244,7 +244,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
           cmp = (a.status === 'submitted' ? 0 : 1) - (b.status === 'submitted' ? 0 : 1);
           break;
         default:
-          if (mainSort.column.startsWith('res_')) {
+          if (mainSort.column && mainSort.column.startsWith('res_')) {
             const resKey = mainSort.column.replace('res_', '');
             const aVal = getResourceValue(a, resKey);
             const bVal = getResourceValue(b, resKey);

@@ -71,7 +71,7 @@ export function EffectsTab({ tempEffects, permanentEffects }: EffectsTabProps) {
         </div>
       )}
 
-      {tempEffects.length === 0 && permanentEffects.length === 0 && (
+      {(tempEffects || []).length === 0 && (permanentEffects || []).length === 0 && (
         <p className="tab-placeholder">Эффекты не найдены</p>
       )}
     </div>

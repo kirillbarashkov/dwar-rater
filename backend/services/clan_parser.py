@@ -39,32 +39,36 @@ def parse_clan_info(html, clan_id):
         result['logo_big'] = ''
         result['logo_small'] = ''
 
-    desc_match = re.search(r'<table class="coll w100 p6v p10h p2v brd2-all">\s*<tbody>\s*<tr class="bg_l">\s*<td[^>]*>(.*?)</td>', html, re.DOTALL)
-    if desc_match:
-        desc_html = desc_match.group(1)
-        desc_html = re.sub(r'<a[^>]*>Читать далее</a>', '', desc_html)
-        result['description'] = clean_html(desc_html).strip()
+    leader_pos = html.find('>Глава</td>')
+    if leader_pos > 0:
+        section = html[leader_pos:leader_pos+2500]
+        nick_match = re.search(r'<b>([^<]+)&nbsp;\[(\d+)\]</b>', section)
+        if nick_match:
+            result['leader_nick'] = clean_html(nick_match.group(1)).replace('&nbsp;', ' ').strip()
+            result['leader_rank'] = nick_match.group(2).strip()
+        leader_rank_match = re.search(r'title="([^"]+)"[^>]*src="[^"]*rank\d+\.gif"', section)
+        if leader_rank_match:
+            result['leader_rank_title'] = leader_rank_match.group(1)
 
-    leader_match = re.search(r'Глава.*?<a[^>]*><b>(.*?)\s*\[(\d+)\]</b>', html, re.DOTALL)
-    if leader_match:
-        result['leader_nick'] = leader_match.group(1).strip()
-        result['leader_rank'] = leader_match.group(2).strip()
-
-    status_match = re.search(r'<img[^>]*title="([^"]+)"[^>]*src="/images/ranks/rank\d+\.gif"[^>]*>\s*(.*?)\s*\[(\d+)\].*?src="/images/clans/steps/(\d+)\.png"', html, re.DOTALL)
-    if status_match:
-        result['clan_rank'] = status_match.group(1).strip()
-        level_match = re.search(r'\[(\d+)\]', status_match.group(0))
-        result['clan_level'] = int(level_match.group(1)) if level_match else 0
-        result['step'] = int(status_match.group(4))
+    status_pos = html.find('>Статус</td>')
+    if status_pos > 0:
+        section = html[status_pos:status_pos+2500]
+        rank_match = re.search(r'title="([^"]+)"[^>]*src="[^"]*rank\d+\.gif"', section)
+        if rank_match:
+            result['clan_rank'] = rank_match.group(1).strip()
+        level_match = re.search(r'\[(\d+)\]', section)
+        if level_match:
+            result['clan_level'] = int(level_match.group(1))
+        step_match = re.search(r'title="([^"]+)"[^>]*src="[^"]*/steps/(\d+)\.png"', section)
+        if step_match:
+            result['step'] = int(step_match.group(2))
 
     talents_match = re.search(r'Развитие талантов клана:\s*(\d+)', html)
     if talents_match:
         result['talents'] = int(talents_match.group(1))
 
-    members_count_match = re.search(r'Участников:\s*<b>\s*(\d+)\s*/\s*(\d+)', html)
-    if members_count_match:
-        result['current_players'] = int(members_count_match.group(1))
-        result['total_players'] = int(members_count_match.group(2))
+    result.setdefault('current_players', 0)
+    result.setdefault('total_players', 0)
 
     return result
 
@@ -131,7 +135,6 @@ def parse_clan_members(html, clan_id):
 
 
 def fetch_clan_treasury_report(session=None, page=0, filters=None):
-    """Fetch clan treasury operations report page."""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -151,7 +154,6 @@ def fetch_clan_treasury_report(session=None, page=0, filters=None):
 
 
 def parse_clan_treasury_operations(html):
-    """Parse treasury operations from report HTML."""
     operations = []
     skipped_rows = []
     

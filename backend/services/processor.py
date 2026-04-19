@@ -101,6 +101,22 @@ def _resolve_reputation(rep_name):
     return 'Репутация ' + rep_name[0].upper() + rep_name[1:]
 
 
+def _extract_quality_from_data(item_data):
+    if not item_data:
+        return '0'
+    quality = item_data.get('quality', '0')
+    return str(quality) if quality else '0'
+
+
+def _extract_level_from_data(item_data):
+    if not item_data:
+        return '—'
+    lev = item_data.get('lev', {})
+    if isinstance(lev, dict):
+        return lev.get('value', '—')
+    return '—'
+
+
 def process_character(raw_data):
     if raw_data.get('profile_closed'):
         closed_info = raw_data.get('closed_info', {})
@@ -114,9 +130,10 @@ def process_character(raw_data):
                 'description': closed_info.get('description', ''),
                 'premium_level': closed_info.get('premium_level', ''),
             }
-}
+        }
 
-    stats = raw_data['stats']
+    stats = raw_data.get('stats', {})
+
     wins = int(stats.get('Побед', 0))
     losses = int(stats.get('Поражений', 0))
     total = wins + losses
@@ -128,58 +145,75 @@ def process_character(raw_data):
 
     kill_key = 'Убито магмаров' if 'Убито магмаров' in stats else 'Убито людей'
 
-    equipment = raw_data['equipment']
+    flashvars = raw_data.get('flashvars', {})
+
+    equipment_raw = raw_data.get('equipment_raw', [])
     equipment_by_kind = {}
-    for item in equipment:
-        kind = item.get('kind', 'Другое')
+    sets = {}
+
+    for item in equipment_raw:
+        item_data = item.get('full_data', {})
+        kind = item_data.get('kind', 'Другое')
+
         if kind not in equipment_by_kind:
             equipment_by_kind[kind] = []
 
-        rune_val = clean_html(item.get('enchant', {}).get('value', '')) if 'enchant' in item else ''
-        rune2_val = clean_html(item.get('enchant2', {}).get('value', '')) if 'enchant2' in item else ''
-        runic_val = clean_html(item.get('enchant3', {}).get('value', '')) if 'enchant3' in item else ''
-        
-        enchant5 = item.get('enchant5', {})
-        enchant5_desc = enchant5.get('description', '') if enchant5 else ''
-        if enchant5 and enchant5_desc == 'Пластина':
-            plate_val = clean_html(enchant5.get('value', ''))
-        else:
-            plate_val = ''
-        
-        lacquer_val = clean_html(item.get('enchant4', {}).get('value', '')) if 'enchant4' in item else ''
-        other_val = clean_html(item.get('enchant_mod', {}).get('value', '')) if 'enchant_mod' in item else ''
-        symbol_vals = [clean_html(s.get('value', '')) for s in item.get('symbols', [])]
+        title = item_data.get('title', item.get('title', ''))
+        quality_str = str(item_data.get('quality', item.get('quality', '0')))
 
-        equipment_by_kind[kind].append({
-            'title': item.get('title', ''),
-            'quality': QUALITY_MAP.get(item.get('quality', '0'), QUALITY_MAP['0']),
-            'level': item.get('lev', {}).get('value', '—') if 'lev' in item else '—',
-            'trend': item.get('trend', ''),
-            'durability': f"{item.get('dur', '?')}/{item.get('dur_max', '?')}" if 'dur' in item else '∞',
-            'skills': format_skills(item.get('skills', [])),
-            'skills_e': format_skills(item.get('skills_e', [])),
-            'enchants': format_enchants(item),
-            'set': clean_html(item.get('set', {}).get('value', '')) if 'set' in item else '',
-            'rune': rune_val,
-            'rune2': rune2_val,
-            'runicSetting': runic_val,
+        enchant_val = item.get('enchant', '')
+        enchant2_val = item.get('enchant2', '')
+        enchant3_val = item.get('enchant3', '')
+        enchant4_val = item.get('enchant4', '')
+        enchant5_val = item.get('enchant5', '')
+
+        enchant_data = item_data.get('enchant', {})
+        enchant2_data = item_data.get('enchant2', {})
+        enchant3_data = item_data.get('enchant3', {})
+        enchant4_data = item_data.get('enchant4', {})
+        enchant5_data = item_data.get('enchant5', {})
+
+        enchant_mod = item_data.get('enchant_mod', {})
+        symbols = item_data.get('symbols', [])
+
+        plate_val = ''
+        if enchant5_data and isinstance(enchant5_data, dict):
+            desc = enchant5_data.get('description', '')
+            if desc == 'Пластина':
+                plate_val = clean_html(enchant5_data.get('value', ''))
+
+        equipment_item = {
+            'title': title,
+            'quality': QUALITY_MAP.get(quality_str, QUALITY_MAP['0']),
+            'level': _extract_level_from_data(item_data),
+            'trend': item_data.get('trend', ''),
+            'durability': f"{item_data.get('dur', '?')}/{item_data.get('dur_max', '?')}" if 'dur' in item_data else '∞',
+            'skills': format_skills(item_data.get('skills', [])),
+            'skills_e': format_skills(item_data.get('skills_e', [])),
+            'enchants': [],
+            'set': clean_html(item_data.get('set', {}).get('value', '')) if 'set' in item_data else '',
+            'rune': clean_html(enchant_val) if enchant_val and isinstance(enchant_val, str) else (clean_html(enchant_data.get('value', '')) if enchant_data else ''),
+            'rune2': clean_html(enchant2_val) if enchant2_val and isinstance(enchant2_val, str) else (clean_html(enchant2_data.get('value', '')) if enchant2_data else ''),
+            'runicSetting': clean_html(enchant3_val) if enchant3_val and isinstance(enchant3_val, str) else (clean_html(enchant3_data.get('value', '')) if enchant3_data else ''),
             'plate': plate_val,
-            'lacquer': lacquer_val,
-            'other': other_val,
-            'symbols': symbol_vals,
-            'other': '',
-        })
+            'lacquer': clean_html(enchant4_val) if enchant4_val and isinstance(enchant4_val, str) else (clean_html(enchant4_data.get('value', '')) if enchant4_data else ''),
+            'other': clean_html(enchant_mod.get('value', '')) if enchant_mod else '',
+            'symbols': [clean_html(s.get('value', '')) for s in symbols] if symbols else [],
+            'enhancement': clean_html(enchant5_val) if enchant5_val and isinstance(enchant5_val, str) else (clean_html(enchant5_data.get('value', '')) if enchant5_data else ''),
+        }
 
-    sets = {}
-    for item in equipment:
-        if 'set' in item:
-            set_name = clean_html(item['set'].get('value', ''))
-            if set_name not in sets:
-                sets[set_name] = []
-            sets[set_name].append(item.get('title', ''))
+        equipment_by_kind[kind].append(equipment_item)
 
+        if 'set' in item_data:
+            set_name = clean_html(item_data['set'].get('value', ''))
+            if set_name:
+                if set_name not in sets:
+                    sets[set_name] = []
+                sets[set_name].append(title)
+
+    medals_data = raw_data.get('medals', [])
     medals = []
-    for i, medal in enumerate(raw_data['medals'], 1):
+    for i, medal in enumerate(medals_data, 1):
         desc = medal.get('desc', '')
         rep_name = ''
 
@@ -219,7 +253,7 @@ def process_character(raw_data):
             'title': medal.get('title', ''),
             'quality': QUALITY_MAP.get(medal.get('quality', '0'), QUALITY_MAP['0']),
             'reputation': rep_name,
-            'description': clean_html(medal.get('desc', '')),
+            'description': clean_html(desc),
         })
 
     permanent_effects = []
@@ -249,7 +283,6 @@ def process_character(raw_data):
 
         kind_id = eff.get('kind_id', '')
         flags = int(eff.get('flags', 0)) if eff.get('flags') else 0
-        del_after = eff.get('del_after_fight', 0)
 
         if kind_id == '65':
             if 'проклят' in eff.get('title', '').lower() or flags > 100000:
@@ -272,19 +305,27 @@ def process_character(raw_data):
             'desc': clean_html(eff.get('desc', '')),
             'category': category,
             'kind_id': kind_id,
-            'del_after_fight': bool(del_after),
+            'del_after_fight': bool(eff.get('del_after_fight', 0)),
             'picture': eff.get('picture', ''),
         })
 
     category_order = {'buff': 0, 'elixir': 1, 'mount': 2, 'debuff': 3, 'other': 4}
     temp_effects.sort(key=lambda e: (category_order.get(e['category'], 4), -e['time_left_sec']))
 
+    clan_data = raw_data.get('clan', {})
+    clan_name = clan_data.get('Клан', '') if isinstance(clan_data, dict) else ''
+    clan_rank = clan_data.get('Звание', '') if isinstance(clan_data, dict) else ''
+
+    level_from_flashvars = flashvars.get('lvl', '')
+
     return {
         'name': raw_data['name'],
         'race': stats.get('Раса', ''),
         'rank': stats.get('Звание', ''),
-'clan': raw_data.get('clan', {}).get('Клан', '') if isinstance(raw_data.get('clan'), dict) else '',
-        'clan_rank': raw_data.get('clan', {}).get('Звание', '') if isinstance(raw_data.get('clan'), dict) else '',
+        'level': level_from_flashvars,
+        'clan': clan_name,
+        'clan_rank': clan_rank,
+        'clan_id': clan_data.get('_clan_id', '') if isinstance(clan_data, dict) else '',
         'wins': fmt_num(wins),
         'losses': fmt_num(losses),
         'winrate': wr,
@@ -313,4 +354,16 @@ def process_character(raw_data):
         'temp_effects': temp_effects,
         'manor_location': raw_data.get('manor_location', ''),
         'manor_buildings': raw_data.get('manor_buildings', []),
+        'flashvars_extra': {
+            'hp': flashvars.get('hp', ''),
+            'hpMax': flashvars.get('hpMax', ''),
+            'mp': flashvars.get('mp', ''),
+            'mpMax': flashvars.get('mpMax', ''),
+            'gender': flashvars.get('gender', ''),
+            'online': flashvars.get('online', ''),
+            'mount': flashvars.get('mount', ''),
+            'tTown': flashvars.get('tTown', ''),
+            'tLocation': flashvars.get('tLocation', ''),
+        },
+        'personal_info': raw_data.get('personal_info', {}),
     }

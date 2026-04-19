@@ -19,15 +19,6 @@ const PERIOD_OPTIONS: { value: PeriodType; label: string }[] = [
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 type SortKey = 'date' | 'nick' | 'operation_type' | 'object_name' | 'quantity';
-type SortDirection = 'asc' | 'desc';
-
-const SORT_KEY_LABELS: Record<SortKey, string> = {
-  date: 'Дата',
-  nick: 'Игрок',
-  operation_type: 'Тип',
-  object_name: 'Объект',
-  quantity: 'Кол-во',
-};
 
 const INITIAL_FILTERS = {
   searchNick: '',
@@ -409,7 +400,7 @@ export function MiscAnalytics({ operations }: MiscAnalyticsProps) {
                 </td>
               </tr>
             ) : (
-              paginated.map((op, index) => (
+              paginated.map((op) => (
                 <tr key={op.id}>
                   <td className="misc-date">{op.date}</td>
                   <td className="misc-nick">{op.nick}</td>

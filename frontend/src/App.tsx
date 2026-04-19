@@ -22,10 +22,12 @@ import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
 import { ScenarioComparison } from './components/analysis/ScenarioComparison';
 import { ImprovementTrackPanel } from './components/analysis/ImprovementTrack';
 import { CharacterComparison } from './components/analysis/CharacterComparison';
+import { CompareListManager } from './components/clan/CompareListManager';
 import { ClanChat } from './components/chat/ClanChat';
 import { ClanOverview } from './components/clan/ClanOverview';
 import { ClanMembersTable } from './components/clan/ClanMembersTable';
 import { TreasuryTab } from './components/clan/TreasuryTab';
+import { TreasuryImport } from './components/clan/TreasuryImport';
 import { TreasuryAnalytics } from './components/clan/TreasuryAnalytics';
 import { saveSnapshot } from './api/snapshots';
 import { addCompareCharacter } from './api/compare';
@@ -94,12 +96,13 @@ function AnalysisResultDisplay({
   activeTab: string;
   onLoadSnapshot: (data: Snapshot & Record<string, unknown>) => void;
 }) {
-  if (activeTab === 'history' || activeTab === 'compare') {
+  if (activeTab === 'history' || activeTab === 'compare' || activeTab === 'compare-list') {
     return (
       <div className="analysis-result">
         <div className="tab-panels">
           {activeTab === 'history' && <SnapshotHistory onLoad={onLoadSnapshot} />}
           {activeTab === 'compare' && <CharacterComparison />}
+          {activeTab === 'compare-list' && <CompareListManager />}
         </div>
       </div>
     );
@@ -132,6 +135,15 @@ function HomePage() {
   const [activeTab, setActiveTab] = useState('stats');
 const [searchParams] = useSearchParams();
   
+
+  const formatSnapshotName = (name: string, date: Date): string => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${name} ${day}.${month}.${year} ${hours}:${minutes}`;
+  };
 
   const handleTabChange = (_groupKey: string, tabKey: string) => {
     setActiveTab(tabKey);
@@ -205,7 +217,11 @@ const [searchParams] = useSearchParams();
             lastAnalyzed={lastAnalyzed}
             onAnalyze={(url) => analyze(url)}
             isLoading={isLoading}
-            onSave={() => setShowSaveModal(true)}
+            onSave={() => {
+              const defaultName = currentResult?.name || 'Персонаж';
+              setSnapshotName(formatSnapshotName(defaultName, new Date()));
+              setShowSaveModal(true);
+            }}
             onClear={() => { setCurrentResult(null); setLastAnalyzed(null); }}
             onAddToCompare={handleAddToCompare}
             defaultExpanded={activeTab === 'stats'}
@@ -277,6 +293,7 @@ function ClanPageWrapper() {
         case 'info': return <ClanOverview clanId={Number(clanId) || 2315} onSwitchTab={handleSwitchTab} />;
         case 'members': return <ClanMembersTable clanId={Number(clanId) || 2315} />;
         case 'treasury': return <TreasuryTab clanId={Number(clanId) || 2315} />;
+        case 'treasury-import': return <TreasuryImport clanId={Number(clanId) || 2315} />;
         case 'analytics': return <TreasuryAnalytics clanId={Number(clanId) || 2315} />;
       }
     }

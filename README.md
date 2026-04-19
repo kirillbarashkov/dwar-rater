@@ -188,6 +188,38 @@ dwar-rater/
 | **admin** | Видит все слепки, удаляет любые |
 | **user** | Видит только свои слепки, удаляет только свои |
 
+## Миграция на PostgreSQL (рекомендуется для production)
+
+SQLite не гарантирует целостность данных при сбоях. Для надёжного хранения используйте PostgreSQL.
+
+### Быстрый старт
+
+```bash
+# 1. Запустить PostgreSQL
+docker compose up -d postgres
+
+# 2. Создать схему БД
+psql -h localhost -U dwar -d dwar_rater -f scripts/schema_postgres.sql
+
+# 3. Мигрировать данные из SQLite
+python scripts/migrate_to_postgres.py --sqlite backend/instance/dwar_rater.db --pg-url postgresql://dwar:change-me-in-production@localhost:5432/dwar_rater
+
+# 4. Запустить приложение
+docker compose up -d
+```
+
+### Настройка автоматического бэкапа (Windows)
+
+```batch
+schtasks /create /tn "Dwar Rater Backup" /tr "dwar-rater\backup_cron.bat" /sc daily /st 03:00
+```
+
+### Ручной бэкап
+
+```bash
+python scripts/backup_postgres.py --keep 7 --cloud rclone
+```
+
 ## Лицензия
 
 MIT

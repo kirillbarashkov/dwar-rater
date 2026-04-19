@@ -334,8 +334,8 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
   const overpaidPlayers = filteredPlayers.filter(p => p.isOver);
   const paidOnTimePlayers = filteredPlayers.filter(p => p.status === 'paid' && !p.isOver);
 
-  const totalExpected = monthSummary.players.reduce((sum, p) => sum + (p.status === 'future_member' ? 0 : p.normAmount), 0);
-  const totalCollected = monthSummary.players.reduce((sum, p) => sum + p.totalPaid, 0);
+  const totalExpected = monthSummary ? monthSummary.players.reduce((sum, p) => sum + (p.status === 'future_member' ? 0 : p.normAmount), 0) : 0;
+  const totalCollected = monthSummary ? monthSummary.players.reduce((sum, p) => sum + p.totalPaid, 0) : 0;
   const totalNotCollected = Math.max(0, totalExpected - totalCollected);
 
   const sortedFilteredPlayers = useMemo(() => {
@@ -450,7 +450,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
     }
   };
 
-  const handleCopyTable = async (players: PlayerTaxSummary[], title: string) => {
+  const handleCopyTable = async (players: PlayerTaxSummary[], _title: string) => {
     if (players.length === 0) return;
     
     const headers = ['#', 'Игрок', 'Уровень', 'Уплачено', 'Норма', 'Статус', 'Комментарий'];

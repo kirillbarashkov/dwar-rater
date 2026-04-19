@@ -113,7 +113,7 @@ export function BackupPicker({ isOpen, onClose, clanId, mode, onSuccess }: Backu
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={mode === 'save' ? 'Создание резервной копии' : 'Восстановление из резервной копии'}
+      title={mode === 'save' ? 'Создать резервную копию' : 'Восстановить из резервной копии'}
       wide
     >
       <div className="backup-picker">
@@ -127,7 +127,7 @@ export function BackupPicker({ isOpen, onClose, clanId, mode, onSuccess }: Backu
             </p>
             <div className="backup-actions">
               <Button variant="primary" onClick={handleSave} disabled={isProcessing}>
-                {isProcessing ? 'Сохранение...' : 'Создать бэкап'}
+                {isProcessing ? 'Сохранение...' : 'Создать резервную копию'}
               </Button>
               <Button variant="ghost" onClick={onClose}>
                 Отмена
@@ -141,7 +141,7 @@ export function BackupPicker({ isOpen, onClose, clanId, mode, onSuccess }: Backu
             ) : backups.length === 0 ? (
               <div className="backup-empty">
                 <p>Нет доступных резервных копий</p>
-                <p className="backup-empty-hint">Сначала создайте бэкап с помощью кнопки &quot;Экспорт&quot;</p>
+                <p className="backup-empty-hint">Сначала создайте резервную копию с помощью кнопки &quot;Экспорт&quot;</p>
               </div>
             ) : (
               <>

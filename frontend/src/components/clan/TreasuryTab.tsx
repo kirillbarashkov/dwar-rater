@@ -1,13 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { getTreasuryOperations, importTreasuryOperations } from '../../api/clanInfo';
+import { getTreasuryOperations } from '../../api/clanInfo';
 import type { TreasuryOperationData } from '../../types/clanInfo';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { Button } from '../ui/Button';
-import { BackupPicker } from './BackupPicker';
 import {
-  parseTreasuryOperations,
   TREASURY_WEB_URL,
-  TREASURY_CLAN_REPORT_URL,
   MONTHS_RU,
   PERIOD_OPTIONS,
   PAGE_SIZE_OPTIONS,
@@ -39,10 +35,6 @@ const INITIAL_FILTERS = {
 export function TreasuryTab({ clanId }: TreasuryTabProps) {
   const [operations, setOperations] = useState<TreasuryOperationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isImporting, setIsImporting] = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [pastedHtml, setPastedHtml] = useState('');
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({
     key: 'date',
     dir: 'desc',
@@ -52,8 +44,6 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
-  const [showBackupPicker, setShowBackupPicker] = useState(false);
-  const [backupPickerMode, setBackupPickerMode] = useState<'save' | 'restore'>('save');
 
   const { searchNick, searchType, searchObject, filterPeriod, rangeStart, rangeEnd, selectedDate } = filters;
 
@@ -72,53 +62,6 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
   useEffect(() => {
     loadOperations();
   }, [loadOperations]);
-
-  const handleImport = async () => {
-    if (!pastedHtml.trim()) {
-      setMessage({ type: 'error', text: 'Вставьте HTML код страницы' });
-      return;
-    }
-
-    setIsImporting(true);
-    setMessage(null);
-
-    try {
-      const parsed = parseTreasuryOperations(pastedHtml);
-      console.log('[TreasuryTab] Parsed operations count:', parsed.length);
-      console.log('[TreasuryTab] Operations:', JSON.stringify(parsed, null, 2));
-
-      if (parsed.length === 0) {
-        setMessage({
-          type: 'error',
-          text: 'Не удалось найти операции. Убедитесь, что скопировали HTML со страницы со таблицей.',
-        });
-        setIsImporting(false);
-        return;
-      }
-
-      const result = await importTreasuryOperations(clanId, parsed);
-      console.log('[TreasuryTab] Import result:', result);
-
-      if (result.success) {
-        setMessage({
-          type: 'success',
-          text: `Импортировано ${result.imported}, обновлено ${result.updated} операций`,
-        });
-        setPastedHtml('');
-        setShowImport(false);
-        await loadOperations();
-      } else {
-        setMessage({ type: 'error', text: result.message || 'Ошибка при импорте' });
-      }
-    } catch (err) {
-      setMessage({
-        type: 'error',
-        text: `Ошибка при импорте: ${err instanceof Error ? err.message : String(err)}`,
-      });
-    } finally {
-      setIsImporting(false);
-    }
-  };
 
   const handleAnalyze = (nick: string) => {
     window.open(`${TREASURY_WEB_URL}?nick=${encodeURIComponent(nick)}`, '_blank');
@@ -163,16 +106,6 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
     setFilters((prev) => ({ ...prev, selectedDate: null }));
   };
 
-  const handleShowBackupPicker = (mode: 'save' | 'restore') => {
-    setBackupPickerMode(mode);
-    setShowBackupPicker(true);
-  };
-
-  const handleBackupSuccess = (message: string) => {
-    setMessage({ type: 'success', text: message });
-    loadOperations();
-  };
-
   const uniqueTypes = useMemo(() => {
     const types = new Set(operations.map((op) => op.operation_type));
     return Array.from(types).sort();
@@ -187,27 +120,6 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
       }
     }
     return set;
-  }, [operations]);
-
-  const todayCount = useMemo(() => {
-    const now = new Date();
-    const today = formatDateKey(now.getDate(), now.getMonth() + 1, now.getFullYear());
-    return operations.filter((op) => {
-      const parsed = parseDate(op.date);
-      if (!parsed) return false;
-      return formatDateKey(parsed.day, parsed.month, parsed.year) === today;
-    }).length;
-  }, [operations]);
-
-  const monthCount = useMemo(() => {
-    const now = new Date();
-    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    return operations.filter((op) => {
-      const parsed = parseDate(op.date);
-      if (!parsed) return false;
-      const opMonthStr = `${parsed.year}-${String(parsed.month).padStart(2, '0')}`;
-      return opMonthStr === currentMonthStr;
-    }).length;
   }, [operations]);
 
   const monthDays = useMemo((): MonthDay[] => {
@@ -354,77 +266,13 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
   return (
     <div className="treasury-tab">
       <header className="treasury-header">
-        <div className="treasury-header-top">
-          <h2 className="treasury-title">Казна</h2>
-          <div className="treasury-stats">
-            <span className="treasury-stat">
-              <span className="treasury-stat-label">Сегодня:</span>
-              <span className="treasury-stat-value">{todayCount}</span>
-            </span>
-            <span className="treasury-stat">
-              <span className="treasury-stat-label">Текущий месяц:</span>
-              <span className="treasury-stat-value">{monthCount}</span>
-            </span>
-            <span className="treasury-stat">
-              <span className="treasury-stat-label">Всего:</span>
-              <span className="treasury-stat-value">{operations.length}</span>
-            </span>
-          </div>
-        </div>
-        <div className="treasury-header-actions">
-          <Button variant="secondary" size="small" onClick={() => handleShowBackupPicker('save')}>
-            Экспорт
-          </Button>
-          <Button variant="secondary" size="small" onClick={() => handleShowBackupPicker('restore')}>
-            Восстановить
-          </Button>
-          <Button variant="secondary" size="small" onClick={() => setShowImport(!showImport)}>
-            {showImport ? 'Отмена' : 'Импорт из HTML'}
-          </Button>
-        </div>
+        <h2 className="treasury-title">Казна</h2>
       </header>
 
-      {message && (
-        <div className={`treasury-message treasury-message-${message.type}`} role="alert">
-          {message.text}
-        </div>
-      )}
-
-      {showImport && (
-        <section className="treasury-import" aria-label="Импорт данных">
-          <div className="treasury-import-instructions">
-            <h3>Как скопировать HTML:</h3>
-            <ol>
-              <li>
-                Откройте страницу{' '}
-                <a href={TREASURY_CLAN_REPORT_URL} target="_blank" rel="noopener noreferrer">
-                  Операции казны
-                </a>{' '}
-                в браузере
-              </li>
-              <li>Нажмите правую кнопку мыши → &quot;Просмотр кода страницы&quot; (или Ctrl+U)</li>
-              <li>Выделите весь код (Ctrl+A) и скопируйте (Ctrl+C)</li>
-              <li>Вставьте в поле ниже (Ctrl+V)</li>
-            </ol>
-          </div>
-          <textarea
-            className="treasury-html-input"
-            value={pastedHtml}
-            onChange={(e) => setPastedHtml(e.target.value)}
-            placeholder="Вставьте HTML код страницы сюда..."
-            rows={10}
-            aria-label="HTML код страницы"
-          />
-          <Button variant="primary" onClick={handleImport} disabled={isImporting || !pastedHtml.trim()}>
-            {isImporting ? 'Импорт...' : 'Импортировать'}
-          </Button>
-        </section>
-      )}
-
-      {operations.length === 0 && !showImport ? (
+      {operations.length === 0 ? (
         <div className="treasury-empty">
           <p>Нет данных о казне.</p>
-          <p>Нажмите &quot;Импорт из HTML&quot; для добавления данных.</p>
+          <p>Используйте вкладку &quot;Импорт&quot; для добавления данных.</p>
         </div>
       ) : operations.length > 0 ? (
         <>
@@ -536,7 +384,6 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
               {monthDays.map(({ day, dateKey, hasData }) => (
                 <div
                   key={dateKey}
-                  role="listitem"
                   className={`treasury-month-day ${hasData ? 'has-data' : ''} ${
                     selectedDate === dateKey ? 'selected' : ''
                   }`}
@@ -678,14 +525,6 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
           </div>
         </>
       ) : null}
-
-      <BackupPicker
-        isOpen={showBackupPicker}
-        onClose={() => setShowBackupPicker(false)}
-        clanId={clanId}
-        mode={backupPickerMode}
-        onSuccess={handleBackupSuccess}
-      />
     </div>
   );
 }

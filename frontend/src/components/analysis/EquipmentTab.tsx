@@ -159,10 +159,10 @@ export function EquipmentTab({ equipment, sets }: EquipmentTabProps) {
         );
       })}
       
-      {Object.keys(sets).length > 0 && (
+{Object.keys(sets || {}).length > 0 && (
         <div className="sets-section">
           <h3 className="equip-section-title">Сетовые бонусы</h3>
-          {Object.entries(sets).map(([setName, items]) => (
+          {Object.entries(sets || {}).map(([setName, items]) => (
             <div key={setName} className="set-item">
               <span className="set-name">{setName}</span>
               <span className="set-items">{items.join(', ')}</span>
