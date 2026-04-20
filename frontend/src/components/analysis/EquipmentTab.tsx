@@ -21,7 +21,7 @@ const EQUIP_SECTIONS: EquipSection[] = [
   { key: 'runes', label: 'Руны', kinds: ['Руна'], priority: 3, icon: '✨' },
   { key: 'frames', label: 'Оправы', kinds: ['Оправа'], priority: 4, icon: '💎' },
   { key: 'enhance', label: 'Заточка', kinds: ['Усиление'], priority: 5, icon: '⚡' },
-  { key: 'style', label: 'Доспехи стиля', kinds: ['Вещи стиля'], priority: 6, icon: '🎭' },
+  { key: 'style', label: 'Вещи стиля', kinds: ['Вещи стиля'], priority: 6, icon: '🎭' },
   { key: 'lacquers', label: 'Лаки', kinds: ['Лак'], priority: 7, icon: '🧴' },
   { key: 'banner', label: 'Стяг', kinds: ['Знамя'], priority: 8, icon: '🚩' },
   { key: 'jewelry', label: 'Ювелирка', kinds: ['Кольца', 'Амулет', 'Медальон', 'Браслет'], priority: 9, icon: '💍' },
@@ -70,7 +70,7 @@ function mapToSections(equipment: Record<string, EquipmentItem[]> | undefined): 
   for (const section of EQUIP_SECTIONS) {
     const sectionItems: EquipmentItem[] = [];
     for (const kind of section.kinds) {
-      if (equipment[kind]) {
+      if (Array.isArray(equipment[kind])) {
         sectionItems.push(...equipment[kind]);
       }
     }
@@ -80,6 +80,7 @@ function mapToSections(equipment: Record<string, EquipmentItem[]> | undefined): 
   }
   
   for (const [kind, items] of Object.entries(equipment)) {
+    if (!Array.isArray(items)) continue;
     if (!EQUIP_SECTIONS.some(s => s.kinds.includes(kind))) {
       misc.push(...items);
     }
