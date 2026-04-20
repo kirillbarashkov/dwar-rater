@@ -15,25 +15,18 @@ export function useCharacterAnalysis(): UseCharacterAnalysisReturn {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const lastRequestTime = useRef<number>(0);
+  const loadingRef = useRef(false);
 
   const analyze = useCallback(async (url: string) => {
-    const now = Date.now();
-    const minInterval = 3000;
-    
-    if (now - lastRequestTime.current < minInterval) {
-      setError('Подождите несколько секунд перед следующим анализом');
-      return;
-    }
-    
-    if (isLoading) {
+    if (loadingRef.current) {
       setError('Анализ уже выполняется, подождите...');
       return;
     }
-    
-    lastRequestTime.current = now;
+
+    loadingRef.current = true;
     setIsLoading(true);
     setError(null);
+    setResult(null);
     
     try {
       const data = await analyzeCharacter(url);
@@ -50,14 +43,15 @@ export function useCharacterAnalysis(): UseCharacterAnalysisReturn {
         setError('Произошла неизвестная ошибка');
       }
     } finally {
+      loadingRef.current = false;
       setIsLoading(false);
     }
-  }, [isLoading]);
+  }, []);
 
   const clearResult = useCallback(() => {
     setResult(null);
     setError(null);
   }, []);
 
-  return { result, isLoading, error, analyze, clearResult, canAnalyze: !isLoading };
+  return { result, isLoading, error, analyze, clearResult, canAnalyze: !loadingRef.current };
 }

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useCharacterAnalysis } from './hooks/useCharacterAnalysis';
 import { Header } from './components/layout/Header';
@@ -133,8 +133,37 @@ function HomePage() {
   const [snapshotName, setSnapshotName] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('stats');
-const [searchParams] = useSearchParams();
-  
+  const [pendingAnalyzeUrl, setPendingAnalyzeUrl] = useState<string | null>(null);
+  const analyzeTriggered = useRef(false);
+  const sessionChecked = useRef(false);
+
+  useEffect(() => {
+    if (sessionChecked.current) return;
+    sessionChecked.current = true;
+    
+    const urlFromSession = sessionStorage.getItem('pending_analyze');
+    if (urlFromSession) {
+      sessionStorage.removeItem('pending_analyze');
+      analyzeTriggered.current = true;
+      setPendingAnalyzeUrl(urlFromSession);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!pendingAnalyzeUrl || isLoading || result || error) return;
+    
+    const urlToAnalyze = pendingAnalyzeUrl;
+    setPendingAnalyzeUrl(null);
+    analyze(decodeURIComponent(urlToAnalyze));
+  }, [pendingAnalyzeUrl, isLoading, result, error, analyze]);
+
+  useEffect(() => {
+    if (result) {
+      setCurrentResult(result);
+      setLastAnalyzed(new Date());
+      setActiveTab('stats');
+    }
+  }, [result]);
 
   const formatSnapshotName = (name: string, date: Date): string => {
     const day = String(date.getDate()).padStart(2, '0');
@@ -150,19 +179,15 @@ const [searchParams] = useSearchParams();
   };
 
   useEffect(() => {
-    const analyzeUrl = searchParams.get('analyze');
-    if (analyzeUrl) {
-      analyze(decodeURIComponent(analyzeUrl));
-    }
-  }, [searchParams, analyze]);
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => {
     if (result) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentResult(result);
       setLastAnalyzed(new Date());
       setActiveTab('stats');
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('analyze')) {
+        params.delete('analyze');
+        window.history.replaceState({}, '', params.toString() ? `/?${params.toString()}` : '/');
+      }
     }
   }, [result]);
 
@@ -182,7 +207,7 @@ const [searchParams] = useSearchParams();
       });
       setShowSaveModal(false);
       setSnapshotName('');
-} catch {
+    } catch {
       // ignore
     }
   };
@@ -204,28 +229,28 @@ const [searchParams] = useSearchParams();
     <div className="app">
       <Header />
       <div className="app-layout">
-<Sidebar
+        <Sidebar
           activeTab={activeTab}
           onTabChange={handleTabChange}
           chatOpen={chatOpen}
           onToggleChat={handleToggleChat}
         />
-<main className="main-content">
+        <main className="main-content">
           {activeTab !== 'history' && activeTab !== 'track' && activeTab !== 'compare' && (
-          <CharacterPanel
-            character={currentResult || undefined}
-            lastAnalyzed={lastAnalyzed}
-            onAnalyze={(url) => analyze(url)}
-            isLoading={isLoading}
-            onSave={() => {
-              const defaultName = currentResult?.name || 'Персонаж';
-              setSnapshotName(formatSnapshotName(defaultName, new Date()));
-              setShowSaveModal(true);
-            }}
-            onClear={() => { setCurrentResult(null); setLastAnalyzed(null); }}
-            onAddToCompare={handleAddToCompare}
-            defaultExpanded={activeTab === 'stats'}
-          />
+            <CharacterPanel
+              character={currentResult || undefined}
+              lastAnalyzed={lastAnalyzed}
+              onAnalyze={(url) => analyze(url)}
+              isLoading={isLoading}
+              onSave={() => {
+                const defaultName = currentResult?.name || 'Персонаж';
+                setSnapshotName(formatSnapshotName(defaultName, new Date()));
+                setShowSaveModal(true);
+              }}
+              onClear={() => { setCurrentResult(null); setLastAnalyzed(null); }}
+              onAddToCompare={handleAddToCompare}
+              defaultExpanded={activeTab === 'stats'}
+            />
           )}
 
           {isLoading && <LoadingSpinner />}
@@ -241,7 +266,7 @@ const [searchParams] = useSearchParams();
             <AnalysisResultDisplay result={currentResult} activeTab={activeTab} onLoadSnapshot={handleLoadSnapshot} />
           )}
 
-{currentResult && <ScenarioComparison character={currentResult} />}
+          {currentResult && <ScenarioComparison character={currentResult} />}
 
           <Modal
             isOpen={showSaveModal}

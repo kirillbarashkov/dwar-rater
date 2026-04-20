@@ -117,6 +117,13 @@ def _extract_level_from_data(item_data):
     return '—'
 
 
+def _safe_int(value, default=0):
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
 def process_character(raw_data):
     if raw_data.get('profile_closed'):
         closed_info = raw_data.get('closed_info', {})
@@ -134,13 +141,13 @@ def process_character(raw_data):
 
     stats = raw_data.get('stats', {})
 
-    wins = int(stats.get('Побед', 0))
-    losses = int(stats.get('Поражений', 0))
+    wins = _safe_int(stats.get('Побед', 0))
+    losses = _safe_int(stats.get('Поражений', 0))
     total = wins + losses
     wr = round(wins / total * 100, 2) if total > 0 else 0
 
-    vb_wins = int(stats.get('Победы в Великих битвах', 0))
-    vb_total = int(stats.get('Участие в Великих битвах', 0))
+    vb_wins = _safe_int(stats.get('Победы в Великих битвах', 0))
+    vb_total = _safe_int(stats.get('Участие в Великих битвах', 0))
     vb_wr = round(vb_wins / vb_total * 100, 2) if vb_total > 0 else 0
 
     kill_key = 'Убито магмаров' if 'Убито магмаров' in stats else 'Убито людей'
@@ -190,7 +197,7 @@ def process_character(raw_data):
             'durability': f"{item_data.get('dur', '?')}/{item_data.get('dur_max', '?')}" if 'dur' in item_data else '∞',
             'skills': format_skills(item_data.get('skills', [])),
             'skills_e': format_skills(item_data.get('skills_e', [])),
-            'enchants': [],
+            'enchants': format_enchants(item_data),
             'set': clean_html(item_data.get('set', {}).get('value', '')) if 'set' in item_data else '',
             'rune': clean_html(enchant_val) if enchant_val and isinstance(enchant_val, str) else (clean_html(enchant_data.get('value', '')) if enchant_data else ''),
             'rune2': clean_html(enchant2_val) if enchant2_val and isinstance(enchant2_val, str) else (clean_html(enchant2_data.get('value', '')) if enchant2_data else ''),

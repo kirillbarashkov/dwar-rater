@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { ClanMemberData, LeftMemberData } from '../../types/clanInfo';
 import type { ClanInfoData } from '../../utils/parseMembers';
 import { getClanMembers, addClanMember, updateClanMember, deleteClanMember, importClanMembers, getLeftMembers } from '../../api/clanInfo';
@@ -38,7 +37,6 @@ const PROFESSION_COLORS: Record<string, string> = {
 };
 
 export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [members, setMembers] = useState<(ClanMemberData & { id?: number })[]>([]);
@@ -191,9 +189,10 @@ if (sortConfig.key) {
     } catch { /* ignore */ }
   };
 
-  const handleAnalyze = (nick: string) => {
+const handleAnalyze = (nick: string) => {
     const url = `https://w1.dwar.ru/user_info.php?nick=${encodeURIComponent(nick)}`;
-    navigate(`/?analyze=${encodeURIComponent(url)}`);
+    sessionStorage.setItem('pending_analyze', url);
+    window.location.href = '/';
   };
 
   const openEdit = (m: ClanMemberData & { id?: number }) => {

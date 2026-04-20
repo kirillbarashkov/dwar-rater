@@ -48,7 +48,8 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
 
   const handleAnalyze = (nick: string) => {
     const url = `https://w1.dwar.ru/user_info.php?nick=${encodeURIComponent(nick)}`;
-    window.open(url, '_blank');
+    sessionStorage.setItem('pending_analyze', url);
+    window.location.href = '/';
   };
 
   const goToMembers = () => {
