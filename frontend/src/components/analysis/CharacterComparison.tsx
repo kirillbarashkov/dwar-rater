@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getCompareCharacters } from '../../api/compare';
+import { getCompareCharacters, deleteCompareCharacter } from '../../api/compare';
 import type { AnalysisResult } from '../../types/character';
+import { Button } from '../ui/Button';
 import './CharacterComparison.css';
 
 interface CompareCharacter {
@@ -143,6 +144,16 @@ export function CharacterComparison() {
     setCompareChars(prev => prev.filter((_, i) => i !== index));
   }, []);
 
+  const handleDeleteFromList = async (charId: number) => {
+    try {
+      await deleteCompareCharacter(charId);
+      setCompareList(prev => prev.filter(c => c.id !== charId));
+      setCompareChars(prev => prev.filter(c => c.id !== charId));
+    } catch {
+      // ignore
+    }
+  };
+
   const handleSlotSelect = useCallback((slotKey: string) => {
     setActiveSlot(slotKey);
   }, []);
@@ -231,6 +242,14 @@ export function CharacterComparison() {
           aria-label="Удалить персонажа"
         >
           ×
+        </button>
+        <button
+          className="compare-char-card-delete"
+          onClick={() => handleDeleteFromList(char.id)}
+          aria-label="Удалить из списка"
+          title="Удалить из списка сравнения"
+        >
+          🗑️
         </button>
       </div>
       <div className="compare-char-card-stats">

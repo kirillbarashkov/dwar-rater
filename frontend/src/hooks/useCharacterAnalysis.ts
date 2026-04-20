@@ -6,7 +6,7 @@ interface UseCharacterAnalysisReturn {
   result: AnalysisResult | null;
   isLoading: boolean;
   error: string | null;
-  analyze: (url: string) => Promise<void>;
+  analyze: (url: string, forceRefresh?: boolean) => Promise<void>;
   clearResult: () => void;
   canAnalyze: boolean;
 }
@@ -17,7 +17,7 @@ export function useCharacterAnalysis(): UseCharacterAnalysisReturn {
   const [error, setError] = useState<string | null>(null);
   const loadingRef = useRef(false);
 
-  const analyze = useCallback(async (url: string) => {
+  const analyze = useCallback(async (url: string, forceRefresh = false) => {
     if (loadingRef.current) {
       setError('Анализ уже выполняется, подождите...');
       return;
@@ -29,7 +29,7 @@ export function useCharacterAnalysis(): UseCharacterAnalysisReturn {
     setResult(null);
     
     try {
-      const data = await analyzeCharacter(url);
+      const data = await analyzeCharacter(url, forceRefresh);
       setResult(data);
     } catch (err: unknown) {
       if (err instanceof Error) {

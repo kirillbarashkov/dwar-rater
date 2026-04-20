@@ -1,9 +1,9 @@
 import apiClient from './client';
 import type { AnalysisResult } from '../types/character';
 
-export async function analyzeCharacter(url: string): Promise<AnalysisResult> {
+export async function analyzeCharacter(url: string, forceRefresh = false): Promise<AnalysisResult> {
   try {
-    const response = await apiClient.post('/api/analyze', { url });
+    const response = await apiClient.post('/api/analyze', { url, force_refresh: forceRefresh });
     return response.data;
   } catch (err: unknown) {
     if (err && typeof err === 'object' && 'response' in err) {

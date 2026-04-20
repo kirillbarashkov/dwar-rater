@@ -119,6 +119,27 @@
   color: var(--text-primary);
 }
 
+.compare-char-card-delete {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.compare-char-card-delete:hover {
+  background: rgba(220, 53, 69, 0.2);
+  color: var(--red);
+}
+
 .compare-char-card-stats {
   display: flex;
   flex-direction: column;

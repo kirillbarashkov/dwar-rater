@@ -35,7 +35,7 @@ EQUIPMENT_KINDS = {
     'Наплечники', 'Основное', 'Двуручное', 'Лук', 'Легкий щит',
     'Кольца', 'Амулет', 'Левая рука', 'Правая рука', 'Оправа',
     'Лак', 'Усиление', 'Магический символ', 'Символ', 'Аркат',
-    'Знамя', 'Легендарный', 'Вещи стиля', 'Медальон', 'Браслет',
+    'Знамя', 'Легендарный', 'Вещи стиля', 'Стиль', 'Медальон', 'Браслет',
 }
 
 
@@ -335,9 +335,12 @@ def parse_equipment_from_flashvars(flashvars_data, artifacts):
             kind = artifact_data.get('kind', '')
             title = artifact_data.get('title', filename.replace('.gif', ''))
             
+            # Log ALL kinds for debugging
+            logging.info(f"Artifact {artifact_id}: kind='{kind}', title='{title}'")
+            
             # Validate kind against known equipment kinds
             if kind and kind not in EQUIPMENT_KINDS:
-                logging.debug(f"Unknown equipment kind '{kind}' for artifact {artifact_id}")
+                logging.warning(f"Unknown equipment kind '{kind}' for artifact {artifact_id} title '{title}'")
                 # Keep the original kind but log it
 
             quality = parts[7] if len(parts) > 7 else '0'
