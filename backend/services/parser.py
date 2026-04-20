@@ -308,66 +308,57 @@ def parse_art_alt_data(html):
 
 
 def parse_equipment_from_flashvars(flashvars_data, artifacts):
-    """
-    Parse equipment from flashvars data with validation
-    """
     equipment = []
 
-    try:
-        arts_raw = flashvars_data.get('arts', '')
-        if not arts_raw:
-            logging.debug("No arts data found in flashvars")
-            return equipment
-
-        items = arts_raw.split(',')
-        for item_str in items:
-            parts = item_str.split(':')
-            if len(parts) < 8:
-                logging.debug(f"Skipping invalid equipment item: {item_str}")
-                continue
-
-            artifact_id = parts[0]
-            filename = parts[1]
-
-            artifact_key = f'AA_{artifact_id}'
-            artifact_data = artifacts.get(artifact_key, {})
-
-            kind = artifact_data.get('kind', '')
-            title = artifact_data.get('title', filename.replace('.gif', ''))
-            
-            # Log ALL kinds for debugging
-            logging.info(f"Artifact {artifact_id}: kind='{kind}', title='{title}'")
-            
-            # Validate kind against known equipment kinds
-            if kind and kind not in EQUIPMENT_KINDS:
-                logging.warning(f"Unknown equipment kind '{kind}' for artifact {artifact_id} title '{title}'")
-                # Keep the original kind but log it
-
-            quality = parts[7] if len(parts) > 7 else '0'
-            # Validate quality
-            if quality not in VALID_QUALITIES:
-                logging.warning(f"Invalid quality '{quality}' for artifact {artifact_id}, defaulting to '0'")
-                quality = '0'
-
-            equipment.append({
-                'artifact_id': artifact_id,
-                'title': title,
-                'filename': filename,
-                'kind': kind,
-                'quality': quality,
-                'enchant': parts[2] if len(parts) > 2 else '',
-                'enchant2': parts[3] if len(parts) > 3 else '',
-                'enchant3': parts[4] if len(parts) > 4 else '',
-                'enchant4': parts[5] if len(parts) > 5 else '',
-                'enchant5': parts[6] if len(parts) > 6 else '',
-                'full_data': artifact_data,
-            })
-
-        logging.debug(f"Parsed {len(equipment)} equipment items from flashvars")
+    arts_raw = flashvars_data.get('arts', '')
+    if not arts_raw:
         return equipment
-    except Exception as e:
-        logging.error(f"Error parsing equipment from flashvars: {str(e)}")
-        return equipment  # Return what we have so far
+
+    items = arts_raw.split(',')
+    for item_str in items:
+        parts = item_str.split(':')
+        if len(parts) < 8:
+            continue
+
+        artifact_id = parts[0]
+        filename = parts[1]
+
+        artifact_key = f'AA_{artifact_id}'
+        artifact_data = artifacts.get(artifact_key, {})
+
+        kind = artifact_data.get('kind', '')
+        title = artifact_data.get('title', filename.replace('.gif', ''))
+
+        # Log ALL kinds for debugging
+        logging.info(f"Artifact {artifact_id}: kind='{kind}', title='{title}'")
+
+        # Validate kind against known equipment kinds
+        if kind and kind not in EQUIPMENT_KINDS:
+            logging.warning(f"Unknown equipment kind '{kind}' for artifact {artifact_id} title '{title}'")
+            # Keep the original kind but log it
+
+        quality = parts[7] if len(parts) > 7 else '0'
+        # Validate quality
+        if quality not in VALID_QUALITIES:
+            logging.warning(f"Invalid quality '{quality}' for artifact {artifact_id}, defaulting to '0'")
+            quality = '0'
+
+        equipment.append({
+            'artifact_id': artifact_id,
+            'title': title,
+            'filename': filename,
+            'kind': kind,
+            'quality': quality,
+            'enchant': parts[2] if len(parts) > 2 else '',
+            'enchant2': parts[3] if len(parts) > 3 else '',
+            'enchant3': parts[4] if len(parts) > 4 else '',
+            'enchant4': parts[5] if len(parts) > 5 else '',
+            'enchant5': parts[6] if len(parts) > 6 else '',
+            'full_data': artifact_data,
+        })
+
+    logging.debug(f"Parsed {len(equipment)} equipment items from flashvars")
+    return equipment
 
 
 def parse_medals_from_art_alt(artifacts):
