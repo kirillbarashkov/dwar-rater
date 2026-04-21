@@ -108,14 +108,26 @@ function ItemCard({ item }: { item: EquipmentItem }) {
       {item.skills.length > 0 && (
         <div className="item-skills">
           {item.skills.map((s, i) => (
-            <span key={i} className="skill-tag">{s.title}: {s.value}</span>
+            <span
+              key={i}
+              className="skill-tag"
+              style={s.color ? { color: s.color, borderColor: s.color } : undefined}
+            >
+              {s.title}: {s.value}
+            </span>
           ))}
         </div>
       )}
       {item.enchants.length > 0 && (
         <div className="item-enchants">
           {item.enchants.map((e, i) => (
-            <span key={i} className="enchant-tag">{e.type}: {e.value}</span>
+            <span
+              key={i}
+              className="enchant-tag"
+              style={e.color ? { color: e.color, borderColor: e.color } : undefined}
+            >
+              {e.type}: {e.value}
+            </span>
           ))}
         </div>
       )}

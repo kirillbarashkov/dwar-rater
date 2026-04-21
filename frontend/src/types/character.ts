@@ -7,11 +7,13 @@ export interface QualityInfo {
 export interface Skill {
   title: string;
   value: string;
+  color?: string;
 }
 
 export interface Enchant {
   type: string;
   value: string;
+  color?: string;
 }
 
 export interface EquipmentItem {

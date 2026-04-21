@@ -13,34 +13,85 @@ QUALITY_MAP = {
 }
 
 
+def extract_color_from_html(html_value):
+    match = re.search(r'color:\s*([#\w]+)', html_value)
+    return match.group(1) if match else None
+
+
 def format_skills(skills):
     if not skills:
         return []
     result = []
     for s in skills:
         title = s.get('title', '')
-        value = clean_html(s.get('value', ''))
-        result.append({'title': title, 'value': value})
+        raw_value = s.get('value', '')
+        value = clean_html(raw_value)
+        color = extract_color_from_html(raw_value)
+        item = {'title': title, 'value': value}
+        if color:
+            item['color'] = color
+        result.append(item)
     return result
 
 
 def format_enchants(item):
     enchants = []
-    if 'enchant' in item:
-        enchants.append({'type': 'Руна', 'value': clean_html(item['enchant'].get('value', ''))})
-    if 'enchant2' in item:
-        enchants.append({'type': 'Руна 2', 'value': clean_html(item['enchant2'].get('value', ''))})
-    if 'enchant_mod' in item:
-        enchants.append({'type': 'Встроено', 'value': clean_html(item['enchant_mod'].get('value', ''))})
-    if 'enchant3' in item:
-        enchants.append({'type': 'Оправа', 'value': clean_html(item['enchant3'].get('value', ''))})
-    if 'enchant4' in item:
-        enchants.append({'type': 'Лак', 'value': clean_html(item['enchant4'].get('value', ''))})
-    if 'enchant5' in item:
-        enchants.append({'type': 'Усиление', 'value': clean_html(item['enchant5'].get('value', ''))})
-    if 'symbols' in item:
-        for i, sym in enumerate(item['symbols'], 1):
-            enchants.append({'type': f'Символ {i}', 'value': clean_html(sym.get('value', ''))})
+    raw_enchant = item.get('enchant', {})
+    if raw_enchant:
+        raw_value = raw_enchant.get('value', '')
+        enchants.append({
+            'type': 'Руна',
+            'value': clean_html(raw_value),
+            'color': extract_color_from_html(raw_value)
+        })
+    raw_enchant2 = item.get('enchant2', {})
+    if raw_enchant2:
+        raw_value = raw_enchant2.get('value', '')
+        enchants.append({
+            'type': 'Руна 2',
+            'value': clean_html(raw_value),
+            'color': extract_color_from_html(raw_value)
+        })
+    raw_enchant_mod = item.get('enchant_mod', {})
+    if raw_enchant_mod:
+        raw_value = raw_enchant_mod.get('value', '')
+        enchants.append({
+            'type': 'Встроено',
+            'value': clean_html(raw_value),
+            'color': extract_color_from_html(raw_value)
+        })
+    raw_enchant3 = item.get('enchant3', {})
+    if raw_enchant3:
+        raw_value = raw_enchant3.get('value', '')
+        enchants.append({
+            'type': 'Оправа',
+            'value': clean_html(raw_value),
+            'color': extract_color_from_html(raw_value)
+        })
+    raw_enchant4 = item.get('enchant4', {})
+    if raw_enchant4:
+        raw_value = raw_enchant4.get('value', '')
+        enchants.append({
+            'type': 'Лак',
+            'value': clean_html(raw_value),
+            'color': extract_color_from_html(raw_value)
+        })
+    raw_enchant5 = item.get('enchant5', {})
+    if raw_enchant5:
+        raw_value = raw_enchant5.get('value', '')
+        enchants.append({
+            'type': 'Усиление',
+            'value': clean_html(raw_value),
+            'color': extract_color_from_html(raw_value)
+        })
+    symbols = item.get('symbols', [])
+    for i, sym in enumerate(symbols, 1):
+        raw_value = sym.get('value', '')
+        enchants.append({
+            'type': f'Символ {i}',
+            'value': clean_html(raw_value),
+            'color': extract_color_from_html(raw_value)
+        })
     return enchants
 
 
