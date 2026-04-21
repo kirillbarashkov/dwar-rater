@@ -34,6 +34,14 @@ export interface EquipmentItem {
   other: string;
 }
 
+export interface StyleEquipmentByKind {
+  [subKind: string]: EquipmentItem[];
+}
+
+export interface EquipmentByKind {
+  [kind: string]: EquipmentItem[] | StyleEquipmentByKind;
+}
+
 export interface Medal {
   num: number;
   title: string;
@@ -113,7 +121,7 @@ export interface AnalysisResult {
   };
   combat_records: Record<string, string>;
   professions: Record<string, string>;
-  equipment_by_kind: Record<string, EquipmentItem[]>;
+  equipment_by_kind: EquipmentByKind;
   sets: Record<string, string[]>;
   medals: Medal[];
   permanent_effects: Effect[];

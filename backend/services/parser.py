@@ -7,7 +7,7 @@ import logging
 from functools import lru_cache
 
 # Pre-compile regex patterns for better performance
-FLASHVARS_PATTERN = re.compile(r"flashvars\s*=\s*'([^']+)'")
+FLASHVARS_PATTERN = re.compile(r"'flashvars','(.+?)'", re.DOTALL)
 PAR_PATTERN = re.compile(r"var par\s*=\s*'([^']+)'")
 STATS_TABLE_PATTERN = re.compile(r'<table class="coll w100 p10h p2v brd2-all"[^>]*>(.*?)</table>', re.DOTALL)
 STATS_ROW_PATTERN = re.compile(r'<tr[^>]*>\s*<td[^>]*>(.*?)</td>\s*<td[^>]*align="right"[^>]*>(.*?)</td>\s*</tr>', re.DOTALL)
@@ -36,6 +36,7 @@ EQUIPMENT_KINDS = {
     'Кольца', 'Амулет', 'Левая рука', 'Правая рука', 'Оправа',
     'Лак', 'Усиление', 'Магический символ', 'Символ', 'Аркат',
     'Знамя', 'Легендарный', 'Вещи стиля', 'Стиль', 'Медальон', 'Браслет',
+    'Эффекты',
 }
 
 
@@ -141,10 +142,15 @@ def parse_flashvars(html):
     flashvars_data = {}
 
     try:
-        # Parse flashvars
+        # Parse flashvars - the HTML has flashvars split across multiple string concatenations
+        # like: flashvars','key=value&...'+more...
+        # We need to capture the ENTIRE content between the quotes
         flashvars_match = FLASHVARS_PATTERN.search(html)
         if flashvars_match:
-            params = parse_qs(flashvars_match.group(1))
+            # Group 1 contains everything between flashvars',' and the final '
+            encoded = flashvars_match.group(1)
+            decoded = unquote(encoded)
+            params = parse_qs(decoded)
             for key, values in params.items():
                 flashvars_data[key] = values[0] if len(values) == 1 else values
 
@@ -287,6 +293,7 @@ def parse_art_alt_data(html):
     Parse art_alt data from HTML with improved error handling
     """
     artifacts = {}
+    seen_kinds = set()
 
     try:
         matches = ART_ALT_PATTERN.findall(html)
@@ -296,11 +303,16 @@ def parse_art_alt_data(html):
                 data = json.loads(json_str)
                 data['artifact_id'] = artifact_id
                 artifacts[f'AA_{artifact_id}'] = data
+                
+                kind = data.get('kind', '')
+                if kind and kind not in seen_kinds:
+                    seen_kinds.add(kind)
+                    logging.info(f"ARTIFACT KIND: '{kind}' title='{data.get('title', '')}'")
             except json.JSONDecodeError as e:
                 logging.warning(f"JSON decode error for artifact AA_{artifact_id}: {str(e)}")
                 continue
 
-        logging.debug(f"Parsed {len(artifacts)} artifacts from art_alt data")
+        logging.debug(f"Parsed {len(artifacts)} artifacts, all kinds: {sorted(seen_kinds)}")
         return artifacts
     except Exception as e:
         logging.error(f"Error parsing art_alt data: {str(e)}")
@@ -308,39 +320,65 @@ def parse_art_alt_data(html):
 
 
 def parse_equipment_from_flashvars(flashvars_data, artifacts):
+    """
+    Parse equipment from flashvars AND bank/storage artifacts from art_alt.
+    The arts flashvars only contains EQUIPPED items.
+    We also include ALL artifacts from art_alt that have equipment kinds (bank/storage items).
+    """
     equipment = []
+    seen_kinds = set()
 
+    # Get IDs of equipped items from arts flashvars
+    equipped_ids = set()
     arts_raw = flashvars_data.get('arts', '')
-    if not arts_raw:
-        return equipment
+    if arts_raw:
+        items = arts_raw.split(',')
+        for item_str in items:
+            parts = item_str.split(':')
+            if len(parts) >= 1 and parts[0]:
+                equipped_ids.add(parts[0])
 
-    items = arts_raw.split(',')
-    for item_str in items:
-        parts = item_str.split(':')
-        if len(parts) < 8:
-            continue
-
-        artifact_id = parts[0]
-        filename = parts[1]
-
-        artifact_key = f'AA_{artifact_id}'
-        artifact_data = artifacts.get(artifact_key, {})
-
+    # Parse ALL artifacts (both equipped and bank/storage)
+    for artifact_id, artifact_data in artifacts.items():
         kind = artifact_data.get('kind', '')
+        
+        # Skip non-equipment kinds
+        if kind not in EQUIPMENT_KINDS:
+            continue
+        
+        # For equipped items, use data from arts flashvars format
+        # For bank items, use artifact data directly
+        real_id = artifact_id.replace('AA_', '') if artifact_id.startswith('AA_') else artifact_id
+        is_equipped = real_id in equipped_ids
+        
+        if is_equipped:
+            arts_item = None
+            if arts_raw:
+                for item_str in arts_raw.split(','):
+                    parts = item_str.split(':')
+                    if len(parts) >= 1 and parts[0] == real_id:
+                        arts_item = parts
+                        break
+            
+            if arts_item and len(arts_item) >= 8:
+                filename = arts_item[1]
+                quality = arts_item[7] if len(arts_item) > 7 else '0'
+            else:
+                filename = artifact_data.get('image', '').replace('/images/data/artifacts/', '')
+                quality = artifact_data.get('quality', '0')
+        else:
+            # Bank/storage item - use artifact data
+            filename = artifact_data.get('image', '').replace('/images/data/artifacts/', '')
+            quality = artifact_data.get('quality', '0')
+        
         title = artifact_data.get('title', filename.replace('.gif', ''))
+        
+        # Track all kinds seen for debugging
+        if kind not in seen_kinds:
+            seen_kinds.add(kind)
+            logging.info(f"FOUND KIND: '{kind}' title='{title}' equipped={is_equipped}")
 
-        # Log ALL kinds for debugging
-        logging.info(f"Artifact {artifact_id}: kind='{kind}', title='{title}'")
-
-        # Validate kind against known equipment kinds
-        if kind and kind not in EQUIPMENT_KINDS:
-            logging.warning(f"Unknown equipment kind '{kind}' for artifact {artifact_id} title '{title}'")
-            # Keep the original kind but log it
-
-        quality = parts[7] if len(parts) > 7 else '0'
-        # Validate quality
         if quality not in VALID_QUALITIES:
-            logging.warning(f"Invalid quality '{quality}' for artifact {artifact_id}, defaulting to '0'")
             quality = '0'
 
         equipment.append({
@@ -349,15 +387,17 @@ def parse_equipment_from_flashvars(flashvars_data, artifacts):
             'filename': filename,
             'kind': kind,
             'quality': quality,
-            'enchant': parts[2] if len(parts) > 2 else '',
-            'enchant2': parts[3] if len(parts) > 3 else '',
-            'enchant3': parts[4] if len(parts) > 4 else '',
-            'enchant4': parts[5] if len(parts) > 5 else '',
-            'enchant5': parts[6] if len(parts) > 6 else '',
+            'enchant': '',
+            'enchant2': '',
+            'enchant3': '',
+            'enchant4': '',
+            'enchant5': '',
             'full_data': artifact_data,
+            'noweight': bool(artifact_data.get('noweight', '')),
+            'equipped': is_equipped,
         })
 
-    logging.debug(f"Parsed {len(equipment)} equipment items from flashvars")
+    logging.debug(f"Parsed {len(equipment)} total equipment items, kinds seen: {sorted(seen_kinds)}")
     return equipment
 
 

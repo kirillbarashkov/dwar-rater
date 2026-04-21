@@ -158,14 +158,47 @@ def process_character(raw_data):
     equipment_by_kind = {}
     sets = {}
 
+    WEAPON_KINDS = {'Двуручное', 'Основное', 'Левая рука', 'Легкий щит'}
+    STYLE_KIND_MAP = {
+        'Шлем': 'Шлем',
+        'Наплечники': 'Наплечники',
+        'Наручи': 'Наручи',
+        'Двуручное': 'Оружие',
+        'Основное': 'Оружие',
+        'Левая рука': 'Оружие',
+        'Легкий щит': 'Оружие',
+        'Кираса': 'Кираса',
+        'Поножи': 'Поножи',
+        'Кольчуга': 'Кольчуга',
+        'Обувь': 'Обувь',
+        'Лук': 'Лук',
+        'Эффекты': 'Эффекты',
+        'Кольца': 'Кольца',
+        'Амулет': 'Амулеты',
+    }
+
     for item in equipment_raw:
         item_data = item.get('full_data', {})
+        title = item_data.get('title', item.get('title', ''))
+        
+        item_color = item_data.get('color', '')
+        is_style_item = (item_color == '#016e71')
+        
         kind = item_data.get('kind', 'Другое')
-
-        if kind not in equipment_by_kind:
+        original_kind = kind
+        
+        if is_style_item:
+            kind = 'Вещи стиля'
+        
+        if kind == 'Вещи стиля':
+            if kind not in equipment_by_kind:
+                equipment_by_kind[kind] = {}
+            style_sub_kind = STYLE_KIND_MAP.get(original_kind, original_kind)
+            if style_sub_kind not in equipment_by_kind[kind]:
+                equipment_by_kind[kind][style_sub_kind] = []
+        elif kind not in equipment_by_kind:
             equipment_by_kind[kind] = []
 
-        title = item_data.get('title', item.get('title', ''))
         quality_str = str(item_data.get('quality', item.get('quality', '0')))
 
         enchant_val = item.get('enchant', '')
@@ -209,7 +242,10 @@ def process_character(raw_data):
             'enhancement': clean_html(enchant5_val) if enchant5_val and isinstance(enchant5_val, str) else (clean_html(enchant5_data.get('value', '')) if enchant5_data else ''),
         }
 
-        equipment_by_kind[kind].append(equipment_item)
+        if kind == 'Вещи стиля':
+            equipment_by_kind[kind][style_sub_kind].append(equipment_item)
+        else:
+            equipment_by_kind[kind].append(equipment_item)
 
         if 'set' in item_data:
             set_name = clean_html(item_data['set'].get('value', ''))

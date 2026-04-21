@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getCompareCharacters, deleteCompareCharacter } from '../../api/compare';
 import type { AnalysisResult } from '../../types/character';
-import { Button } from '../ui/Button';
 import './CharacterComparison.css';
 
 interface CompareCharacter {
@@ -171,39 +170,77 @@ export function CharacterComparison() {
     
     const equip = char.data.equipment_by_kind;
     
-    if (slot.key === 'style_armor' || slot.key === 'style_weapon') {
-      const styleItems = equip['Вещи стиля'] || [];
-      return styleItems[0] || null;
+    if (slot.key === 'style_armor') {
+      const styleEquip = equip['Вещи стиля'];
+      if (styleEquip && typeof styleEquip === 'object' && !Array.isArray(styleEquip)) {
+        const armorKinds = ['Шлем', 'Кираса', 'Кольчуга', 'Наплечники', 'Наручи', 'Поножи', 'Обувь', 'Лук'];
+        for (const kind of armorKinds) {
+          if (styleEquip[kind]?.length) {
+            return styleEquip[kind][0];
+          }
+        }
+      }
+      return null;
+    }
+    
+    if (slot.key === 'style_weapon') {
+      const styleEquip = equip['Вещи стиля'];
+      if (styleEquip && typeof styleEquip === 'object' && !Array.isArray(styleEquip)) {
+        const weaponItems = styleEquip['Оружие'];
+        if (weaponItems?.length) {
+          return weaponItems[0];
+        }
+      }
+      return null;
     }
     
     if (slot.key === 'weapon_twohand') {
-      const items = equip['Двуручное'] || [];
-      return items.find(i => i.set && i.title) || null;
+      const items = equip['Двуручное'];
+      if (Array.isArray(items)) {
+        return items.find(i => i.set && i.title) || null;
+      }
+      return null;
     }
     
     if (slot.key === 'weapon_main') {
-      const mainItems = (equip['Основное'] || []).filter(i => i.set && i.title);
-      return mainItems[mainItems.length - 1] || null;
+      const items = equip['Основное'];
+      if (Array.isArray(items)) {
+        const mainItems = items.filter(i => i.set && i.title);
+        return mainItems[mainItems.length - 1] || null;
+      }
+      return null;
     }
     
     if (slot.key === 'weapon_left') {
-      const items = equip['Левая рука'] || [];
-      return items.find(i => i.set && i.title) || null;
+      const items = equip['Левая рука'];
+      if (Array.isArray(items)) {
+        return items.find(i => i.set && i.title) || null;
+      }
+      return null;
     }
     
     if (slot.key === 'shield') {
-      const items = equip['Легкий щит'] || [];
-      return items.find(i => i.set && i.title) || null;
+      const items = equip['Легкий щит'];
+      if (Array.isArray(items)) {
+        return items.find(i => i.set && i.title) || null;
+      }
+      return null;
     }
     
     if (slot.key === 'ring1' || slot.key === 'ring2') {
-      const rings = equip['Кольцо'] || [];
+      const rings = equip['Кольца'];
       const ringIndex = slot.key === 'ring1' ? 0 : 1;
-      return rings[ringIndex] || null;
+      if (Array.isArray(rings)) {
+        return rings[ringIndex] || null;
+      }
+      return null;
     }
     
-    const items = equip[slot.kind] || [];
-    return items.find(i => i.set && i.title) || items[0] || null;
+    const items = equip[slot.kind];
+    if (Array.isArray(items)) {
+      return items.find(i => i.set && i.title) || items[0] || null;
+    }
+    return null;
   };
 
   const getFieldValue = (item: EquipmentItem | null, fieldKey: string): string => {

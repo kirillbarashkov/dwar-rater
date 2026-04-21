@@ -87,7 +87,9 @@ def create_app():
         import logging
         
         instance_dir = os.path.join(BASE_DIR, 'backend', 'instance')
-        if not os.path.exists(instance_dir):
+        if os.path.exists(instance_dir):
+            data_logger.info(f'Instance directory already exists: {instance_dir}')
+        elif not os.path.exists(instance_dir):
             os.makedirs(instance_dir)
             data_logger.info(f'Created instance directory: {instance_dir}')
         
