@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
-import { getCompareCharacters } from '../../api/compare';
+import { useState, useEffect, useCallback } from 'react';
+import { getCompareCharacters, deleteCompareCharacter } from '../../api/compare';
 import type { AnalysisResult } from '../../types/character';
-import { Button } from '../ui/Button';
 import './CharacterComparison.css';
 
 interface CompareCharacter {
@@ -10,156 +9,93 @@ interface CompareCharacter {
   data: AnalysisResult | null;
 }
 
-interface StructField {
+interface EquipmentItem {
+  title?: string;
+  set?: string;
+  rune?: string;
+  runicSetting?: string;
+  plate?: string;
+  lacquer?: string;
+  other?: string;
+  symbols?: string[];
+  quality?: { name: string; color: string };
+}
+
+type CategoryKey = 'equipment' | 'weapon' | 'style' | 'jewelry' | 'arcane' | 'misc';
+
+interface SlotDef {
   key: string;
   label: string;
+  kind: string;
 }
 
-interface StructSlot {
-  key: string;
+interface CategoryDef {
+  key: CategoryKey;
   label: string;
-  fields: StructField[];
+  slots: SlotDef[];
 }
 
-interface StructGroup {
-  key: string;
-  label: string;
-  slots: StructSlot[];
-}
+const CATEGORIES: CategoryDef[] = [
+  {
+    key: 'equipment',
+    label: 'Экипировка',
+    slots: [
+      { key: 'helmet', label: 'Шлем', kind: 'Шлем' },
+      { key: 'bracers', label: 'Наручи', kind: 'Наручи' },
+      { key: 'shoulderpads', label: 'Наплечники', kind: 'Наплечники' },
+      { key: 'cuirass', label: 'Кираса', kind: 'Кираса' },
+      { key: 'greaves', label: 'Поножи', kind: 'Поножи' },
+      { key: 'chainmail', label: 'Кольчуга', kind: 'Кольчуга' },
+      { key: 'boots', label: 'Обувь', kind: 'Обувь' },
+    ],
+  },
+  {
+    key: 'weapon',
+    label: 'Оружие',
+    slots: [
+      { key: 'weapon_twohand', label: 'Двуручное', kind: 'Двуручное' },
+      { key: 'weapon_main', label: 'Основное', kind: 'Основное' },
+      { key: 'weapon_left', label: 'Левая рука', kind: 'Левая рука' },
+      { key: 'shield', label: 'Легкий щит', kind: 'Легкий щит' },
+    ],
+  },
+  {
+    key: 'style',
+    label: 'Вещи стиля',
+    slots: [
+      { key: 'style_armor', label: 'Доспехи', kind: 'Вещи стиля' },
+      { key: 'style_weapon', label: 'Оружие', kind: 'Вещи стиля' },
+    ],
+  },
+  {
+    key: 'jewelry',
+    label: 'Ювелирка',
+    slots: [
+      { key: 'ring1', label: 'Кольцо 1', kind: 'Кольцо' },
+      { key: 'ring2', label: 'Кольцо 2', kind: 'Кольцо' },
+      { key: 'amulet', label: 'Амулет', kind: 'Амулет' },
+    ],
+  },
+  {
+    key: 'arcane',
+    label: 'Арканы',
+    slots: [
+      { key: 'bracelet', label: 'Браслет', kind: 'Браслет' },
+      { key: 'arcane', label: 'Аркат', kind: 'Аркат' },
+    ],
+  },
+  {
+    key: 'misc',
+    label: 'Разное',
+    slots: [
+      { key: 'belt', label: 'Пояс', kind: 'Пояс' },
+      { key: 'bag', label: 'Рюкзак', kind: 'Рюкзак' },
+      { key: 'craft_bag', label: 'Ремесленная сумка', kind: 'Ремесленная сумка' },
+    ],
+  },
+];
 
-function getFieldValue(char: AnalysisResult, slotKey: string, fieldKey: string, isStyle: boolean = false): string {
-  if (!char.equipment_by_kind) return '-';
-  
-  const kindMap: Record<string, string> = {
-    helmet: 'Шлем',
-    bracers: 'Наручи',
-    shoulderpads: 'Наплечники',
-    cuirass: 'Кираса',
-    greaves: 'Поножи',
-    chainmail: 'Кольчуга',
-    boots: 'Обувь',
-    bow: 'Лук',
-    quiver: 'Колчан',
-    weapon_main: 'Основное',
-    weapon_add: 'Двуручное',
-  };
-  
-  const kind = kindMap[slotKey] || slotKey;
-  const equip = char.equipment_by_kind || {};
-  
-  const isMainWeapon = slotKey === 'weapon_main';
-  const isAdditionalWeapon = slotKey === 'weapon_add';
-  
-  let targetItem = null;
-  
-  if (isMainWeapon) {
-    if (isStyle) {
-      const mainItems = equip['Основное'] || [];
-      for (const item of mainItems) {
-        if (!item.set && item.title) {
-          targetItem = item;
-          break;
-        }
-      }
-    } else {
-      const twoHandItems = equip['Двуручное'] || [];
-      const twoHandReal = twoHandItems.filter(i => i.set && i.title);
-      if (twoHandReal.length > 0) {
-        targetItem = twoHandReal[twoHandReal.length - 1];
-      }
-      if (!targetItem) {
-        const mainRealItems = (equip['Основное'] || []).filter(i => i.set && i.title);
-        if (mainRealItems.length > 0) {
-          targetItem = mainRealItems[mainRealItems.length - 1];
-        }
-      }
-    }
-  } else if (isAdditionalWeapon) {
-    if (isStyle) {
-      const leftHandItems = equip['Левая рука'] || [];
-      for (const item of leftHandItems) {
-        if (!item.set && item.title) {
-          targetItem = item;
-          break;
-        }
-      }
-      if (!targetItem) {
-        const shieldItems = equip['Легкий щит'] || [];
-        for (const item of shieldItems) {
-          if (!item.set && item.title) {
-            targetItem = item;
-            break;
-          }
-        }
-      }
-    } else {
-      const leftHandItems = equip['Левая рука'] || [];
-      const leftHandReal = leftHandItems.filter(i => i.set && i.title);
-      if (leftHandReal.length > 0) {
-        targetItem = leftHandReal[leftHandReal.length - 1];
-      }
-      if (!targetItem) {
-        const shieldItems = equip['Легкий щит'] || [];
-        const shieldReal = shieldItems.filter(i => i.set && i.title);
-        if (shieldReal.length > 0) {
-          targetItem = shieldReal[shieldReal.length - 1];
-        }
-      }
-      if (!targetItem) {
-        const mainItems = equip['Основное'] || [];
-        const mainReal = mainItems.filter(i => i.set && i.title);
-        if (mainReal.length > 0) {
-          targetItem = mainReal[0];
-        }
-      }
-    }
-  } else {
-    const items = equip[kind] || [];
-    if (!items || items.length === 0) return '-';
-    
-    if (targetItem === null) {
-      if (isStyle) {
-        for (const item of items) {
-          if (!item.set && item.title) {
-            targetItem = item;
-            break;
-          }
-        }
-      } else {
-        for (let i = items.length - 1; i >= 0; i--) {
-          if (items[i].set && items[i].title) {
-            targetItem = items[i];
-            break;
-          }
-        }
-      }
-    }
-  }
-  
-  if (!targetItem) {
-    const items = equip[kind] || [];
-    targetItem = items[0] || null;
-  }
-  
-  if (!targetItem) return '-';
-  
-  switch (fieldKey) {
-    case 'title': return targetItem.title || '-';
-    case 'set': return targetItem.set || '-';
-    case 'rune': return targetItem.rune || '-';
-    case 'runicSetting': return targetItem.runicSetting || '-';
-    case 'plate': return targetItem.plate || '-';
-    case 'other': return targetItem.other || '-';
-    case 'lacquer': return targetItem.lacquer || '-';
-    case 'symbol1': return targetItem.symbols?.[0] || '-';
-    case 'symbol2': return targetItem.symbols?.[1] || '-';
-    case 'symbol3': return targetItem.symbols?.[2] || '-';
-    case 'symbol4': return targetItem.symbols?.[3] || '-';
-    default: return '-';
-  }
-}
-
-const COMMON_FIELDS: StructField[] = [
+const ITEM_FIELDS = [
   { key: 'title', label: 'Предмет' },
   { key: 'set', label: 'Сет' },
   { key: 'rune', label: 'Руна' },
@@ -170,111 +106,224 @@ const COMMON_FIELDS: StructField[] = [
   { key: 'symbol1', label: 'Символ 1' },
   { key: 'symbol2', label: 'Символ 2' },
   { key: 'symbol3', label: 'Символ 3' },
+  { key: 'symbol4', label: 'Символ 4' },
 ];
 
-const STRUCTURE_GROUPS: StructGroup[] = [
-  {
-    key: 'armor',
-    label: 'Доспехи',
-    slots: [
-      { key: 'helmet', label: 'Шлем', fields: COMMON_FIELDS },
-      { key: 'bracers', label: 'Наручи', fields: COMMON_FIELDS },
-      { key: 'shoulderpads', label: 'Наплечники', fields: COMMON_FIELDS },
-      { key: 'cuirass', label: 'Кираса', fields: COMMON_FIELDS },
-      { key: 'greaves', label: 'Поножи', fields: COMMON_FIELDS },
-      { key: 'chainmail', label: 'Кольчуга', fields: COMMON_FIELDS },
-      { key: 'boots', label: 'Сапоги', fields: COMMON_FIELDS },
-      { key: 'bow', label: 'Лук', fields: COMMON_FIELDS },
-      { key: 'quiver', label: 'Колчан', fields: COMMON_FIELDS },
-    ],
-  },
-  {
-    key: 'weapon',
-    label: 'Оружие',
-    slots: [
-      { key: 'weapon_main', label: 'Основное оружие', fields: COMMON_FIELDS },
-      { key: 'weapon_add', label: 'Дополнительное оружие', fields: COMMON_FIELDS },
-    ],
-  },
-  {
-    key: 'style',
-    label: 'Вещи стиля',
-    slots: [
-      { key: 'helmet', label: 'Шлем', fields: COMMON_FIELDS },
-      { key: 'bracers', label: 'Наручи', fields: COMMON_FIELDS },
-      { key: 'shoulderpads', label: 'Наплечники', fields: COMMON_FIELDS },
-      { key: 'cuirass', label: 'Кираса', fields: COMMON_FIELDS },
-      { key: 'greaves', label: 'Поножи', fields: COMMON_FIELDS },
-      { key: 'chainmail', label: 'Кольчуга', fields: COMMON_FIELDS },
-      { key: 'boots', label: 'Сапоги', fields: COMMON_FIELDS },
-      { key: 'bow', label: 'Лук', fields: COMMON_FIELDS },
-      { key: 'quiver', label: 'Колчан', fields: COMMON_FIELDS },
-      { key: 'weapon_main', label: 'Основное оружие', fields: COMMON_FIELDS },
-      { key: 'weapon_add', label: 'Дополнительное оружие', fields: COMMON_FIELDS },
-    ],
-  },
-];
+const STAT_LABELS = ['Уровень', 'Ранг', 'Клан', 'hp', 'mana'];
 
 export function CharacterComparison() {
-  const [compareChars, setCompareChars] = useState<CompareCharacter[]>([
-    { id: 0, name: '', data: null },
-    { id: 0, name: '', data: null },
-    { id: 0, name: '', data: null },
-  ]);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['armor', 'weapon', 'style']));
+  const [compareChars, setCompareChars] = useState<CompareCharacter[]>([]);
   const [compareList, setCompareList] = useState<CompareCharacter[]>([]);
+  const [activeCategory, setActiveCategory] = useState<CategoryKey>('equipment');
+  const [activeSlot, setActiveSlot] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadFromApi() {
       try {
         const chars = await getCompareCharacters();
         setCompareList(chars);
-        const loaded = chars.slice(0, 3).map(c => ({
-          id: c.id,
-          name: c.name,
-          data: c.data as AnalysisResult,
-        }));
-        while (loaded.length < 3) loaded.push({ id: 0, name: '', data: null as unknown as AnalysisResult });
-        setCompareChars(loaded.slice(0, 3));
+        if (chars.length > 0) {
+          setActiveSlot(CATEGORIES[0].slots[0]?.key || null);
+        }
       } catch {
         // ignore
       }
     }
-
     loadFromApi();
   }, []);
 
-  const handleSelectChar = async (index: number, charId: number) => {
-    if (!charId) {
-      setCompareChars(prev => {
-        const updated = [...prev];
-        updated[index] = { id: 0, name: '', data: null };
-        return updated;
-      });
-      return;
-    }
-
+  const handleAddCharacter = useCallback((charId: number) => {
+    if (compareChars.length >= 4) return;
     const char = compareList.find(c => c.id === charId);
-    if (!char || !char.data) return;
+    if (!char) return;
+    setCompareChars(prev => [...prev, { id: char.id, name: char.name, data: char.data }]);
+  }, [compareChars.length, compareList]);
 
-    setCompareChars(prev => {
-      const updated = [...prev];
-      updated[index] = { id: char.id, name: char.name, data: char.data };
-      return updated;
-    });
+  const handleRemoveCharacter = useCallback((index: number) => {
+    setCompareChars(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleDeleteFromList = async (charId: number) => {
+    try {
+      await deleteCompareCharacter(charId);
+      setCompareList(prev => prev.filter(c => c.id !== charId));
+      setCompareChars(prev => prev.filter(c => c.id !== charId));
+    } catch {
+      // ignore
+    }
   };
 
-  const toggleGroup = (key: string) => {
-    setExpandedGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
+  const handleSlotSelect = useCallback((slotKey: string) => {
+    setActiveSlot(slotKey);
+  }, []);
+
+  const handleCategorySelect = useCallback((catKey: CategoryKey) => {
+    setActiveCategory(catKey);
+    const cat = CATEGORIES.find(c => c.key === catKey);
+    if (cat?.slots[0]) {
+      setActiveSlot(cat.slots[0].key);
+    }
+  }, []);
+
+  const getEquipmentForSlot = (char: CompareCharacter, slot: SlotDef): EquipmentItem | null => {
+    if (!char.data?.equipment_by_kind) return null;
+    
+    const equip = char.data.equipment_by_kind;
+    
+    if (slot.key === 'style_armor') {
+      const styleEquip = equip['Вещи стиля'];
+      if (styleEquip && typeof styleEquip === 'object' && !Array.isArray(styleEquip)) {
+        const armorKinds = ['Шлем', 'Кираса', 'Кольчуга', 'Наплечники', 'Наручи', 'Поножи', 'Обувь', 'Лук'];
+        for (const kind of armorKinds) {
+          if (styleEquip[kind]?.length) {
+            return styleEquip[kind][0];
+          }
+        }
       }
-      return next;
-    });
+      return null;
+    }
+    
+    if (slot.key === 'style_weapon') {
+      const styleEquip = equip['Вещи стиля'];
+      if (styleEquip && typeof styleEquip === 'object' && !Array.isArray(styleEquip)) {
+        const weaponItems = styleEquip['Оружие'];
+        if (weaponItems?.length) {
+          return weaponItems[0];
+        }
+      }
+      return null;
+    }
+    
+    if (slot.key === 'weapon_twohand') {
+      const items = equip['Двуручное'];
+      if (Array.isArray(items)) {
+        return items.find(i => i.set && i.title) || null;
+      }
+      return null;
+    }
+    
+    if (slot.key === 'weapon_main') {
+      const items = equip['Основное'];
+      if (Array.isArray(items)) {
+        const mainItems = items.filter(i => i.set && i.title);
+        return mainItems[mainItems.length - 1] || null;
+      }
+      return null;
+    }
+    
+    if (slot.key === 'weapon_left') {
+      const items = equip['Левая рука'];
+      if (Array.isArray(items)) {
+        return items.find(i => i.set && i.title) || null;
+      }
+      return null;
+    }
+    
+    if (slot.key === 'shield') {
+      const items = equip['Легкий щит'];
+      if (Array.isArray(items)) {
+        return items.find(i => i.set && i.title) || null;
+      }
+      return null;
+    }
+    
+    if (slot.key === 'ring1' || slot.key === 'ring2') {
+      const rings = equip['Кольца'];
+      const ringIndex = slot.key === 'ring1' ? 0 : 1;
+      if (Array.isArray(rings)) {
+        return rings[ringIndex] || null;
+      }
+      return null;
+    }
+    
+    const items = equip[slot.kind];
+    if (Array.isArray(items)) {
+      return items.find(i => i.set && i.title) || items[0] || null;
+    }
+    return null;
   };
+
+  const getFieldValue = (item: EquipmentItem | null, fieldKey: string): string => {
+    if (!item) return '-';
+    switch (fieldKey) {
+      case 'title': return item.title || '-';
+      case 'set': return item.set || '-';
+      case 'rune': return item.rune || '-';
+      case 'runicSetting': return item.runicSetting || '-';
+      case 'plate': return item.plate || '-';
+      case 'lacquer': return item.lacquer || '-';
+      case 'other': return item.other || '-';
+      case 'symbol1': return item.symbols?.[0] || '-';
+      case 'symbol2': return item.symbols?.[1] || '-';
+      case 'symbol3': return item.symbols?.[2] || '-';
+      case 'symbol4': return item.symbols?.[3] || '-';
+      default: return '-';
+    }
+  };
+
+  const activeCategoryDef = CATEGORIES.find(c => c.key === activeCategory)!;
+
+  const renderCharacterCard = (char: CompareCharacter, index: number) => (
+    <div key={`${char.id}-${index}`} className="compare-char-card">
+      <div className="compare-char-card-header">
+        <div className="compare-char-card-avatar">
+          {char.data?.name?.[0]?.toUpperCase() || '?'}
+        </div>
+        <div className="compare-char-card-info">
+          <div className="compare-char-card-name">{char.name}</div>
+          <div className="compare-char-card-clan">{char.data?.clan || '-'}</div>
+        </div>
+        <button
+          className="compare-char-card-remove"
+          onClick={() => handleRemoveCharacter(index)}
+          aria-label="Удалить персонажа"
+        >
+          ×
+        </button>
+        <button
+          className="compare-char-card-delete"
+          onClick={() => handleDeleteFromList(char.id)}
+          aria-label="Удалить из списка"
+          title="Удалить из списка сравнения"
+        >
+          🗑️
+        </button>
+      </div>
+      <div className="compare-char-card-stats">
+        <div className="compare-char-card-stat">
+          <span className="stat-label">Уровень</span>
+          <span className="stat-value">{char.data?.main_stats?.['Уровень'] || '-'}</span>
+        </div>
+        <div className="compare-char-card-stat">
+          <span className="stat-label">Звание</span>
+          <span className="stat-value">{char.data?.rank || '-'}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAddCharacterCard = () => (
+    <div className="compare-char-card compare-char-card-add">
+      <select
+        className="compare-add-select"
+        value=""
+        onChange={(e) => {
+          const val = Number(e.target.value);
+          if (val) handleAddCharacter(val);
+        }}
+        disabled={compareChars.length >= 4}
+      >
+        <option value="" disabled={compareChars.length >= 4}>
+          {compareChars.length >= 4 ? 'Максимум 4' : '+ Добавить'}
+        </option>
+        {compareList
+          .filter(c => !compareChars.some(p => p.id === c.id))
+          .map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+      </select>
+    </div>
+  );
 
   return (
     <div className="character-comparison">
@@ -282,107 +331,123 @@ export function CharacterComparison() {
         <h3 className="compare-title">Сравнение персонажей</h3>
       </div>
 
-      <div className="compare-selectors">
-        <div className="compare-selector">
-          <span className="selector-label">Персонаж (основной)</span>
-          <div className="selector-wrapper">
-            <select
-              className="selector-select"
-              value={compareChars[0].id}
-              onChange={(e) => handleSelectChar(0, Number(e.target.value))}
-            >
-              <option value={0}>Выберите персонажа</option>
-              {compareList.filter(c => c.id).map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            {compareChars[0].id !== 0 && (
-              <Button variant="ghost" className="selector-clear" onClick={() => handleSelectChar(0, 0)}>✕</Button>
-            )}
+      <div className="compare-char-cards">
+        {compareChars.length === 0 ? (
+          <div className="compare-char-card compare-char-card-empty">
+            <div className="compare-empty-text">
+              Добавьте персонажей для сравнения
+            </div>
+            {renderAddCharacterCard()}
           </div>
-        </div>
-        <div className="compare-selector">
-          <span className="selector-label">Персонаж (доп.1)</span>
-          <div className="selector-wrapper">
-            <select
-              className="selector-select"
-              value={compareChars[1].id}
-              onChange={(e) => handleSelectChar(1, Number(e.target.value))}
-            >
-              <option value={0}>Выберите персонажа</option>
-              {compareList.filter(c => c.id).map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+        ) : (
+          <>
+            {compareChars.map(renderCharacterCard)}
+            {renderAddCharacterCard()}
+          </>
+        )}
+      </div>
+
+      <div className="compare-category-tabs">
+        {CATEGORIES.map(cat => (
+          <button
+            key={cat.key}
+            className={`compare-category-tab ${activeCategory === cat.key ? 'compare-category-tab-active' : ''}`}
+            onClick={() => handleCategorySelect(cat.key)}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="compare-slot-tabs">
+        {activeCategoryDef.slots.map(slot => (
+          <button
+            key={slot.key}
+            className={`compare-slot-tab ${activeSlot === slot.key ? 'compare-slot-tab-active' : ''}`}
+            onClick={() => handleSlotSelect(slot.key)}
+          >
+            {slot.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="compare-slot-content">
+        <div className="compare-table-wrapper">
+          <table className="compare-detail-table">
+            <thead>
+              <tr>
+                <th className="detail-col-label">Характеристика</th>
+                {compareChars.length === 0 ? (
+                  <th className="detail-col-empty">Добавьте персонажей</th>
+                ) : (
+                  compareChars.map((char, idx) => (
+                    <th key={idx} className="detail-col-value">{char.name}</th>
+                  ))
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {ITEM_FIELDS.map(field => (
+                <tr key={field.key}>
+                  <td className="detail-cell-label">{field.label}</td>
+                  {compareChars.length === 0 ? (
+                    <td className="detail-cell-empty" colSpan={4}>-</td>
+                  ) : (
+                    compareChars.map((char, idx) => {
+                      const slot = activeCategoryDef.slots.find(s => s.key === activeSlot);
+                      const item = slot ? getEquipmentForSlot(char, slot) : null;
+                      const value = getFieldValue(item, field.key);
+                      return (
+                        <td 
+                          key={idx} 
+                          className={`detail-cell-value ${value === '-' ? 'detail-cell-empty' : ''}`}
+                        >
+                          {value}
+                        </td>
+                      );
+                    })
+                  )}
+                </tr>
               ))}
-            </select>
-            {compareChars[1].id !== 0 && (
-              <Button variant="ghost" className="selector-clear" onClick={() => handleSelectChar(1, 0)}>✕</Button>
-            )}
-          </div>
-        </div>
-        <div className="compare-selector">
-          <span className="selector-label">Персонаж (доп.2)</span>
-          <div className="selector-wrapper">
-            <select
-              className="selector-select"
-              value={compareChars[2].id}
-              onChange={(e) => handleSelectChar(2, Number(e.target.value))}
-            >
-              <option value={0}>Выберите персонажа</option>
-              {compareList.filter(c => c.id).map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            {compareChars[2].id !== 0 && (
-              <Button variant="ghost" className="selector-clear" onClick={() => handleSelectChar(2, 0)}>✕</Button>
-            )}
-          </div>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div className="compare-table-container">
-        {STRUCTURE_GROUPS.map(group => (
-          <div key={group.key} className="compare-group">
-            <div 
-              className="compare-group-header"
-              onClick={() => toggleGroup(group.key)}
-            >
-              <span className="group-chevron">{expandedGroups.has(group.key) ? '▼' : '▶'}</span>
-              <span className="group-label">{group.label}</span>
-            </div>
-            
-            {expandedGroups.has(group.key) && (
-              <div className="compare-group-content">
-                {group.slots.map(slot => (
-                  <div key={slot.key} className="compare-slot">
-                    <div className="compare-slot-header">{slot.label}</div>
-                    <table className="compare-table">
-                      <thead>
-                        <tr>
-                          <th className="col-name">Наименование</th>
-                          {compareChars.map((c, i) => (
-                            <th key={i} className="col-value">{c.name || `Персонаж ${i + 1}`}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {slot.fields.map(field => (
-                          <tr key={field.key}>
-                            <td className="cell-label">{field.label}</td>
-                            {compareChars.map((c, i) => (
-                              <td key={i} className="cell-value">
-                                {c.data ? getFieldValue(c.data, slot.key, field.key, group.key === 'style') : '-'}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+      <div className="compare-overview-section">
+        <h4 className="compare-section-title">Базовые характеристики</h4>
+        <div className="compare-table-wrapper">
+          <table className="compare-overview-table">
+            <thead>
+              <tr>
+                <th className="detail-col-label">Характеристика</th>
+                {compareChars.length === 0 ? (
+                  <th className="detail-col-empty">Добавьте персонажей</th>
+                ) : (
+                  compareChars.map((char, idx) => (
+                    <th key={idx} className="detail-col-value">{char.name}</th>
+                  ))
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {STAT_LABELS.map(stat => (
+                <tr key={stat}>
+                  <td className="detail-cell-label">{stat}</td>
+                  {compareChars.length === 0 ? (
+                    <td className="detail-cell-empty" colSpan={4}>-</td>
+                  ) : (
+                    compareChars.map((char, idx) => (
+                      <td key={idx} className="detail-cell-value">
+                        {char.data?.main_stats?.[stat] || '-'}
+                      </td>
+                    ))
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

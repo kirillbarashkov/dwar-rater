@@ -25,8 +25,7 @@ def create_app():
     )
     app.config.from_object(Config)
     
-    # Разрешаем запросы с локального фронта
-    cors = CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+    cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     db.init_app(app)
 
@@ -58,8 +57,19 @@ def create_app():
     def security_checks():
         if request.path == '/api/login' or request.path == '/' or request.path.startswith('/static/'):
             return
+        if request.method == 'OPTIONS':
+            response = jsonify({'status': 'ok'})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, PUT, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            return response
         if not check_rate_limit(Config.RATE_LIMIT_MAX, Config.RATE_LIMIT_WINDOW):
-            return jsonify({'error': 'Слишком много запросов. Подождите.'}), 429
+            response = jsonify({'error': 'Слишком много запросов. Подождите.'})
+            response.status_code = 429
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, PUT, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            return response
         if request.method == 'POST':
             content_type = request.content_type or ''
             if 'application/json' not in content_type:
@@ -67,10 +77,40 @@ def create_app():
 
     @app.after_request
     def after_request(response):
-        return add_security_headers(response)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, PUT, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response
 
     with app.app_context():
+        from services.data_logger import data_logger
+        import logging
+        
+        instance_dir = os.path.join(BASE_DIR, 'backend', 'instance')
+        if os.path.exists(instance_dir):
+            data_logger.info(f'Instance directory already exists: {instance_dir}')
+        elif not os.path.exists(instance_dir):
+            os.makedirs(instance_dir)
+            data_logger.info(f'Created instance directory: {instance_dir}')
+        
+        db_path = db.engine.url.database
+        db_exists = os.path.exists(db_path) if db_path else False
+        db_size = os.path.getsize(db_path) if db_exists else 0
+        
+        data_logger.info('=== APPLICATION STARTUP ===')
+        data_logger.info(f'Database path: {os.path.abspath(db_path) if db_path else "unknown"}')
+        data_logger.info(f'Database exists: {db_exists}')
+        data_logger.info(f'Database size: {db_size / 1024 / 1024:.2f} MB')
+        data_logger.info(f'DATABASE_URL: {Config.DATABASE_URL}')
+        
         db.create_all()
+        
+        from models.clan_info import ClanMemberInfo, ClanInfo
+        member_count = ClanMemberInfo.query.filter_by(is_deleted=False).count()
+        clan_count = ClanInfo.query.count()
+        data_logger.info(f'Database state: {clan_count} clans, {member_count} active members')
+        data_logger.info('=== STARTUP COMPLETE ===')
+        data_logger.info('')
         if not User.query.filter_by(username=Config.ADMIN_USER).first():
             admin = User(
                 username=Config.ADMIN_USER,

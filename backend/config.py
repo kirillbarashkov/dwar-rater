@@ -1,9 +1,14 @@
 import os
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-me')
-    DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///dwar_rater.db')
+    
+    _default_db_path = os.path.join(BASE_DIR, 'backend', 'instance', 'dwar_rater.db')
+    _db_url = _default_db_path.replace('\\', '/')
+    DATABASE_URL = os.environ.get('DATABASE_URL', f'sqlite:///{_db_url}')
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useCharacterAnalysis } from './hooks/useCharacterAnalysis';
 import { Header } from './components/layout/Header';
@@ -22,10 +22,13 @@ import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
 import { ScenarioComparison } from './components/analysis/ScenarioComparison';
 import { ImprovementTrackPanel } from './components/analysis/ImprovementTrack';
 import { CharacterComparison } from './components/analysis/CharacterComparison';
+import { CompareListManager } from './components/clan/CompareListManager';
 import { ClanChat } from './components/chat/ClanChat';
 import { ClanOverview } from './components/clan/ClanOverview';
 import { ClanMembersTable } from './components/clan/ClanMembersTable';
-import { ClanHierarchy } from './components/clan/ClanHierarchy';
+import { TreasuryTab } from './components/clan/TreasuryTab';
+import { TreasuryImport } from './components/clan/TreasuryImport';
+import { TreasuryAnalytics } from './components/clan/TreasuryAnalytics';
 import { saveSnapshot } from './api/snapshots';
 import { addCompareCharacter } from './api/compare';
 import type { AnalysisResult } from './types/character';
@@ -93,12 +96,13 @@ function AnalysisResultDisplay({
   activeTab: string;
   onLoadSnapshot: (data: Snapshot & Record<string, unknown>) => void;
 }) {
-  if (activeTab === 'history' || activeTab === 'compare') {
+  if (activeTab === 'history' || activeTab === 'compare' || activeTab === 'compare-list') {
     return (
       <div className="analysis-result">
         <div className="tab-panels">
           {activeTab === 'history' && <SnapshotHistory onLoad={onLoadSnapshot} />}
           {activeTab === 'compare' && <CharacterComparison />}
+          {activeTab === 'compare-list' && <CompareListManager />}
         </div>
       </div>
     );
@@ -129,25 +133,61 @@ function HomePage() {
   const [snapshotName, setSnapshotName] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('stats');
-const [searchParams] = useSearchParams();
-  
-
-  const handleTabChange = (_groupKey: string, tabKey: string) => {
-    setActiveTab(tabKey);
-  };
+  const [pendingAnalyzeUrl, setPendingAnalyzeUrl] = useState<string | null>(null);
+  const analyzeTriggered = useRef(false);
+  const sessionChecked = useRef(false);
 
   useEffect(() => {
-    const analyzeUrl = searchParams.get('analyze');
-    if (analyzeUrl) {
-      analyze(decodeURIComponent(analyzeUrl));
+    if (sessionChecked.current) return;
+    sessionChecked.current = true;
+    
+    const urlFromSession = sessionStorage.getItem('pending_analyze');
+    if (urlFromSession) {
+      sessionStorage.removeItem('pending_analyze');
+      analyzeTriggered.current = true;
+      setPendingAnalyzeUrl(urlFromSession);
     }
-  }, [searchParams, analyze]);
+  }, []);
+
+  useEffect(() => {
+    if (!pendingAnalyzeUrl || isLoading || result || error) return;
+    
+    const urlToAnalyze = pendingAnalyzeUrl;
+    setPendingAnalyzeUrl(null);
+    analyze(decodeURIComponent(urlToAnalyze));
+  }, [pendingAnalyzeUrl, isLoading, result, error, analyze]);
 
   useEffect(() => {
     if (result) {
       setCurrentResult(result);
       setLastAnalyzed(new Date());
       setActiveTab('stats');
+    }
+  }, [result]);
+
+  const formatSnapshotName = (name: string, date: Date): string => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${name} ${day}.${month}.${year} ${hours}:${minutes}`;
+  };
+
+  const handleTabChange = (_groupKey: string, tabKey: string) => {
+    setActiveTab(tabKey);
+  };
+
+  useEffect(() => {
+    if (result) {
+      setCurrentResult(result);
+      setLastAnalyzed(new Date());
+      setActiveTab('stats');
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('analyze')) {
+        params.delete('analyze');
+        window.history.replaceState({}, '', params.toString() ? `/?${params.toString()}` : '/');
+      }
     }
   }, [result]);
 
@@ -167,7 +207,7 @@ const [searchParams] = useSearchParams();
       });
       setShowSaveModal(false);
       setSnapshotName('');
-} catch {
+    } catch {
       // ignore
     }
   };
@@ -189,24 +229,28 @@ const [searchParams] = useSearchParams();
     <div className="app">
       <Header />
       <div className="app-layout">
-<Sidebar
+        <Sidebar
           activeTab={activeTab}
           onTabChange={handleTabChange}
           chatOpen={chatOpen}
           onToggleChat={handleToggleChat}
         />
-<main className="main-content">
+        <main className="main-content">
           {activeTab !== 'history' && activeTab !== 'track' && activeTab !== 'compare' && (
-          <CharacterPanel
-            character={currentResult || undefined}
-            lastAnalyzed={lastAnalyzed}
-            onAnalyze={(url) => analyze(url)}
-            isLoading={isLoading}
-            onSave={() => setShowSaveModal(true)}
-            onClear={() => { setCurrentResult(null); setLastAnalyzed(null); }}
-            onAddToCompare={handleAddToCompare}
-            defaultExpanded={activeTab === 'stats'}
-          />
+            <CharacterPanel
+              character={currentResult || undefined}
+              lastAnalyzed={lastAnalyzed}
+              onAnalyze={(url) => analyze(url)}
+              isLoading={isLoading}
+              onSave={() => {
+                const defaultName = currentResult?.name || 'Персонаж';
+                setSnapshotName(formatSnapshotName(defaultName, new Date()));
+                setShowSaveModal(true);
+              }}
+              onClear={() => { setCurrentResult(null); setLastAnalyzed(null); }}
+              onAddToCompare={handleAddToCompare}
+              defaultExpanded={activeTab === 'stats'}
+            />
           )}
 
           {isLoading && <LoadingSpinner />}
@@ -222,7 +266,7 @@ const [searchParams] = useSearchParams();
             <AnalysisResultDisplay result={currentResult} activeTab={activeTab} onLoadSnapshot={handleLoadSnapshot} />
           )}
 
-{currentResult && <ScenarioComparison character={currentResult} />}
+          {currentResult && <ScenarioComparison character={currentResult} />}
 
           <Modal
             isOpen={showSaveModal}
@@ -273,7 +317,9 @@ function ClanPageWrapper() {
       switch (activeTab) {
         case 'info': return <ClanOverview clanId={Number(clanId) || 2315} onSwitchTab={handleSwitchTab} />;
         case 'members': return <ClanMembersTable clanId={Number(clanId) || 2315} />;
-        case 'hierarchy': return <ClanHierarchy clanId={Number(clanId) || 2315} />;
+        case 'treasury': return <TreasuryTab clanId={Number(clanId) || 2315} />;
+        case 'treasury-import': return <TreasuryImport clanId={Number(clanId) || 2315} />;
+        case 'analytics': return <TreasuryAnalytics clanId={Number(clanId) || 2315} />;
       }
     }
     return null;

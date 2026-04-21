@@ -1,34 +1,95 @@
 import { useState } from 'react';
-import type { EquipmentItem } from '../../types/character';
+import type { EquipmentItem, EquipmentByKind } from '../../types/character';
 import './EquipmentTab.css';
 
 interface EquipmentTabProps {
-  equipment: Record<string, EquipmentItem[]>;
-  sets: Record<string, string[]>;
+  equipment?: EquipmentByKind;
+  sets?: Record<string, string[]>;
 }
 
-interface EquipSection {
+interface SubCategory {
   key: string;
   label: string;
   kinds: string[];
-  priority: number;
-  icon: string;
 }
 
-const EQUIP_SECTIONS: EquipSection[] = [
-  { key: 'armor', label: 'Доспехи', kinds: ['Кираса', 'Кольчуга', 'Шлем', 'Наплечники', 'Наручи', 'Поножи', 'Обувь'], priority: 1, icon: '🛡️' },
-  { key: 'weapon', label: 'Оружие', kinds: ['Основное', 'Двуручное', 'Лук', 'Легкий щит'], priority: 2, icon: '⚔️' },
-  { key: 'runes', label: 'Руны', kinds: ['Руна'], priority: 3, icon: '✨' },
-  { key: 'frames', label: 'Оправы', kinds: ['Оправа'], priority: 4, icon: '💎' },
-  { key: 'enhance', label: 'Заточка', kinds: ['Усиление'], priority: 5, icon: '⚡' },
-  { key: 'style', label: 'Доспехи стиля', kinds: ['Вещи стиля'], priority: 6, icon: '🎭' },
-  { key: 'lacquers', label: 'Лаки', kinds: ['Лак'], priority: 7, icon: '🧴' },
-  { key: 'banner', label: 'Стяг', kinds: ['Знамя'], priority: 8, icon: '🚩' },
-  { key: 'jewelry', label: 'Ювелирка', kinds: ['Кольца', 'Амулет', 'Медальон', 'Браслет'], priority: 9, icon: '💍' },
-  { key: 'legendary', label: 'Легендарные вещи', kinds: ['Легендарный'], priority: 10, icon: '🌟' },
-  { key: 'symbols', label: 'Символы', kinds: ['Магический символ', 'Символ'], priority: 11, icon: '🔯' },
-  { key: 'arkats', label: 'Аркаты', kinds: ['Аркат'], priority: 12, icon: '💠' },
-  { key: 'misc', label: 'Разное', kinds: [], priority: 99, icon: '📦' },
+interface EquipCategory {
+  key: string;
+  label: string;
+  icon: string;
+  priority: number;
+  subCategories: SubCategory[];
+}
+
+const EQUIP_CATEGORIES: EquipCategory[] = [
+  {
+    key: 'combat',
+    label: 'Боевая экипировка',
+    icon: '🛡️',
+    priority: 1,
+    subCategories: [
+      { key: 'combat_helmet', label: 'Шлем', kinds: ['Шлем'] },
+      { key: 'combat_bracers', label: 'Наручи', kinds: ['Наручи'] },
+      { key: 'combat_shoulders', label: 'Наплечники', kinds: ['Наплечники'] },
+      { key: 'combat_weapon', label: 'Оружие', kinds: ['Двуручное', 'Основное', 'Левая рука', 'Легкий щит'] },
+      { key: 'combat_cuirass', label: 'Кираса', kinds: ['Кираса'] },
+      { key: 'combat_greaves', label: 'Поножи', kinds: ['Поножи'] },
+      { key: 'combat_chainmail', label: 'Кольчуга', kinds: ['Кольчуга'] },
+      { key: 'combat_boots', label: 'Обувь', kinds: ['Обувь'] },
+      { key: 'combat_bow', label: 'Лук', kinds: ['Лук'] },
+    ],
+  },
+  {
+    key: 'style',
+    label: 'Вещи стиля',
+    icon: '🎭',
+    priority: 2,
+    subCategories: [
+      { key: 'style_helmet', label: 'Шлем', kinds: ['Шлем'] },
+      { key: 'style_bracers', label: 'Наручи', kinds: ['Наручи'] },
+      { key: 'style_shoulders', label: 'Наплечники', kinds: ['Наплечники'] },
+      { key: 'style_weapon', label: 'Оружие', kinds: ['Оружие'] },
+      { key: 'style_cuirass', label: 'Кираса', kinds: ['Кираса'] },
+      { key: 'style_greaves', label: 'Поножи', kinds: ['Поножи'] },
+      { key: 'style_chainmail', label: 'Кольчуга', kinds: ['Кольчуга'] },
+      { key: 'style_boots', label: 'Обувь', kinds: ['Обувь'] },
+      { key: 'style_bow', label: 'Лук', kinds: ['Лук'] },
+      { key: 'style_effects', label: 'Эффекты', kinds: ['Эффекты'] },
+      { key: 'style_rings', label: 'Кольца', kinds: ['Кольца'] },
+      { key: 'style_amulets', label: 'Амулеты', kinds: ['Амулеты'] },
+    ],
+  },
+  {
+    key: 'jewelry',
+    label: 'Ювелирка',
+    icon: '💍',
+    priority: 3,
+    subCategories: [
+      { key: 'jewelry_rings', label: 'Кольца', kinds: ['Кольца'] },
+      { key: 'jewelry_amulets', label: 'Амулеты', kinds: ['Амулеты'] },
+    ],
+  },
+  {
+    key: 'arkats',
+    label: 'Аркаты',
+    icon: '💠',
+    priority: 4,
+    subCategories: [
+      { key: 'arkats_bracelet', label: 'Браслет', kinds: ['Браслет'] },
+      { key: 'arkats_arkat', label: 'Аркаты', kinds: ['Аркат'] },
+    ],
+  },
+  {
+    key: 'misc',
+    label: 'Разное',
+    icon: '📦',
+    priority: 5,
+    subCategories: [
+      { key: 'misc_backpack', label: 'Рюкзак', kinds: ['Рюкзак'] },
+      { key: 'misc_belt', label: 'Пояс', kinds: ['Пояс'] },
+      { key: 'misc_craft_bag', label: 'Ремесленная сумка', kinds: ['Ремесленная сумка'] },
+    ],
+  },
 ];
 
 function ItemCard({ item }: { item: EquipmentItem }) {
@@ -44,35 +105,29 @@ function ItemCard({ item }: { item: EquipmentItem }) {
         <span className="item-durability">{item.durability}</span>
         {item.set && <span className="item-set">Сет: {item.set}</span>}
       </div>
-      {(item.rune || item.rune2 || item.runicSetting || item.plate || item.lacquer || item.enhancement) && (
-        <div className="item-enhancements">
-          {item.rune && <span className="enhance-tag">Руна: {item.rune}</span>}
-          {item.rune2 && <span className="enhance-tag">Руна 2: {item.rune2}</span>}
-          {item.runicSetting && <span className="enhance-tag">Оправа: {item.runicSetting}</span>}
-          {item.plate && <span className="enhance-tag">Пластина: {item.plate}</span>}
-          {item.lacquer && <span className="enhance-tag">Лак: {item.lacquer}</span>}
-          {item.enhancement && <span className="enhance-tag">Усиление: {item.enhancement}</span>}
-        </div>
-      )}
-      {item.symbols && item.symbols.length > 0 && (
-        <div className="item-symbols">
-          <span className="symbol-label">Символы:</span>
-          {item.symbols.map((s, i) => (
-            <span key={i} className="symbol-tag">{s}</span>
-          ))}
-        </div>
-      )}
       {item.skills.length > 0 && (
         <div className="item-skills">
           {item.skills.map((s, i) => (
-            <span key={i} className="skill-tag">{s.title}: {s.value}</span>
+            <span
+              key={i}
+              className="skill-tag"
+              style={s.color ? { color: s.color, borderColor: s.color } : undefined}
+            >
+              {s.title}: {s.value}
+            </span>
           ))}
         </div>
       )}
       {item.enchants.length > 0 && (
         <div className="item-enchants">
           {item.enchants.map((e, i) => (
-            <span key={i} className="enchant-tag">{e.type}: {e.value}</span>
+            <span
+              key={i}
+              className="enchant-tag"
+              style={e.color ? { color: e.color, borderColor: e.color } : undefined}
+            >
+              {e.type}: {e.value}
+            </span>
           ))}
         </div>
       )}
@@ -80,106 +135,149 @@ function ItemCard({ item }: { item: EquipmentItem }) {
   );
 }
 
-function mapToSections(equipment: Record<string, EquipmentItem[]>): Map<EquipSection, EquipmentItem[]> {
-  const result = new Map<EquipSection, EquipmentItem[]>();
-  const misc: EquipmentItem[] = [];
-  
-  for (const section of EQUIP_SECTIONS) {
-    const sectionItems: EquipmentItem[] = [];
-    for (const kind of section.kinds) {
-      if (equipment[kind]) {
-        sectionItems.push(...equipment[kind]);
+interface CategoryData {
+  category: EquipCategory;
+  itemsBySubCategory: Map<SubCategory, EquipmentItem[]>;
+  totalCount: number;
+}
+
+function mapCategories(equipment: EquipmentByKind | undefined): CategoryData[] {
+  const results: CategoryData[] = [];
+
+  for (const category of EQUIP_CATEGORIES) {
+    const itemsBySubCategory = new Map<SubCategory, EquipmentItem[]>();
+    let totalCount = 0;
+
+    for (const subCat of category.subCategories) {
+      const subItems: EquipmentItem[] = [];
+
+      if (category.key === 'style') {
+        const styleItems = equipment?.['Вещи стиля'];
+        if (styleItems && typeof styleItems === 'object' && !Array.isArray(styleItems)) {
+          for (const kind of subCat.kinds) {
+            const kindItems = styleItems[kind];
+            if (Array.isArray(kindItems)) {
+              subItems.push(...kindItems);
+            }
+          }
+        }
+      } else {
+        for (const kind of subCat.kinds) {
+          const items = equipment?.[kind];
+          if (Array.isArray(items)) {
+            subItems.push(...items);
+          }
+        }
       }
+
+      itemsBySubCategory.set(subCat, subItems);
+      totalCount += subItems.length;
     }
-    if (sectionItems.length > 0) {
-      result.set(section, sectionItems);
-    }
+
+    results.push({ category, itemsBySubCategory, totalCount });
   }
-  
-  for (const [kind, items] of Object.entries(equipment)) {
-    if (!EQUIP_SECTIONS.some(s => s.kinds.includes(kind))) {
-      misc.push(...items);
-    }
-  }
-  
-  if (misc.length > 0) {
-    const miscSection = EQUIP_SECTIONS.find(s => s.key === 'misc')!;
-    result.set(miscSection, misc);
-  }
-  
-  return result;
+
+  return results.sort((a, b) => a.category.priority - b.category.priority);
 }
 
 export function EquipmentTab({ equipment, sets }: EquipmentTabProps) {
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  
-  const sectioned = mapToSections(equipment);
-  const sortedSections = Array.from(sectioned.keys()).sort((a, b) => a.priority - b.priority);
-  
-  const toggleCollapse = (key: string) => {
-    setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-  
-  const toggleExpand = (key: string) => {
-    setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+  const categories = mapCategories(equipment);
+  const [activeCategory, setActiveCategory] = useState<string>('combat');
+  const [activeSubFilters, setActiveSubFilters] = useState<Record<string, string>>({});
 
-  if (sortedSections.length === 0) {
+  const hasAnyItems = categories.some(c => c.totalCount > 0);
+  if (!hasAnyItems && Object.keys(equipment || {}).length === 0) {
     return <p className="tab-placeholder">Экипировка не найдена</p>;
   }
+
+  const activeCatData = categories.find(c => c.category.key === activeCategory);
+  if (!activeCatData) {
+    return <p className="tab-placeholder">Ошибка загрузки данных</p>;
+  }
+
+  const toggleSubFilter = (catKey: string, subKey: string) => {
+    setActiveSubFilters(prev => {
+      if (prev[catKey] === subKey) {
+        const newFilters = { ...prev };
+        delete newFilters[catKey];
+        return newFilters;
+      }
+      return { ...prev, [catKey]: subKey };
+    });
+  };
+
+  const getFilteredItems = () => {
+    const activeSubFilter = activeSubFilters[activeCategory];
+    if (!activeSubFilter) {
+      return Array.from(activeCatData.itemsBySubCategory.values()).flat();
+    }
+    const subCat = activeCatData.category.subCategories.find(s => s.key === activeSubFilter);
+    if (!subCat) return [];
+    return activeCatData.itemsBySubCategory.get(subCat) || [];
+  };
+
+  const filteredItems = getFilteredItems();
 
   return (
     <div className="equipment-tab">
       <div className="equip-summary">
-        {sortedSections.map((section) => {
-          const items = sectioned.get(section)!;
-          const isCollapsed = collapsed[section.key];
-          return (
-            <div key={section.key} className="equip-summary-item" onClick={() => toggleCollapse(section.key)}>
-              <span className="equip-summary-icon">{section.icon}</span>
-              <span className="equip-summary-label">{section.label}</span>
-              <span className="equip-summary-count">{items.length}</span>
-              <span className="equip-summary-chevron">{isCollapsed ? '▶' : '▼'}</span>
-            </div>
-          );
-        })}
-      </div>
-      
-      {sortedSections.map((section) => {
-        const items = sectioned.get(section)!;
-        const isCollapsed = collapsed[section.key];
-        const isExpanded = expanded[section.key];
-        const showAll = isExpanded || items.length <= 6;
-        const displayItems = showAll ? items : items.slice(0, 6);
-        
-        return (
-          <div key={section.key} className={`equip-section ${isCollapsed ? 'collapsed' : ''}`}>
-            <div className="equip-section-header" onClick={() => toggleCollapse(section.key)}>
-              <span className="equip-section-icon">{section.icon}</span>
-              <h3 className="equip-section-title">{section.label}</h3>
-              <span className="equip-section-count">{items.length}</span>
-            </div>
-            {!isCollapsed && (
-              <div className="equip-grid">
-                {displayItems.map((item, i) => (
-                  <ItemCard key={i} item={item} />
-                ))}
-              </div>
-            )}
-            {!isCollapsed && items.length > 6 && (
-              <button className="equip-show-more" onClick={() => toggleExpand(section.key)}>
-                {isExpanded ? 'Свернуть' : `Показать еще ${items.length - 6}...`}
-              </button>
-            )}
+        {categories.map(({ category, totalCount }) => (
+          <div
+            key={category.key}
+            className={`equip-summary-item ${activeCategory === category.key ? 'active' : ''}`}
+            onClick={() => setActiveCategory(category.key)}
+          >
+            <span className="equip-summary-icon">{category.icon}</span>
+            <span className="equip-summary-label">{category.label}</span>
+            <span className="equip-summary-count">{totalCount}</span>
           </div>
-        );
-      })}
-      
-      {Object.keys(sets).length > 0 && (
+        ))}
+      </div>
+
+      <div className="equip-active-category">
+        <div className="equip-category-header">
+          <span className="equip-category-icon">{activeCatData.category.icon}</span>
+          <h2 className="equip-category-title">{activeCatData.category.label}</h2>
+          <span className="equip-category-count">{activeCatData.totalCount}</span>
+        </div>
+
+        <div className="equip-subfilters">
+          <button
+            className={`equip-subfilter-chip ${!activeSubFilters[activeCategory] ? 'active' : ''}`}
+            onClick={() => toggleSubFilter(activeCategory, '')}
+          >
+            Все ({activeCatData.totalCount})
+          </button>
+          {activeCatData.category.subCategories.map(subCat => {
+            const subItems = activeCatData.itemsBySubCategory.get(subCat) || [];
+            const isActive = activeSubFilters[activeCategory] === subCat.key;
+            return (
+              <button
+                key={subCat.key}
+                className={`equip-subfilter-chip ${isActive ? 'active' : ''} ${subItems.length === 0 ? 'empty' : ''}`}
+                onClick={() => subItems.length > 0 && toggleSubFilter(activeCategory, subCat.key)}
+                disabled={subItems.length === 0}
+              >
+                {subCat.label} ({subItems.length})
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="equip-grid">
+          {filteredItems.map((item, i) => (
+            <ItemCard key={i} item={item} />
+          ))}
+          {filteredItems.length === 0 && (
+            <p className="equip-empty">Нет предметов в этой категории</p>
+          )}
+        </div>
+      </div>
+
+      {Object.keys(sets || {}).length > 0 && (
         <div className="sets-section">
           <h3 className="equip-section-title">Сетовые бонусы</h3>
-          {Object.entries(sets).map(([setName, items]) => (
+          {Object.entries(sets || {}).map(([setName, items]) => (
             <div key={setName} className="set-item">
               <span className="set-name">{setName}</span>
               <span className="set-items">{items.join(', ')}</span>

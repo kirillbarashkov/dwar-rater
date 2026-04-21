@@ -2,8 +2,8 @@ import type { Effect } from '../../types/character';
 import './EffectsTab.css';
 
 interface EffectsTabProps {
-  tempEffects: Effect[];
-  permanentEffects: Effect[];
+  tempEffects?: Effect[];
+  permanentEffects?: Effect[];
 }
 
 function EffectCard({ effect }: { effect: Effect }) {
@@ -40,22 +40,22 @@ export function EffectsTab({ tempEffects, permanentEffects }: EffectsTabProps) {
 
   return (
     <div className="effects-tab">
-      {permanentEffects.length > 0 && (
+      {(permanentEffects?.length ?? 0) > 0 && (
         <div className="effects-section">
           <h3 className="effects-section-title">Постоянные эффекты</h3>
           <div className="effects-grid">
-            {permanentEffects.map((eff, i) => (
+            {permanentEffects!.map((eff, i) => (
               <EffectCard key={`perm-${i}`} effect={{ ...eff, category: 'other' }} />
             ))}
           </div>
         </div>
       )}
 
-      {tempEffects.length > 0 && (
+      {(tempEffects?.length ?? 0) > 0 && (
         <div className="effects-section">
           <h3 className="effects-section-title">Временные эффекты</h3>
           {categories.map(({ key, label }) => {
-            const items = tempEffects.filter((e) => e.category === key);
+            const items = (tempEffects ?? []).filter((e) => e.category === key);
             if (items.length === 0) return null;
             return (
               <div key={key} className="effect-category">
@@ -71,7 +71,7 @@ export function EffectsTab({ tempEffects, permanentEffects }: EffectsTabProps) {
         </div>
       )}
 
-      {tempEffects.length === 0 && permanentEffects.length === 0 && (
+      {(tempEffects || []).length === 0 && (permanentEffects || []).length === 0 && (
         <p className="tab-placeholder">Эффекты не найдены</p>
       )}
     </div>

@@ -15,6 +15,7 @@ analyze_bp = Blueprint('analyze', __name__)
 def analyze():
     data = request.json
     url = data.get('url', '').strip()
+    force_refresh = data.get('force_refresh', False)
 
     valid, error = validate_dwar_url(url)
     if not valid:
@@ -29,7 +30,7 @@ def analyze():
         nick = parse_qs(urlparse(url).query).get('nick', [''])[0]
 
     cached = get_cached_character(nick)
-    if cached:
+    if cached and not force_refresh:
         user_id = g.current_user.id if g.current_user else None
         log_analysis(user_id, nick, url)
         return jsonify(process_character(cached))

@@ -7,11 +7,13 @@ export interface QualityInfo {
 export interface Skill {
   title: string;
   value: string;
+  color?: string;
 }
 
 export interface Enchant {
   type: string;
   value: string;
+  color?: string;
 }
 
 export interface EquipmentItem {
@@ -32,6 +34,14 @@ export interface EquipmentItem {
   enhancement: string;
   symbols: string[];
   other: string;
+}
+
+export interface StyleEquipmentByKind {
+  [subKind: string]: EquipmentItem[];
+}
+
+export interface EquipmentByKind {
+  [kind: string]: EquipmentItem[] | StyleEquipmentByKind;
 }
 
 export interface Medal {
@@ -68,13 +78,35 @@ export interface CharacterStats {
   mana: string;
 }
 
+export interface FlashvarsExtra {
+  hp: string;
+  hpMax: string;
+  mp: string;
+  mpMax: string;
+  gender: string;
+  online: string;
+  mount: string;
+  tTown: string;
+  tLocation: string;
+}
+
+export interface PersonalInfo {
+  'Имя'?: string;
+  'Обитает в мире Фэо'?: string;
+  'День рождения'?: string;
+  'О себе'?: string;
+  [key: string]: string | undefined;
+}
+
 export interface AnalysisResult {
   profile_closed?: boolean;
   name: string;
   race: string;
   rank: string;
+  level: string;
   clan: string;
   clan_rank: string;
+  clan_id: string;
   wins: string;
   losses: string;
   winrate: number;
@@ -91,13 +123,15 @@ export interface AnalysisResult {
   };
   combat_records: Record<string, string>;
   professions: Record<string, string>;
-  equipment_by_kind: Record<string, EquipmentItem[]>;
+  equipment_by_kind: EquipmentByKind;
   sets: Record<string, string[]>;
   medals: Medal[];
   permanent_effects: Effect[];
   temp_effects: Effect[];
   manor_location: string;
   manor_buildings: string[];
+  flashvars_extra?: FlashvarsExtra;
+  personal_info?: PersonalInfo;
   closed_info?: {
     level: string;
     rank: string;

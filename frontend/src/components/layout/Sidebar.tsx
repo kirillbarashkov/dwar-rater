@@ -28,7 +28,9 @@ const navGroups: TabGroup[] = [
   { key: 'clan', label: 'Клан', icon: '🛡️', children: [
     { key: 'info', label: 'Информация', icon: '🛡️' },
     { key: 'members', label: 'Состав', icon: '👥' },
-    { key: 'hierarchy', label: 'Иерархия', icon: '⚖️' },
+    { key: 'treasury', label: 'Казна', icon: '💰' },
+    { key: 'analytics', label: 'Аналитика', icon: '📊' },
+    { key: 'treasury-import', label: 'Импорт / Экспорт', icon: '📥' },
   ]},
   { key: 'analysis', label: 'Анализ персонажа', icon: '📊', children: [
     { key: 'stats', label: 'Характеристики', icon: '📊' },
@@ -41,6 +43,7 @@ const navGroups: TabGroup[] = [
   ]},
   { key: 'track', label: 'Трек улучшений', icon: '📈', children: [
     { key: 'track', label: 'Трек', icon: '📈' },
+    { key: 'compare-list', label: 'Мой список', icon: '📋' },
     { key: 'compare', label: 'Сравнить персонажей', icon: '⚖️' },
   ]},
   { key: 'chat', label: 'Чат', icon: '💬' },

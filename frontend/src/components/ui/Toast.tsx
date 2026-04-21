@@ -9,6 +9,7 @@ interface ToastMessage {
 
 let toastCallback: ((message: string, type: 'success' | 'error' | 'info') => void) | null = null;
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function showToast(message: string, type: 'success' | 'error' | 'info' = 'info') {
   if (toastCallback) {
     toastCallback(message, type);

@@ -50,18 +50,31 @@ export interface ClanMemberData {
   join_date: string;
   trial_until: string;
   is_deleted?: boolean;
+  left_date?: string;
+  leave_reason?: string;
 }
 
-export interface ClanHierarchyData {
-  id?: number;
-  role_name: string;
+export interface LeftMemberData {
+  id: number;
+  nick: string;
+  icon?: string;
+  game_rank: string;
   level: number;
-  color: string;
-  icon: string;
-  sort_order: number;
-  can_invite: boolean;
-  can_kick: boolean;
-  can_edit: boolean;
-  can_analyze: boolean;
-  min_level: number;
+  profession: string;
+  profession_level: number;
+  clan_role: string;
+  join_date: string;
+  left_date: string;
+  leave_reason: string;
+}
+
+export interface TreasuryOperationData {
+  id: number;
+  date: string;
+  nick: string;
+  operation_type: string;
+  object_name: string;
+  quantity: number;
+  compensation_flag: boolean;
+  compensation_comment: string;
 }
