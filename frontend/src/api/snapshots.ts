@@ -19,3 +19,8 @@ export async function saveSnapshot(data: SaveSnapshotRequest): Promise<SaveSnaps
   const response = await apiClient.post('/api/save-snapshot', data);
   return response.data;
 }
+
+export async function clearCache(nick?: string): Promise<{ status: string; message: string }> {
+  const response = await apiClient.delete('/api/cache', { params: nick ? { nick } : undefined });
+  return response.data;
+}

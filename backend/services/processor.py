@@ -415,7 +415,7 @@ def process_character(raw_data):
     return {
         'name': raw_data['name'],
         'race': stats.get('Раса', ''),
-        'rank': stats.get('Звание', ''),
+        'rank': raw_data.get('rank', ''),
         'level': level_from_flashvars,
         'clan': clan_name,
         'clan_rank': clan_rank,

@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-import hashlib
+import bcrypt
 from flask import Flask, request, jsonify, abort, g
 from flask import render_template
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 
 from config import Config
 from models import db
@@ -25,7 +25,7 @@ def create_app():
     )
     app.config.from_object(Config)
     
-    cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+    cors = CORS(app, resources={r"/api/*": {"origins": Config.CORS_ORIGINS, "supports_credentials": True}})
 
     db.init_app(app)
 
@@ -58,17 +58,10 @@ def create_app():
         if request.path == '/api/login' or request.path == '/' or request.path.startswith('/static/'):
             return
         if request.method == 'OPTIONS':
-            response = jsonify({'status': 'ok'})
-            response.headers['Access-Control-Allow-Origin'] = '*'
-            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, PUT, OPTIONS'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-            return response
+            return
         if not check_rate_limit(Config.RATE_LIMIT_MAX, Config.RATE_LIMIT_WINDOW):
             response = jsonify({'error': 'Слишком много запросов. Подождите.'})
             response.status_code = 429
-            response.headers['Access-Control-Allow-Origin'] = '*'
-            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, PUT, OPTIONS'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
             return response
         if request.method == 'POST':
             content_type = request.content_type or ''
@@ -77,10 +70,7 @@ def create_app():
 
     @app.after_request
     def after_request(response):
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, PUT, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-        return response
+        return add_security_headers(response)
 
     with app.app_context():
         from services.data_logger import data_logger
@@ -114,7 +104,7 @@ def create_app():
         if not User.query.filter_by(username=Config.ADMIN_USER).first():
             admin = User(
                 username=Config.ADMIN_USER,
-                password_hash=hashlib.sha256(Config.ADMIN_PASS.encode()).hexdigest(),
+                password_hash=bcrypt.hashpw(Config.ADMIN_PASS.encode(), bcrypt.gensalt()).decode('utf-8'),
                 role='admin'
             )
             db.session.add(admin)

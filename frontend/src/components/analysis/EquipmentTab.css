@@ -189,21 +189,46 @@
   color: var(--text-secondary);
 }
 
-.item-skills,
-.item-enchants {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+.item-groups {
   margin-top: 6px;
 }
 
-.skill-tag,
-.enchant-tag {
+.item-group {
+  margin-top: 8px;
+}
+
+.item-group:first-child {
+  margin-top: 0;
+}
+
+.item-group-header {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.item-group-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.item-tag {
   font-size: 0.7rem;
   padding: 2px 6px;
   border-radius: 4px;
   background: var(--bg-secondary);
   color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+
+.item-divider {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 8px;
 }
 
 .sets-section {

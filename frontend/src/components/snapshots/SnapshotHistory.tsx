@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import type { Snapshot } from '../../types/snapshot';
-import { getSnapshots } from '../../api/snapshots';
+import { getSnapshots, clearCache } from '../../api/snapshots';
 import { SnapshotCard } from './SnapshotCard';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { useAuth } from '../../hooks/useAuth';
+import { showToast } from '../ui/Toast';
 import './SnapshotHistory.css';
 
 interface SnapshotHistoryProps {
@@ -12,6 +14,8 @@ interface SnapshotHistoryProps {
 }
 
 export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
@@ -21,6 +25,8 @@ export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showGroupDelete, setShowGroupDelete] = useState(false);
+  const [cacheSelectedNicks, setCacheSelectedNicks] = useState<Set<string>>(new Set());
+  const [isClearingCache, setIsClearingCache] = useState(false);
 
   useEffect(() => {
     if (!hasFetched) {
@@ -128,6 +134,50 @@ export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
     setSelectedIds(new Set());
   };
 
+  const handleToggleCacheNick = (nick: string) => {
+    setCacheSelectedNicks(prev => {
+      const next = new Set(prev);
+      if (next.has(nick)) {
+        next.delete(nick);
+      } else {
+        next.add(nick);
+      }
+      return next;
+    });
+  };
+
+  const handleClearCache = async () => {
+    if (!isAdmin) return;
+    setIsClearingCache(true);
+    try {
+      if (cacheSelectedNicks.size > 0) {
+        let cleared = 0;
+        let notFound = 0;
+        for (const nick of cacheSelectedNicks) {
+          try {
+            const result = await clearCache(nick);
+            if (result.message.includes('не найден')) {
+              notFound++;
+            } else {
+              cleared++;
+            }
+          } catch {
+            notFound++;
+          }
+        }
+        showToast(`Очищено: ${cleared}, не найдено: ${notFound}`, 'success');
+      } else {
+        const result = await clearCache();
+        showToast(result.message, 'success');
+      }
+      setCacheSelectedNicks(new Set());
+    } catch {
+      showToast('Ошибка при очистке кэша', 'error');
+    } finally {
+      setIsClearingCache(false);
+    }
+  };
+
   if (!hasFetched) {
     return (
       <div className="snapshot-history">
@@ -138,78 +188,132 @@ export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
     );
   }
 
+  const uniqueNicks = Array.from(new Set(snapshots.map(s => s.nick)));
+
   return (
     <div className="snapshot-history">
-      <div className="sh-header">
-        <form className="sh-search" onSubmit={handleSearch}>
-          <input
-            type="text"
-            className="sh-search-input"
-            placeholder="Поиск по нику..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <button type="submit" className="btn btn-secondary btn-sm">Найти</button>
-        </form>
-        <div className="sh-actions">
-          <label className="sh-select-all-label">
-            <input
-              type="checkbox"
-              checked={selectedIds.size === snapshots.length && snapshots.length > 0}
-              onChange={handleSelectAll}
-            />
-            Выбрать все
-          </label>
-          <Button variant="ghost" size="small" onClick={handleGroupDeleteClick} disabled={selectedIds.size === 0}>
-            Удалить выбранные ({selectedIds.size})
-          </Button>
-          <Button variant="danger" size="small" onClick={() => setDeleteId(-1)}>
-            Удалить все
-          </Button>
-        </div>
-      </div>
-
-      {isLoading && <LoadingSpinner />}
-
-      {!isLoading && snapshots.length === 0 && (
-        <p className="sh-empty">Слепки не найдены</p>
-      )}
-
-      {!isLoading && snapshots.length > 0 && (
-        <>
-          <div className="sh-list">
-            {snapshots.map((s) => (
-              <SnapshotCard
-                key={s.id}
-                snapshot={s}
-                onLoad={handleLoad}
-                onDelete={handleDeleteClick}
-                selected={selectedIds.has(s.id)}
-                onSelect={handleToggleSelect}
-              />
-            ))}
+      {isAdmin && (
+        <div className="sh-section">
+          <h3 className="sh-section-title">Управление кэшем</h3>
+          <div className="sh-section-description">
+            <p>
+              Кэш персонажей хранит последние спаршенные данные в течение 1 часа.
+              Очистка кэша заставит приложение загрузить свежие данные с сервера dwar.ru при следующем анализе.
+            </p>
           </div>
-          {totalPages > 1 && (
-            <div className="sh-pagination">
-              <button
-                className="btn btn-ghost btn-sm"
-                disabled={page === 1}
-                onClick={() => { setPage(p => p - 1); loadSnapshots(page - 1, search); }}
-              >
-                Назад
-              </button>
-              <span className="sh-page-info">{page} / {totalPages}</span>
-              <button
-                className="btn btn-ghost btn-sm"
-                disabled={page === totalPages}
-                onClick={() => { setPage(p => p + 1); loadSnapshots(page + 1, search); }}
-              >
-                Вперёд
-              </button>
+
+          <div className="sh-cache-block">
+            <div className="sh-cache-instructions">
+              Выберите персонажей для очистки кэша или оставьте пустым для очистки всего кэша:
             </div>
-          )}
-        </>
+            <div className="sh-cache-nick-list">
+              {uniqueNicks.map(nick => (
+                <label key={nick} className="sh-cache-nick-item">
+                  <input
+                    type="checkbox"
+                    checked={cacheSelectedNicks.has(nick)}
+                    onChange={() => handleToggleCacheNick(nick)}
+                  />
+                  <span>{nick}</span>
+                </label>
+              ))}
+            </div>
+            <div className="sh-cache-actions">
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={handleClearCache}
+                disabled={isClearingCache}
+              >
+                {isClearingCache ? 'Очистка...' : `Очистить кэш${cacheSelectedNicks.size > 0 ? ` (${cacheSelectedNicks.size})` : ' (весь)'}`}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
+
+      <div className="sh-divider" />
+
+      <div className="sh-section">
+        <h3 className="sh-section-title">История слепков</h3>
+        <div className="sh-section-description">
+          <p>
+            Слепки — это сохранённые результаты анализа персонажей.
+            Они хранятся в базе данных и не зависят от кэша.
+          </p>
+        </div>
+
+        <div className="sh-header">
+          <form className="sh-search" onSubmit={handleSearch}>
+            <input
+              type="text"
+              className="sh-search-input"
+              placeholder="Поиск по нику..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button type="submit" className="btn btn-secondary btn-sm">Найти</button>
+          </form>
+          <div className="sh-actions">
+            <label className="sh-select-all-label">
+              <input
+                type="checkbox"
+                checked={selectedIds.size === snapshots.length && snapshots.length > 0}
+                onChange={handleSelectAll}
+              />
+              Выбрать все
+            </label>
+            <Button variant="ghost" size="small" onClick={handleGroupDeleteClick} disabled={selectedIds.size === 0}>
+              Удалить выбранные ({selectedIds.size})
+            </Button>
+            <Button variant="danger" size="small" onClick={() => setDeleteId(-1)}>
+              Удалить все
+            </Button>
+          </div>
+        </div>
+
+        {isLoading && <LoadingSpinner />}
+
+        {!isLoading && snapshots.length === 0 && (
+          <p className="sh-empty">Слепки не найдены</p>
+        )}
+
+        {!isLoading && snapshots.length > 0 && (
+          <>
+            <div className="sh-list">
+              {snapshots.map((s) => (
+                <SnapshotCard
+                  key={s.id}
+                  snapshot={s}
+                  onLoad={handleLoad}
+                  onDelete={handleDeleteClick}
+                  selected={selectedIds.has(s.id)}
+                  onSelect={handleToggleSelect}
+                />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="sh-pagination">
+                <button
+                  className="btn btn-ghost btn-sm"
+                  disabled={page === 1}
+                  onClick={() => { setPage(p => p - 1); loadSnapshots(page - 1, search); }}
+                >
+                  Назад
+                </button>
+                <span className="sh-page-info">{page} / {totalPages}</span>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  disabled={page === totalPages}
+                  onClick={() => { setPage(p => p + 1); loadSnapshots(page + 1, search); }}
+                >
+                  Вперёд
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <Modal
         isOpen={deleteId !== null}
@@ -218,8 +322,8 @@ export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
       >
         <div className="modal-delete-confirm">
           <p>
-            {deleteId === -1 
-              ? 'Вы уверены, что хотите удалить ВСЕ слепки? Это действие нельзя отменить.' 
+            {deleteId === -1
+              ? 'Вы уверены, что хотите удалить ВСЕ слепки? Это действие нельзя отменить.'
               : 'Вы уверены, что хотите удалить этот слепок?'}
           </p>
           <div className="modal-delete-actions">

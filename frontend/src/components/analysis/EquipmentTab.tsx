@@ -66,7 +66,7 @@ const EQUIP_CATEGORIES: EquipCategory[] = [
     priority: 3,
     subCategories: [
       { key: 'jewelry_rings', label: 'Кольца', kinds: ['Кольца'] },
-      { key: 'jewelry_amulets', label: 'Амулеты', kinds: ['Амулеты'] },
+      { key: 'jewelry_amulets', label: 'Амулет', kinds: ['Амулет'] },
     ],
   },
   {
@@ -76,7 +76,7 @@ const EQUIP_CATEGORIES: EquipCategory[] = [
     priority: 4,
     subCategories: [
       { key: 'arkats_bracelet', label: 'Браслет', kinds: ['Браслет'] },
-      { key: 'arkats_arkat', label: 'Аркаты', kinds: ['Аркат'] },
+      { key: 'arkats_arkat', label: 'Аркат', kinds: ['Аркат'] },
     ],
   },
   {
@@ -93,6 +93,23 @@ const EQUIP_CATEGORIES: EquipCategory[] = [
 ];
 
 function ItemCard({ item }: { item: EquipmentItem }) {
+  const skills = item.skills.map(s => ({ value: `${s.title}: ${s.value}`, color: s.color }));
+  const runes = item.enchants.filter(e => e.type === 'Руна' || e.type === 'Руна 2').map(e => ({ value: e.value, color: e.color }));
+  const frames = item.enchants.filter(e => e.type === 'Оправа').map(e => ({ value: e.value, color: e.color }));
+  const lacquers = item.enchants.filter(e => e.type === 'Лак').map(e => ({ value: e.value, color: e.color }));
+  const enhancements = item.enchants.filter(e => e.type === 'Усиление').map(e => ({ value: e.value, color: e.color }));
+  const builtins = item.enchants.filter(e => e.type === 'Встроено').map(e => ({ value: e.value, color: e.color }));
+  const symbols = item.enchants.filter(e => e.type.startsWith('Символ')).map(e => ({ value: e.value, color: e.color }));
+
+  const groups = [
+    { title: 'ХАРАКТЕРИСТИКИ', items: skills },
+    { title: 'РУНА', items: runes },
+    { title: 'ОПРАВА', items: frames },
+    { title: 'УСИЛЕНИЯ', items: lacquers },
+    { title: 'СИМВОЛЫ', items: symbols },
+    { title: 'ВСТРОЙКИ', items: builtins },
+  ].filter(g => g.items.length > 0);
+
   return (
     <div className="item-card">
       <div className="item-header">
@@ -105,29 +122,24 @@ function ItemCard({ item }: { item: EquipmentItem }) {
         <span className="item-durability">{item.durability}</span>
         {item.set && <span className="item-set">Сет: {item.set}</span>}
       </div>
-      {item.skills.length > 0 && (
-        <div className="item-skills">
-          {item.skills.map((s, i) => (
-            <span
-              key={i}
-              className="skill-tag"
-              style={s.color ? { color: s.color, borderColor: s.color } : undefined}
-            >
-              {s.title}: {s.value}
-            </span>
-          ))}
-        </div>
-      )}
-      {item.enchants.length > 0 && (
-        <div className="item-enchants">
-          {item.enchants.map((e, i) => (
-            <span
-              key={i}
-              className="enchant-tag"
-              style={e.color ? { color: e.color, borderColor: e.color } : undefined}
-            >
-              {e.type}: {e.value}
-            </span>
+      {groups.length > 0 && (
+        <div className="item-groups">
+          {groups.map((group, idx) => (
+            <div key={group.title} className="item-group">
+              {idx > 0 && <div className="item-divider" />}
+              <div className="item-group-header">{group.title}</div>
+              <div className="item-group-content">
+                {group.items.map((item, i) => (
+                  <span
+                    key={i}
+                    className="item-tag"
+                    style={item.color ? { color: item.color, borderColor: item.color } : undefined}
+                  >
+                    {item.value}
+                  </span>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

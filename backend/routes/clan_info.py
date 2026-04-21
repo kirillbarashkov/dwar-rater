@@ -11,6 +11,7 @@ clan_info_bp = Blueprint('clan_info', __name__)
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/info', methods=['GET'])
+@require_auth
 def get_clan_info(clan_id):
     cached = ClanInfo.query.filter_by(clan_id=clan_id).first()
 
@@ -80,6 +81,7 @@ def get_clan_info(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/info', methods=['PUT'])
+@require_auth
 def update_clan_info(clan_id):
     cached = ClanInfo.query.filter_by(clan_id=clan_id).first()
     if not cached:
@@ -145,6 +147,7 @@ def update_clan_info(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members', methods=['GET'])
+@require_auth
 def get_clan_members(clan_id):
     members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).all()
     return jsonify([{
@@ -162,6 +165,7 @@ def get_clan_members(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members/left', methods=['GET'])
+@require_auth
 def get_left_members(clan_id):
     members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=True).all()
     return jsonify([{
@@ -180,6 +184,7 @@ def get_left_members(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members', methods=['POST'])
+@require_auth
 def add_clan_member(clan_id):
     data = request.json
     required = ['nick', 'level', 'clan_role']
@@ -344,6 +349,7 @@ def import_clan_members(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members/<int:member_id>', methods=['DELETE'])
+@require_auth
 def delete_clan_member(clan_id, member_id):
     member = ClanMemberInfo.query.filter_by(id=member_id, clan_id=clan_id).first()
     if not member:
@@ -361,6 +367,7 @@ def delete_clan_member(clan_id, member_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members/<int:member_id>', methods=['PUT'])
+@require_auth
 def update_clan_member(clan_id, member_id):
     member = ClanMemberInfo.query.filter_by(id=member_id, clan_id=clan_id).first()
     if not member:
@@ -402,6 +409,7 @@ def update_clan_member(clan_id, member_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/export', methods=['GET'])
+@require_auth
 def export_treasury_operations(clan_id):
     operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).all()
     
@@ -432,6 +440,7 @@ def export_treasury_operations(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/backup', methods=['POST'])
+@require_auth
 def save_treasury_backup(clan_id):
     import os
     from flask import current_app
@@ -480,6 +489,7 @@ def save_treasury_backup(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/backups', methods=['GET'])
+@require_auth
 def list_treasury_backups(clan_id):
     import os
     import glob
@@ -502,6 +512,7 @@ def list_treasury_backups(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/backup/<filename>', methods=['GET'])
+@require_auth
 def get_treasury_backup(clan_id, filename):
     import os
     import re
@@ -581,6 +592,7 @@ def restore_treasury_backup(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury', methods=['GET'])
+@require_auth
 def get_treasury_operations(clan_id):
     operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).all()
     return jsonify([{

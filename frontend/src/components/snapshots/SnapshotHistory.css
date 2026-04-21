@@ -2,10 +2,100 @@
   padding: 12px 0;
 }
 
-.sh-title {
+.sh-section {
+  margin-bottom: 16px;
+}
+
+.sh-section-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sh-section-description {
+  margin-bottom: 16px;
+  font-size: 13px;
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.sh-section-description p {
+  margin: 0;
+}
+
+.sh-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0;
+}
+
+/* Cache clear block */
+.sh-cache-block {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.sh-cache-instructions {
+  font-size: 13px;
+  color: var(--text-secondary);
   margin-bottom: 12px;
+}
+
+.sh-cache-nick-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.sh-cache-nick-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.sh-cache-nick-item:hover {
+  border-color: var(--accent);
+}
+
+.sh-cache-nick-item input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.sh-cache-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Snapshot list */
+.sh-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .sh-search {
@@ -14,13 +104,19 @@
   flex: 1;
 }
 
-.sh-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+.sh-search-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.sh-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .sh-actions {
@@ -62,21 +158,6 @@
   content: '✓';
   color: white;
   font-size: 11px;
-}
-
-.sh-search-input {
-  flex: 1;
-  padding: 8px 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-}
-
-.sh-search-input:focus {
-  outline: none;
-  border-color: var(--accent);
 }
 
 .sh-list {

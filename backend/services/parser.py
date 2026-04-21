@@ -36,7 +36,7 @@ EQUIPMENT_KINDS = {
     'Кольца', 'Амулет', 'Левая рука', 'Правая рука', 'Оправа',
     'Лак', 'Усиление', 'Магический символ', 'Символ', 'Аркат',
     'Знамя', 'Легендарный', 'Вещи стиля', 'Стиль', 'Медальон', 'Браслет',
-    'Эффекты',
+    'Эффекты', 'Рюкзак', 'Пояс', 'Ремесленная сумка',
 }
 
 
@@ -182,6 +182,35 @@ def validate_stats_value(value):
     return 0
 
 
+def _remove_clan_section(html):
+    """Remove clan info <tr> section by finding matching closing </tr> tag."""
+    start_marker = '<tr id="clan_info">'
+    start = html.find(start_marker)
+    if start == -1:
+        return html
+
+    pos = start + len(start_marker)
+    depth = 1
+    while pos < len(html) and depth > 0:
+        next_open = html.find('<tr', pos)
+        next_close = html.find('</tr>', pos)
+
+        if next_close == -1:
+            break
+
+        if next_open != -1 and next_open < next_close:
+            depth += 1
+            pos = next_open + 3
+        else:
+            depth -= 1
+            if depth == 0:
+                end = next_close + 5
+                return html[:start] + html[end:]
+            pos = next_close + 5
+
+    return html
+
+
 def parse_stats_tables(html):
     """
     Parse statistics tables from HTML with data validation
@@ -189,6 +218,9 @@ def parse_stats_tables(html):
     all_stats = {}
 
     try:
+        # Remove clan info section to avoid overwriting character rank with clan rank
+        html = _remove_clan_section(html)
+
         stats_tables = STATS_TABLE_PATTERN.findall(html)
 
         for table_html in stats_tables:

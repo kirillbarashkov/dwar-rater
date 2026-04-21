@@ -1,6 +1,7 @@
 import json
 from flask import Blueprint, request, jsonify, g
 from middleware.auth import require_auth
+from models.character_cache import CharacterCache
 from models.character_snapshot import CharacterSnapshot
 from models import db
 from services.cache_service import create_named_snapshot, log_analysis
@@ -90,3 +91,29 @@ def save_snapshot_endpoint():
         'snapshot_id': snapshot_id,
         'analyzed_at': snapshot.analyzed_at.isoformat() if snapshot else '',
     })
+
+
+@snapshots_bp.route('/api/cache', methods=['DELETE'])
+@require_auth
+def clear_cache():
+    user = g.current_user
+    if user.role != 'admin':
+        return jsonify({'error': 'Доступ запрещён'}), 403
+
+    nick = request.args.get('nick', '').strip()
+
+    try:
+        if nick:
+            cached = CharacterCache.query.filter_by(nick=nick).first()
+            if cached:
+                db.session.delete(cached)
+                db.session.commit()
+                return jsonify({'status': 'ok', 'message': f'Кэш для "{nick}" очищен'})
+            return jsonify({'status': 'ok', 'message': f'Кэш для "{nick}" не найден'})
+        else:
+            count = CharacterCache.query.delete()
+            db.session.commit()
+            return jsonify({'status': 'ok', 'message': f'Очищено записей кэша: {count}'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
