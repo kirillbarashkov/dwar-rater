@@ -38,6 +38,7 @@ def create_app():
     from routes.clans import clans_bp
     from routes.clan_info import clan_info_bp
     from routes.compare import compare_bp
+    from routes.closed_profiles import closed_profiles_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(analyze_bp)
@@ -48,6 +49,7 @@ def create_app():
     app.register_blueprint(clans_bp)
     app.register_blueprint(clan_info_bp)
     app.register_blueprint(compare_bp)
+    app.register_blueprint(closed_profiles_bp)
 
     @app.route('/')
     def index():
@@ -94,6 +96,15 @@ def create_app():
         data_logger.info(f'DATABASE_URL: {Config.DATABASE_URL}')
         
         db.create_all()
+        
+        from sqlalchemy import inspect, text
+        inspector = inspect(db.engine)
+        if 'closed_profiles' in inspector.get_table_names():
+            columns = [col['name'] for col in inspector.get_columns('closed_profiles')]
+            if 'clan' not in columns:
+                db.session.execute(text('ALTER TABLE closed_profiles ADD COLUMN clan VARCHAR(200)'))
+                db.session.commit()
+                data_logger.info('Added clan column to closed_profiles')
         
         from models.clan_info import ClanMemberInfo, ClanInfo
         member_count = ClanMemberInfo.query.filter_by(is_deleted=False).count()

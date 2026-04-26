@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { ClanInfoData } from '../../types/clanInfo';
-import { getClanInfo } from '../../api/clanInfo';
+import type { ClanInfoData, ClanMemberData, ClanStructure } from '../../types/clanInfo';
+import { getClanInfo, updateClanInfo, getClanMembers } from '../../api/clanInfo';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import './ClanOverview.css';
 
@@ -29,15 +29,32 @@ const CLAN_HISTORY = `Держи её, Меллира! Сестрёнка, не�
 
 export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
   const [info, setInfo] = useState<ClanInfoData | null>(null);
+  const [members, setMembers] = useState<ClanMemberData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [editingStructure, setEditingStructure] = useState(false);
+  const [editStructure, setEditStructure] = useState<ClanStructure>({});
+  const [councilSlots, setCouncilSlots] = useState(4);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
-    getClanInfo(clanId)
-      .then(setInfo)
-      .catch(() => setInfo(null))
-      .finally(() => setIsLoading(false));
+    Promise.all([
+      getClanInfo(clanId).catch(() => null),
+      getClanMembers(clanId).catch(() => []),
+    ]).then(([infoData, membersData]) => {
+      setInfo(infoData);
+      setMembers(membersData || []);
+      setIsLoading(false);
+    });
   }, [clanId]);
+
+  useEffect(() => {
+    if (info?.clan_structure) {
+      setEditStructure(JSON.parse(JSON.stringify(info.clan_structure)));
+      setCouncilSlots(info.clan_structure.council_slots || 4);
+    }
+  }, [info]);
 
   if (isLoading) return <LoadingSpinner />;
   if (!info) return <p className="clan-error">Не удалось загрузить информацию о клане</p>;
@@ -47,9 +64,7 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
     : 0;
 
   const handleAnalyze = (nick: string) => {
-    const url = `https://w1.dwar.ru/user_info.php?nick=${encodeURIComponent(nick)}`;
-    sessionStorage.setItem('pending_analyze', url);
-    window.location.href = '/';
+    window.location.href = `/?analyze=${encodeURIComponent(`https://w1.dwar.ru/user_info.php?nick=${encodeURIComponent(nick)}`)}`;
   };
 
   const goToMembers = () => {
@@ -62,6 +77,208 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
   const structure = info.clan_structure || {};
   
   const historyPreview = CLAN_HISTORY.slice(0, 200);
+
+  const activeMembers = members.filter(m => !m.is_deleted);
+
+  const handleSaveStructure = async () => {
+    setIsSaving(true);
+    setSaveError('');
+    try {
+      const structureToSave = {
+        ...editStructure,
+        council_slots: councilSlots,
+      };
+      await updateClanInfo(clanId, { clan_structure: structureToSave });
+      const refreshed = await getClanInfo(clanId);
+      setInfo(refreshed);
+      setEditingStructure(false);
+    } catch {
+      setSaveError('Ошибка при сохранении структуры');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (info?.clan_structure) {
+      setEditStructure(JSON.parse(JSON.stringify(info.clan_structure)));
+      setCouncilSlots(info.clan_structure.council_slots || 4);
+    }
+    setEditingStructure(false);
+    setSaveError('');
+  };
+
+  const updateCouncilSlot = (index: number, nick: string) => {
+    const council = [...(editStructure.council || [])];
+    while (council.length <= index) {
+      council.push({ nick: '', description: '' });
+    }
+    council[index] = { ...council[index], nick };
+    setEditStructure({ ...editStructure, council });
+  };
+
+  const renderMemberSelect = (value: string, onChange: (nick: string) => void, placeholder: string) => (
+    <select className="co-member-select" value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">{placeholder}</option>
+      {activeMembers.map((m) => (
+        <option key={m.nick} value={m.nick}>{m.nick}</option>
+      ))}
+    </select>
+  );
+
+  const renderStructureEdit = () => (
+    <div className="co-structure-edit">
+      {saveError && <div className="co-save-error">{saveError}</div>}
+
+      <div className="co-edit-row">
+        <label className="co-edit-label">Глава клана</label>
+        <div className="co-edit-value">
+          {structure.leader ? (
+            <span className="co-edit-current">{structure.leader.nick}</span>
+          ) : (
+            <span className="co-edit-empty">Не назначен</span>
+          )}
+        </div>
+      </div>
+
+      {structure.deputies && structure.deputies.length > 0 && (
+        <div className="co-edit-row">
+          <label className="co-edit-label">Зам. главы</label>
+          <div className="co-edit-value">
+            {structure.deputies.map((d, i) => (
+              <span key={i} className="co-edit-current">{d.nick}{i < structure.deputies!.length - 1 ? ', ' : ''}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="co-edit-row">
+        <label className="co-edit-label">Совет клана ({councilSlots} мест)</label>
+        <div className="co-edit-slots">
+          <select
+            className="co-council-slots-select"
+            value={councilSlots}
+            onChange={(e) => setCouncilSlots(parseInt(e.target.value))}
+          >
+            {[1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          {Array.from({ length: councilSlots }).map((_, i) => (
+            <div key={i} className="co-edit-slot">
+              <span className="co-slot-number">{i + 1}.</span>
+              {renderMemberSelect(
+                editStructure.council?.[i]?.nick || '',
+                (nick) => updateCouncilSlot(i, nick),
+                '— выбрать —'
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="co-edit-row">
+        <label className="co-edit-label">Воевода</label>
+        <div className="co-edit-value">
+          {renderMemberSelect(
+            editStructure.commander?.nick || '',
+            (nick) => setEditStructure({ ...editStructure, commander: nick ? { nick, description: '' } : undefined }),
+            '— выбрать —'
+          )}
+        </div>
+      </div>
+
+      <div className="co-edit-actions">
+        <button className="co-btn-save" onClick={handleSaveStructure} disabled={isSaving}>
+          {isSaving ? 'Сохранение...' : 'Сохранить'}
+        </button>
+        <button className="co-btn-cancel" onClick={handleCancelEdit}>Отмена</button>
+      </div>
+    </div>
+  );
+
+  const renderStructureView = () => (
+    <div className="co-structure-tree">
+      <div className="co-tree-branch">
+        <div className="co-tree-label">Глава клана</div>
+        <div className="co-tree-content">
+          {structure.leader && (
+            <div className="co-tree-member co-tree-leader" onClick={() => handleAnalyze(structure.leader!.nick)}>
+              <span className="co-member-icon">👑</span>
+              <span className="co-member-nick">{structure.leader!.nick}</span>
+              {structure.leader!.description && (
+                <span className="co-member-desc"> — {structure.leader!.description}</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {structure.deputies && structure.deputies.length > 0 && (
+        <div className="co-tree-branch">
+          <div className="co-tree-label co-tree-label-nested">Зам. главы</div>
+          <div className="co-tree-content co-tree-content-nested">
+            {structure.deputies.map((deputy, index) => (
+              <div key={index} className="co-tree-member" onClick={() => handleAnalyze(deputy.nick)}>
+                <span className="co-member-icon">
+                  {deputy.nick === 'Hozaika ozer' ? '💖' : deputy.nick === 'прото' ? '💰' : '⚔️'}
+                </span>
+                <span className="co-member-nick">{deputy.nick}</span>
+                {deputy.description && (
+                  <span className="co-member-desc"> — {deputy.description}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {structure.council && structure.council.length > 0 && (
+        <div className="co-tree-branch">
+          <div className="co-tree-label co-tree-label-nested">Совет клана</div>
+          <div className="co-tree-content co-tree-content-nested">
+            {structure.council.map((member, index) => (
+              <div key={index} className="co-tree-member" onClick={() => handleAnalyze(member.nick)}>
+                <span className="co-member-icon">🎓</span>
+                <span className="co-member-nick">{member.nick}</span>
+                {member.description && (
+                  <span className="co-member-desc"> — {member.description}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {structure.commander && (
+        <div className="co-tree-branch">
+          <div className="co-tree-label co-tree-label-nested">Воевода</div>
+          <div className="co-tree-content co-tree-content-nested">
+            <div className="co-tree-member" onClick={() => handleAnalyze(structure.commander!.nick)}>
+              <span className="co-member-icon">⚔️</span>
+              <span className="co-member-nick">{structure.commander!.nick}</span>
+              {structure.commander!.description && (
+                <span className="co-member-desc"> — {structure.commander!.description}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {structure.has_members && (
+        <div className="co-tree-branch">
+          <div className="co-tree-label co-tree-label-nested">Члены клана</div>
+          <div className="co-tree-content co-tree-content-nested">
+            <div className="co-tree-member co-tree-link" onClick={goToMembers}>
+              <span className="co-member-icon">📋</span>
+              <span className="co-member-nick">Список всех участников</span>
+              <span className="co-member-count">({info.current_players})</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="clan-overview">
@@ -100,6 +317,12 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
           <div className="co-stat-label">Звание</div>
         </div>
       </div>
+
+      {info.structure_warning && (
+        <div className="co-structure-warning">
+          ⚠️ {info.structure_warning}
+        </div>
+      )}
 
       <div className="co-history-section">
         <button 
@@ -148,87 +371,15 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
       </div>
 
       <div className="co-structure-section">
-        <h3 className="co-section-title">Структура клана</h3>
-        <div className="co-structure-tree">
-          <div className="co-tree-branch">
-            <div className="co-tree-label">Глава клана</div>
-            <div className="co-tree-content">
-              {structure.leader && (
-                <div className="co-tree-member co-tree-leader" onClick={() => handleAnalyze(structure.leader!.nick)}>
-                  <span className="co-member-icon">👑</span>
-                  <span className="co-member-nick">{structure.leader!.nick}</span>
-                  {structure.leader!.description && (
-                    <span className="co-member-desc"> — {structure.leader!.description}</span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {structure.deputies && structure.deputies.length > 0 && (
-            <div className="co-tree-branch">
-              <div className="co-tree-label co-tree-label-nested">Зам.главы</div>
-              <div className="co-tree-content co-tree-content-nested">
-                {structure.deputies.map((deputy, index) => (
-                  <div key={index} className="co-tree-member" onClick={() => handleAnalyze(deputy.nick)}>
-                    <span className="co-member-icon">
-                      {deputy.nick === 'Hozaika ozer' ? '💖' : deputy.nick === 'прото' ? '💰' : '⚔️'}
-                    </span>
-                    <span className="co-member-nick">{deputy.nick}</span>
-                    {deputy.description && (
-                      <span className="co-member-desc"> — {deputy.description}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {structure.council && structure.council.length > 0 && (
-            <div className="co-tree-branch">
-              <div className="co-tree-label co-tree-label-nested">Совет клана</div>
-              <div className="co-tree-content co-tree-content-nested">
-                {structure.council.map((member, index) => (
-                  <div key={index} className="co-tree-member" onClick={() => handleAnalyze(member.nick)}>
-                    <span className="co-member-icon">🎓</span>
-                    <span className="co-member-nick">{member.nick}</span>
-                    {member.description && (
-                      <span className="co-member-desc"> — {member.description}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {structure.commander && (
-            <div className="co-tree-branch">
-              <div className="co-tree-label co-tree-label-nested">Воевода</div>
-              <div className="co-tree-content co-tree-content-nested">
-                <div className="co-tree-member" onClick={() => handleAnalyze(structure.commander!.nick)}>
-                  <span className="co-member-icon">⚔️</span>
-                  <span className="co-member-nick">{structure.commander!.nick}</span>
-                  {structure.commander!.description && (
-                    <span className="co-member-desc"> — {structure.commander!.description}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {structure.has_members && (
-            <div className="co-tree-branch">
-              <div className="co-tree-label co-tree-label-nested">Члены клана</div>
-              <div className="co-tree-content co-tree-content-nested">
-                <div className="co-tree-member co-tree-link" onClick={goToMembers}>
-                  <span className="co-member-icon">📋</span>
-                  <span className="co-member-nick">Список всех участников</span>
-                  <span className="co-member-count">({info.current_players})</span>
-                </div>
-              </div>
-            </div>
+        <div className="co-structure-header">
+          <h3 className="co-section-title">Структура клана</h3>
+          {!editingStructure && (
+            <button className="co-edit-btn" onClick={() => setEditingStructure(true)}>
+              ✏️ Редактировать
+            </button>
           )}
         </div>
+        {editingStructure ? renderStructureEdit() : renderStructureView()}
       </div>
     </div>
   );

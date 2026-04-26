@@ -405,6 +405,172 @@
   margin-bottom: 24px;
 }
 
+.co-structure-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.co-edit-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.co-edit-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent);
+}
+
+.co-structure-warning {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  color: #ffc107;
+  font-size: 0.9rem;
+}
+
+.co-structure-edit {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.co-edit-row {
+  margin-bottom: 16px;
+}
+
+.co-edit-label {
+  display: block;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.co-edit-value {
+  padding-left: 12px;
+}
+
+.co-edit-current {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.co-edit-empty {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.co-edit-slots {
+  padding-left: 12px;
+}
+
+.co-council-slots-select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.co-edit-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.co-slot-number {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  min-width: 20px;
+}
+
+.co-member-select {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.co-member-select:hover,
+.co-member-select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.co-edit-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.co-btn-save {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.co-btn-save:hover:not(:disabled) {
+  background: var(--accent-dark, #009e7f);
+}
+
+.co-btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.co-btn-cancel {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 24px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.co-btn-cancel:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.co-save-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  color: #ef4444;
+  font-size: 0.9rem;
+}
+
 .co-structure-tree {
   display: flex;
   flex-direction: column;

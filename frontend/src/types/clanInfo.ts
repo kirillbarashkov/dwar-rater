@@ -15,6 +15,7 @@ export interface ClanInfoData {
   current_players: number;
   council: string[];
   clan_structure: ClanStructure;
+  structure_warning?: string;
   updated_at: string;
 }
 
@@ -36,6 +37,7 @@ export interface ClanStructure {
     description: string;
   };
   has_members?: boolean;
+  council_slots?: number;
 }
 
 export interface ClanMemberData {

@@ -16,9 +16,12 @@ import { EffectsTab } from './components/analysis/EffectsTab';
 import { RecordsTab } from './components/analysis/RecordsTab';
 import { MedalsTab } from './components/analysis/MedalsTab';
 import { OtherTab } from './components/analysis/OtherTab';
+import { ClosedProfilesTab } from './components/analysis/ClosedProfilesTab';
 
 import { CharacterPanel } from './components/snapshots/CharacterPanel';
 import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
+import { SnapshotCard } from './components/snapshots/SnapshotCard';
+import { ClosedProfileBanner } from './components/snapshots/ClosedProfileBanner';
 import { ScenarioComparison } from './components/analysis/ScenarioComparison';
 import { ImprovementTrackPanel } from './components/analysis/ImprovementTrack';
 import { CharacterComparison } from './components/analysis/CharacterComparison';
@@ -108,7 +111,23 @@ function AnalysisResultDisplay({
     );
   }
 
+  if (activeTab === 'closed') {
+    return (
+      <div className="analysis-result">
+        <ClosedProfilesTab />
+      </div>
+    );
+  }
+
   if (!result) return null;
+
+  if (result.profile_closed) {
+    return (
+      <div className="analysis-result">
+        <ClosedProfileBanner character={result} />
+      </div>
+    );
+  }
 
   return (
     <div className="analysis-result">
@@ -146,6 +165,16 @@ function HomePage() {
       sessionStorage.removeItem('pending_analyze');
       analyzeTriggered.current = true;
       setPendingAnalyzeUrl(urlFromSession);
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const analyzeUrl = params.get('analyze');
+    if (analyzeUrl) {
+      analyzeTriggered.current = true;
+      setPendingAnalyzeUrl(analyzeUrl);
+      params.delete('analyze');
+      window.history.replaceState({}, '', params.toString() ? `/?${params.toString()}` : '/');
     }
   }, []);
 
@@ -236,7 +265,7 @@ function HomePage() {
           onToggleChat={handleToggleChat}
         />
         <main className="main-content">
-          {activeTab !== 'history' && activeTab !== 'track' && activeTab !== 'compare' && (
+          {activeTab !== 'history' && activeTab !== 'track' && activeTab !== 'compare' && activeTab !== 'closed' && (
             <CharacterPanel
               character={currentResult || undefined}
               lastAnalyzed={lastAnalyzed}

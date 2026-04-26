@@ -9,17 +9,79 @@ from middleware.auth import require_auth
 
 clan_info_bp = Blueprint('clan_info', __name__)
 
+LEADER_ROLE = 'Глава Ордена'
+DEPUTY_ROLE = 'Зам. Главы'
+COUNCIL_ROLE = 'Совесть'
+COMMANDER_ROLE = 'Воевода'
+
+DEFAULT_COUNCIL_SLOTS = 4
+
+
+def build_clan_structure_from_members(clan_id, existing_structure=None):
+    members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).all()
+
+    leaders = [m for m in members if m.clan_role == LEADER_ROLE]
+    deputies = [m for m in members if m.clan_role == DEPUTY_ROLE]
+
+    if len(leaders) > 1:
+        leader_nicks = [m.nick for m in leaders]
+        return None, f"Несколько глав клана: {', '.join(leader_nicks)}. Оставьте одного."
+
+    structure = {}
+
+    if leaders:
+        structure['leader'] = {
+            'nick': leaders[0].nick,
+            'description': '',
+        }
+
+    if deputies:
+        structure['deputies'] = [
+            {'nick': d.nick, 'description': ''} for d in deputies
+        ]
+
+    if existing_structure:
+        if 'council' in existing_structure:
+            valid_council = []
+            for c in existing_structure['council']:
+                nick = c.get('nick', '')
+                if any(m.nick == nick for m in members):
+                    valid_council.append(c)
+            if valid_council:
+                structure['council'] = valid_council
+
+        if 'commander' in existing_structure:
+            cmd_nick = existing_structure['commander'].get('nick', '')
+            if cmd_nick and any(m.nick == cmd_nick for m in members):
+                structure['commander'] = existing_structure['commander']
+
+        if 'council_slots' in existing_structure:
+            structure['council_slots'] = existing_structure['council_slots']
+
+    other_count = len([m for m in members if m.clan_role not in (LEADER_ROLE, DEPUTY_ROLE, COUNCIL_ROLE, COMMANDER_ROLE)])
+    structure['has_members'] = other_count > 0
+
+    if 'council_slots' not in structure:
+        structure['council_slots'] = DEFAULT_COUNCIL_SLOTS
+
+    return structure, None
+
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/info', methods=['GET'])
 @require_auth
 def get_clan_info(clan_id):
     cached = ClanInfo.query.filter_by(clan_id=clan_id).first()
 
+    structure_warning = None
+    structure_error = None
     try:
         html, _ = fetch_clan_page(clan_id, mode='news')
         data = parse_clan_info(html, clan_id)
 
         actual_member_count = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).count()
+
+        existing_structure = cached.get_clan_structure() if cached else None
+        structure, structure_error = build_clan_structure_from_members(clan_id, existing_structure)
 
         if cached:
             cached.name = data['name']
@@ -35,6 +97,9 @@ def get_clan_info(clan_id):
             cached.step = data.get('step', 0)
             cached.talents = data.get('talents', 0)
             cached.current_players = actual_member_count
+
+            if structure is not None:
+                cached.set_clan_structure(structure)
         else:
             cached = ClanInfo(
                 clan_id=clan_id,
@@ -51,6 +116,8 @@ def get_clan_info(clan_id):
                 talents=data.get('talents', 0),
                 current_players=actual_member_count,
             )
+            if structure is not None:
+                cached.set_clan_structure(structure)
             db.session.add(cached)
         db.session.commit()
     except Exception as e:
@@ -58,6 +125,9 @@ def get_clan_info(clan_id):
             pass
         else:
             return jsonify({'error': str(e)}), 500
+
+    if structure_error:
+        structure_warning = structure_error
 
     return jsonify({
         'clan_id': cached.clan_id,
@@ -76,6 +146,7 @@ def get_clan_info(clan_id):
         'current_players': cached.current_players,
         'council': cached.get_council(),
         'clan_structure': cached.get_clan_structure(),
+        'structure_warning': structure_warning,
         'updated_at': cached.updated_at.isoformat() if cached.updated_at else '',
     })
 
