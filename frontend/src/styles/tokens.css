@@ -1,45 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
 
+/* ========================================
+   Semantic Design Tokens
+   All UI code should use these tokens, not raw hex values.
+   ======================================== */
+
 :root {
-  /* Background colors */
-  --bg-primary: #0a0e14;
-  --bg-secondary: #121824;
-  --bg-card: #1a2235;
-  --bg-card-hover: #243050;
-
-  /* Text colors */
-  --text-primary: #e8edf5;
-  --text-secondary: #8899b0;
-  --text-muted: #556677;
-
-  /* Accent colors */
-  --accent: #00d4aa;
-  --accent-hover: #00ffcc;
-  --accent-subtle: rgba(0, 212, 170, 0.15);
-  --accent-glow: rgba(0, 212, 170, 0.4);
-
-  /* Border colors */
-  --border: #2a3548;
-  --border-light: #1e2a3d;
-
-  /* Semantic colors */
-  --gold: #ffc857;
-  --green: #50fa7b;
-  --red: #ff5555;
-  --purple: #bd93f9;
-  --orange: #ffb86c;
-  --blue: #8be9fd;
-
   /* Border radius */
   --radius-sm: 6px;
   --radius: 10px;
   --radius-lg: 16px;
   --radius-xl: 24px;
-
-  /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 30px var(--accent-glow);
 
   /* Transitions */
   --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -56,4 +27,83 @@
   --space-xl: 24px;
   --space-xxl: 28px;
   --space-section: 40px;
+}
+
+/* ========================================
+   Dark Theme (default)
+   ======================================== */
+:root,
+[data-theme='dark'] {
+  --bg-primary: #0a0e14;
+  --bg-secondary: #121824;
+  --bg-card: #1a2235;
+  --bg-card-hover: #243050;
+  --bg-hover: #243050;
+  --bg-input: #121824;
+
+  --text-primary: #e8edf5;
+  --text-secondary: #8899b0;
+  --text-muted: #556677;
+
+  --accent: #00d4aa;
+  --accent-hover: #00ffcc;
+  --accent-subtle: rgba(0, 212, 170, 0.15);
+  --accent-glow: rgba(0, 212, 170, 0.4);
+
+  --border: #2a3548;
+  --border-light: #1e2a3d;
+
+  --gold: #ffc857;
+  --green: #50fa7b;
+  --red: #ff5555;
+  --purple: #bd93f9;
+  --orange: #ffb86c;
+  --blue: #8be9fd;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 30px var(--accent-glow);
+
+  --bg-gradient-1: radial-gradient(ellipse at 20% 0%, rgba(0, 212, 170, 0.08) 0%, transparent 50%);
+  --bg-gradient-2: radial-gradient(ellipse at 80% 100%, rgba(189, 147, 249, 0.06) 0%, transparent 50%);
+  --bg-gradient-3: linear-gradient(180deg, var(--bg-primary) 0%, #0d121c 100%);
+}
+
+/* ========================================
+   Light Theme
+   ======================================== */
+[data-theme='light'] {
+  --bg-primary: #f5f7fa;
+  --bg-secondary: #e8ecf1;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f4f8;
+  --bg-hover: #f0f4f8;
+  --bg-input: #e8ecf1;
+
+  --text-primary: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+
+  --accent: #00a884;
+  --accent-hover: #008f70;
+  --accent-subtle: rgba(0, 168, 132, 0.1);
+  --accent-glow: rgba(0, 168, 132, 0.2);
+
+  --border: #d1d5db;
+  --border-light: #e5e7eb;
+
+  --gold: #d4a017;
+  --green: #22c55e;
+  --red: #ef4444;
+  --purple: #8b5cf6;
+  --orange: #f59e0b;
+  --blue: #3b82f6;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-glow: 0 0 20px var(--accent-glow);
+
+  --bg-gradient-1: radial-gradient(ellipse at 20% 0%, rgba(0, 168, 132, 0.05) 0%, transparent 50%);
+  --bg-gradient-2: radial-gradient(ellipse at 80% 100%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
+  --bg-gradient-3: linear-gradient(180deg, var(--bg-primary) 0%, #eef1f5 100%);
 }

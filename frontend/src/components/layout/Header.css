@@ -10,6 +10,12 @@
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+[data-theme='light'] .app-header {
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, rgba(232, 236, 241, 0.98) 100%);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.08);
 }
 
 .app-header::after {
@@ -68,6 +74,30 @@
 .header-actions {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-primary);
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+  box-shadow: 0 0 12px var(--accent-subtle);
+  transform: scale(1.05);
 }
 
 .user-info {

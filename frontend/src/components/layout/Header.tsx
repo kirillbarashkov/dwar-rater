@@ -1,8 +1,25 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import './Header.css';
 
+function getInitialTheme(): string {
+  const stored = localStorage.getItem('theme');
+  if (stored) return stored;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
 export function Header() {
   const { user, logout } = useAuth();
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   return (
     <header className="app-header">
@@ -14,6 +31,14 @@ export function Header() {
         </div>
       </div>
       <div className="header-actions">
+        <button
+          className="theme-toggle"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
         {user && (
           <div className="user-info">
             <span className="user-avatar">👤</span>
