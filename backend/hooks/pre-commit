@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# Pre-commit hook for Dwar Rater
+# Runs all backend tests before allowing a commit.
+#
+# Install: cp backend/hooks/pre-commit .git/hooks/pre-commit
+# Skip (emergency): git commit --no-verify
+
+echo "Running pre-commit tests..."
+
+cd "$(git rev-parse --show-toplevel)/backend" || exit 1
+
+# Run tests
+if ! python -m pytest -q --tb=short; then
+    echo ""
+    echo "Pre-commit check FAILED: tests must pass before committing."
+    echo "To skip (emergency only): git commit --no-verify"
+    exit 1
+fi
+
+echo "All tests passed."
+exit 0

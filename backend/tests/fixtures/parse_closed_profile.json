@@ -1,0 +1,23 @@
+{
+  "name": "ЗакрытыйПерсонаж",
+  "stats": {},
+  "clan": {},
+  "professions": {},
+  "personal_info": {},
+  "flashvars": {},
+  "equipment_raw": [],
+  "medals": [],
+  "permanent_effects": [],
+  "temp_effects": [],
+  "manor_location": "",
+  "manor_buildings": [],
+  "profile_closed": true,
+  "closed_info": {
+    "closed": true,
+    "level": "42",
+    "rank": "Мастер",
+    "picture": "",
+    "description": "",
+    "premium_level": "0"
+  }
+}

@@ -77,35 +77,93 @@ def create_app():
     with app.app_context():
         from services.data_logger import data_logger
         import logging
-        
+
         instance_dir = os.path.join(BASE_DIR, 'backend', 'instance')
-        if os.path.exists(instance_dir):
-            data_logger.info(f'Instance directory already exists: {instance_dir}')
-        elif not os.path.exists(instance_dir):
-            os.makedirs(instance_dir)
-            data_logger.info(f'Created instance directory: {instance_dir}')
-        
+        os.makedirs(instance_dir, exist_ok=True)
+        data_logger.info(f'Instance directory: {instance_dir}')
+
         db_path = db.engine.url.database
         db_exists = os.path.exists(db_path) if db_path else False
-        db_size = os.path.getsize(db_path) if db_exists else 0
-        
+        db_size = os.path.getsize(db_path) if db_path and db_exists else 0
+
         data_logger.info('=== APPLICATION STARTUP ===')
         data_logger.info(f'Database path: {os.path.abspath(db_path) if db_path else "unknown"}')
         data_logger.info(f'Database exists: {db_exists}')
         data_logger.info(f'Database size: {db_size / 1024 / 1024:.2f} MB')
         data_logger.info(f'DATABASE_URL: {Config.DATABASE_URL}')
-        
-        db.create_all()
-        
-        from sqlalchemy import inspect, text
-        inspector = inspect(db.engine)
-        if 'closed_profiles' in inspector.get_table_names():
-            columns = [col['name'] for col in inspector.get_columns('closed_profiles')]
-            if 'clan' not in columns:
-                db.session.execute(text('ALTER TABLE closed_profiles ADD COLUMN clan VARCHAR(200)'))
-                db.session.commit()
-                data_logger.info('Added clan column to closed_profiles')
-        
+
+        try:
+            import fcntl
+            _has_fcntl = True
+        except ImportError:
+            _has_fcntl = False
+
+        if _has_fcntl:
+            lock_path = os.path.join(instance_dir, '.migration.lock')
+            migration_lock = open(lock_path, 'w')
+            try:
+                fcntl.flock(migration_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                data_logger.info('Alembic: another worker is running migrations, waiting...')
+                import time
+                time.sleep(3)
+                migration_lock.close()
+                migration_lock = None
+
+            if migration_lock:
+                try:
+                    from alembic.config import Config as AlembicConfig
+                    from alembic import command
+                    from alembic.script import ScriptDirectory
+                    from alembic.runtime.migration import MigrationContext
+                    alembic_ini = os.path.join(BASE_DIR, 'backend', 'alembic.ini')
+                    if not os.path.exists(alembic_ini):
+                        alembic_ini = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'alembic.ini')
+                    alembic_cfg = AlembicConfig(alembic_ini)
+                    alembic_cfg.set_main_option('sqlalchemy.url', Config.DATABASE_URL)
+
+                    with db.engine.connect() as conn:
+                        context = MigrationContext.configure(conn)
+                        current_rev = context.get_current_revision()
+                        script = ScriptDirectory.from_config(alembic_cfg)
+                        head_rev = script.get_current_head()
+                        if current_rev != head_rev:
+                            command.upgrade(alembic_cfg, 'head')
+                            data_logger.info(f'Alembic: upgraded {current_rev} -> {head_rev}')
+                        else:
+                            data_logger.info(f'Alembic: already at revision {head_rev}')
+                except Exception as e:
+                    data_logger.warning(f'Alembic migration failed, falling back to db.create_all(): {e}')
+                    db.create_all()
+                finally:
+                    fcntl.flock(migration_lock, fcntl.LOCK_UN)
+                    migration_lock.close()
+        else:
+            try:
+                from alembic.config import Config as AlembicConfig
+                from alembic import command
+                from alembic.script import ScriptDirectory
+                from alembic.runtime.migration import MigrationContext
+                alembic_ini = os.path.join(BASE_DIR, 'backend', 'alembic.ini')
+                if not os.path.exists(alembic_ini):
+                    alembic_ini = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'alembic.ini')
+                alembic_cfg = AlembicConfig(alembic_ini)
+                alembic_cfg.set_main_option('sqlalchemy.url', Config.DATABASE_URL)
+
+                with db.engine.connect() as conn:
+                    context = MigrationContext.configure(conn)
+                    current_rev = context.get_current_revision()
+                    script = ScriptDirectory.from_config(alembic_cfg)
+                    head_rev = script.get_current_head()
+                    if current_rev != head_rev:
+                        command.upgrade(alembic_cfg, 'head')
+                        data_logger.info(f'Alembic: upgraded {current_rev} -> {head_rev}')
+                    else:
+                        data_logger.info(f'Alembic: already at revision {head_rev}')
+            except Exception as e:
+                data_logger.warning(f'Alembic migration failed, falling back to db.create_all(): {e}')
+                db.create_all()
+
         from models.clan_info import ClanMemberInfo, ClanInfo
         member_count = ClanMemberInfo.query.filter_by(is_deleted=False).count()
         clan_count = ClanInfo.query.count()
