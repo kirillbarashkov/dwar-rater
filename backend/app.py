@@ -194,7 +194,8 @@ def create_app():
     return app
 
 
-app = create_app()
+if os.environ.get('CLI_MODE') != 'true':
+    app = create_app()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=app.config.get('APP_HTTP_PORT', 5000))
