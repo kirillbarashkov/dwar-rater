@@ -21,7 +21,7 @@ def create_app():
     app = Flask(
         __name__,
         static_folder=os.path.join(BASE_DIR, 'static'),
-        template_folder=os.path.join(BASE_DIR, 'templates'),
+        template_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates'),
     )
     app.config.from_object(Config)
     
@@ -61,10 +61,9 @@ def create_app():
 
     @app.route('/api/openapi.yaml')
     def openapi_spec():
-        import yaml
-        spec_path = os.path.join(BASE_DIR, 'backend', 'docs', 'openapi.yaml')
+        spec_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', 'openapi.yaml')
         if not os.path.exists(spec_path):
-            spec_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', 'openapi.yaml')
+            spec_path = os.path.join(BASE_DIR, 'backend', 'docs', 'openapi.yaml')
         with open(spec_path, 'r', encoding='utf-8') as f:
             return f.read(), 200, {'Content-Type': 'text/yaml'}
 
