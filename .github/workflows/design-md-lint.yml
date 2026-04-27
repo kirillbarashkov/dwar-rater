@@ -1,0 +1,25 @@
+name: DESIGN.md Validation
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/DESIGN.md'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/DESIGN.md'
+
+jobs:
+  validate-design:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate DESIGN.md
+        run: |
+          npx @google/design.md lint frontend/DESIGN.md

@@ -1,12 +1,14 @@
 ---
 name: Dwar Rater
-version: alpha
-description: Dark gaming-inspired UI for character analysis from Legend: Legacy of the Dragons (dwar.ru). Cyberpunk/fantasy aesthetic with teal accent, glow effects, and gradient backgrounds.
+version: "1.0"
+description: Gaming-inspired UI for character analysis from Legend: Legacy of the Dragons (dwar.ru). Dual-theme (dark/light) with teal accent, glow effects, and gradient backgrounds.
 colors:
   bg-primary: "#0a0e14"
   bg-secondary: "#121824"
   bg-card: "#1a2235"
   bg-card-hover: "#243050"
+  bg-hover: "#243050"
+  bg-input: "#121824"
   text-primary: "#e8edf5"
   text-secondary: "#8899b0"
   text-muted: "#556677"
@@ -29,6 +31,17 @@ colors:
   chart-5: "#ffc857"
   chart-6: "#50fa7b"
   chart-7: "#ff5555"
+  light-bg-primary: "#f5f7fa"
+  light-bg-secondary: "#e8ecf1"
+  light-bg-card: "#ffffff"
+  light-bg-card-hover: "#f0f4f8"
+  light-text-primary: "#1a202c"
+  light-text-secondary: "#4a5568"
+  light-text-muted: "#718096"
+  light-accent: "#00a884"
+  light-accent-hover: "#008f70"
+  light-border: "#d1d5db"
+  light-border-light: "#e5e7eb"
 typography:
   display:
     fontFamily: Rajdhani
@@ -92,13 +105,18 @@ components:
     textColor: "{colors.text-primary}"
     rounded: "{rounded.md}"
   input-field:
-    backgroundColor: "{colors.bg-secondary}"
+    backgroundColor: "{colors.bg-input}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.md}"
     padding: "{spacing.sm}"
   badge-status:
     rounded: "{rounded.sm}"
     padding: "{spacing.xs}"
+  theme-toggle:
+    backgroundColor: "{colors.bg-card}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.lg}"
+    size: 44px
 ---
 
 ## Brand & Style
@@ -108,6 +126,8 @@ Dwar Rater is a character analysis tool for the browser MMORPG "Legend: Legacy o
 The UI uses a teal/mint green accent (`#00d4aa`) against deep navy backgrounds, with gradient effects, glow animations, and two custom fonts: Rajdhani for display/headings and IBM Plex Sans for body text.
 
 The emotional response is intended to feel premium, tactical, and immersive — like a command center for analyzing game characters.
+
+A light theme is also available, using the same structural patterns but with lighter surfaces and slightly muted accent tones for comfortable daytime use.
 
 ## Colors
 
@@ -124,6 +144,14 @@ The palette is anchored in deep navy and dark blue tones with a single vibrant a
 - **Purple (#bd93f9):** Secondary accent for decorative gradients and special states.
 - **Orange (#ffb86c):** Warning states, highlights.
 - **Blue (#8be9fd):** Tertiary accent, elixirs, informational elements.
+
+### Light Theme
+
+The light theme uses the same structural patterns with adjusted values:
+- **Primary Background (#f5f7fa):** Light gray foundation.
+- **Card Surface (#ffffff):** Pure white cards with subtle shadows.
+- **Accent (#00a884):** Slightly deeper teal for contrast on light backgrounds.
+- **Text (#1a202c):** Dark gray for readability.
 
 ## Typography
 
@@ -152,6 +180,8 @@ Depth is achieved through layered gradients, borders, and glow effects rather th
 - **Level 3 (Hover):** Border transitions to accent color, shadow-glow effect, translateY(-2px)
 - **Header:** Sticky with backdrop blur
 
+In light theme, elevation uses subtle box-shadows instead of glow effects.
+
 ## Shapes
 
 The shape language uses rounded corners throughout:
@@ -179,6 +209,10 @@ Dark background with accent border on focus. Error state uses red border.
 
 Small inline labels with quality-colored variants (green for success, red for error, blue for info, gold for prestige).
 
+### Theme Toggle
+
+44x44px button in the header, displays sun/moon icon. Toggles between dark and light themes. Persists choice in localStorage.
+
 ## Do's and Don'ts
 
 - Do use the accent color only for the single most important action per screen
@@ -187,3 +221,5 @@ Small inline labels with quality-colored variants (green for success, red for er
 - Do use Rajdhani exclusively for headings, IBM Plex Sans for body text
 - Don't introduce new colors outside the defined palette without justification
 - Do use glow effects sparingly — they should highlight, not overwhelm
+- Do use semantic CSS tokens (--bg-primary, --text-primary, etc.) instead of raw hex values
+- Don't hardcode colors in component CSS — always reference tokens
