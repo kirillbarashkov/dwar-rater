@@ -55,6 +55,19 @@ def create_app():
     def index():
         return render_template('index.html')
 
+    @app.route('/apidocs')
+    def apidocs():
+        return render_template('apidocs.html')
+
+    @app.route('/api/openapi.yaml')
+    def openapi_spec():
+        import yaml
+        spec_path = os.path.join(BASE_DIR, 'backend', 'docs', 'openapi.yaml')
+        if not os.path.exists(spec_path):
+            spec_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', 'openapi.yaml')
+        with open(spec_path, 'r', encoding='utf-8') as f:
+            return f.read(), 200, {'Content-Type': 'text/yaml'}
+
     @app.before_request
     def security_checks():
         if request.path == '/api/login' or request.path == '/' or request.path.startswith('/static/'):

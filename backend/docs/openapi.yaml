@@ -1,0 +1,2125 @@
+openapi: "3.0.3"
+info:
+  title: Dwar Rater API
+  description: |
+    API for character analysis, snapshots, clan management, and closed profile monitoring
+    for the browser MMORPG "Legend: Legacy of the Dragons" (dwar.ru).
+
+    **Authentication:** HTTP Basic Auth. All endpoints except `/api/login`, `/api/health`, and `/` require authentication.
+  version: "1.0.0"
+  contact:
+    name: Dwar Rater
+    url: https://github.com/kirillbarashkov/dwar-rater
+
+servers:
+  - url: http://localhost:5000
+    description: Local development
+
+security:
+  - BasicAuth: []
+
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      description: Returns API health status. No authentication required.
+      tags:
+        - Health
+      security: []
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/login:
+    post:
+      summary: Login
+      description: Authenticate with HTTP Basic Auth.
+      tags:
+        - Auth
+      security: []
+      responses:
+        "200":
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/me:
+    get:
+      summary: Current user info
+      description: Returns the authenticated user's info.
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: User info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfo"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/analyze:
+    post:
+      summary: Analyze character
+      description: Fetch and parse a character profile from dwar.ru. Uses cache unless force_refresh is true.
+      tags:
+        - Analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeRequest"
+      responses:
+        "200":
+          description: Character analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharacterAnalysis"
+        "400":
+          description: Invalid URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "504":
+          description: Timeout fetching from dwar.ru
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/snapshots:
+    get:
+      summary: List snapshots
+      description: List character snapshots. Admins see all, users see their own.
+      tags:
+        - Snapshots
+      parameters:
+        - name: nick
+          in: query
+          schema:
+            type: string
+          description: Filter by character nick
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Page number
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      responses:
+        "200":
+          description: Paginated snapshot list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/snapshots/{snapshot_id}:
+    get:
+      summary: Get snapshot
+      tags:
+        - Snapshots
+      parameters:
+        - name: snapshot_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Snapshot data
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Delete snapshot
+      tags:
+        - Snapshots
+      parameters:
+        - name: snapshot_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Snapshot deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/save-snapshot:
+    post:
+      summary: Save snapshot
+      description: Save character analysis data as a named snapshot.
+      tags:
+        - Snapshots
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveSnapshotRequest"
+      responses:
+        "200":
+          description: Snapshot saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  snapshot_id:
+                    type: integer
+                  analyzed_at:
+                    type: string
+                    format: date-time
+        "400":
+          description: No data provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/cache:
+    delete:
+      summary: Clear cache
+      description: Clear character cache. Admin only. Optionally clear for a specific nick.
+      tags:
+        - Cache
+      parameters:
+        - name: nick
+          in: query
+          schema:
+            type: string
+          description: Clear cache for specific nick
+      responses:
+        "200":
+          description: Cache cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/scenarios:
+    get:
+      summary: List scenarios
+      description: List public scenarios and those created by the user.
+      tags:
+        - Scenarios
+      responses:
+        "200":
+          description: Scenario list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScenarioSummary"
+    post:
+      summary: Create scenario
+      description: Create a new leveling scenario. Admin only.
+      tags:
+        - Scenarios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScenarioCreate"
+      responses:
+        "201":
+          description: Scenario created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  status:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/scenarios/{scenario_id}:
+    get:
+      summary: Get scenario
+      tags:
+        - Scenarios
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Scenario with data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Scenario"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      summary: Update scenario
+      tags:
+        - Scenarios
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Scenario updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+    delete:
+      summary: Delete scenario
+      tags:
+        - Scenarios
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Scenario deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/scenarios/{scenario_id}/compare:
+    post:
+      summary: Compare character to scenario
+      description: Compare character data against scenario target stats.
+      tags:
+        - Scenarios
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Character data with main_stats, combat_stats, magic_stats
+      responses:
+        "200":
+          description: Comparison result with gaps
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scenario_name:
+                    type: string
+                  gaps:
+                    type: array
+                    items:
+                      type: object
+                  recommended_equipment:
+                    type: array
+                  priority_medals:
+                    type: array
+                  milestones:
+                    type: array
+
+  /api/tracks:
+    get:
+      summary: List tracks
+      description: List improvement tracks for the current user.
+      tags:
+        - Tracks
+      responses:
+        "200":
+          description: Track list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrackSummary"
+
+  /api/tracks/generate:
+    post:
+      summary: Generate track
+      description: Generate an improvement track from character data and a scenario.
+      tags:
+        - Tracks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - character_data
+                - scenario_id
+              properties:
+                character_data:
+                  type: object
+                scenario_id:
+                  type: integer
+      responses:
+        "201":
+          description: Track generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  steps:
+                    type: array
+                  total_progress:
+                    type: number
+        "400":
+          description: Missing required fields
+        "404":
+          description: Scenario not found
+
+  /api/tracks/{track_id}:
+    get:
+      summary: Get track
+      tags:
+        - Tracks
+      parameters:
+        - name: track_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Track with steps
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Track"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Delete track
+      tags:
+        - Tracks
+      parameters:
+        - name: track_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Track deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/tracks/{track_id}/step/{step_id}:
+    put:
+      summary: Update track step
+      description: Mark a step as completed or update its status.
+      tags:
+        - Tracks
+      parameters:
+        - name: track_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: step_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                completed:
+                  type: boolean
+      responses:
+        "200":
+          description: Step updated with new progress
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  steps:
+                    type: array
+                  total_progress:
+                    type: number
+
+  /api/clans:
+    get:
+      summary: List clans
+      description: Admins see all clans, users see their memberships.
+      tags:
+        - Clans
+      responses:
+        "200":
+          description: Clan list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClanSummary"
+    post:
+      summary: Create clan
+      description: Create a new clan. Admin only.
+      tags:
+        - Clans
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+      responses:
+        "201":
+          description: Clan created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClanSummary"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/clans/{clan_id}/members:
+    get:
+      summary: List clan members
+      tags:
+        - Clans
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Member list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClanMember"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      summary: Add clan member
+      tags:
+        - Clans
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: integer
+                role:
+                  type: string
+                  default: member
+      responses:
+        "200":
+          description: Member added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/clans/{clan_id}/members/{user_id}:
+    delete:
+      summary: Remove clan member
+      tags:
+        - Clans
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Member removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/clans/{clan_id}/rooms:
+    get:
+      summary: List chat rooms
+      tags:
+        - Clans
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Room list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClanChatRoom"
+    post:
+      summary: Create chat room
+      tags:
+        - Clans
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClanChatRoom"
+
+  /api/clans/{clan_id}/rooms/{room_id}/messages:
+    get:
+      summary: List messages
+      tags:
+        - Clans
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: before
+          in: query
+          schema:
+            type: integer
+          description: Message ID for pagination
+      responses:
+        "200":
+          description: Message list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClanChatMessage"
+    post:
+      summary: Send message
+      tags:
+        - Clans
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClanChatMessage"
+
+  /api/clans/{clan_id}/rooms/{room_id}/messages/{msg_id}:
+    delete:
+      summary: Delete message
+      tags:
+        - Clans
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: msg_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Message deleted (soft delete)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/clan/{clan_id}/info:
+    get:
+      summary: Get clan info
+      description: Fetch and cache clan information from dwar.ru.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Clan info with structure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClanInfo"
+    put:
+      summary: Update clan info
+      description: Manually update cached clan info fields.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Clan info updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClanInfo"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/clan/{clan_id}/members:
+    get:
+      summary: List clan member info
+      description: List parsed clan member information (from dwar.ru scraping).
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Member info list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClanMemberInfo"
+    post:
+      summary: Add clan member info
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClanMemberInfoCreate"
+      responses:
+        "201":
+          description: Member added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClanMemberInfo"
+
+  /api/clan/{clan_id}/members/left:
+    get:
+      summary: List left members
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Left member list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClanMemberInfoLeft"
+
+  /api/clan/{clan_id}/members/{member_id}:
+    put:
+      summary: Update member info
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: member_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Member updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClanMemberInfo"
+    delete:
+      summary: Delete member (soft delete)
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: member_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                left_date:
+                  type: string
+                leave_reason:
+                  type: string
+      responses:
+        "200":
+          description: Member soft-deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/clan/{clan_id}/members/import:
+    post:
+      summary: Import clan members
+      description: Bulk import clan members from parsed text. Admin only.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                members:
+                  type: array
+                  items:
+                    type: object
+                clanInfo:
+                  type: object
+                overwrite:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: integer
+                  skipped:
+                    type: integer
+                  failed:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: string
+
+  /api/clan/{clan_id}/treasury:
+    get:
+      summary: Get treasury operations
+      description: Get cached treasury operations with optional filters.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: nick
+          in: query
+          schema:
+            type: string
+        - name: operation_type
+          in: query
+          schema:
+            type: string
+        - name: object_name
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Paginated operations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TreasuryOperationsResponse"
+    post:
+      summary: Import treasury operations
+      description: Bulk import treasury operations from external data.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                operations:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/TreasuryOperation"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  imported:
+                    type: integer
+
+  /api/clan/{clan_id}/treasury/export:
+    get:
+      summary: Export treasury
+      description: Export all treasury operations as JSON.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Full export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: integer
+                  exported_at:
+                    type: string
+                    format: date-time
+                  clan_id:
+                    type: integer
+                  operations_count:
+                    type: integer
+                  operations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TreasuryOperation"
+
+  /api/clan/{clan_id}/treasury/backup:
+    post:
+      summary: Backup treasury
+      description: Save treasury backup to disk.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Backup saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  filename:
+                    type: string
+                  operations_count:
+                    type: integer
+
+  /api/clan/{clan_id}/treasury/backups:
+    get:
+      summary: List backups
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Backup list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  backups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        filename:
+                          type: string
+                        size:
+                          type: integer
+                        modified:
+                          type: string
+
+  /api/clan/{clan_id}/treasury/backup/{filename}:
+    get:
+      summary: Get backup
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Backup data
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/clan/{clan_id}/treasury/backup/restore:
+    post:
+      summary: Restore backup
+      description: Restore treasury from backup file. Admin only.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - filename
+              properties:
+                filename:
+                  type: string
+      responses:
+        "200":
+          description: Backup restored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  imported:
+                    type: integer
+
+  /api/clan/{clan_id}/treasury/compensation:
+    post:
+      summary: Create compensation
+      description: Create a compensation treasury operation for a member.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nick
+                - quantity
+                - months
+              properties:
+                nick:
+                  type: string
+                quantity:
+                  type: integer
+                comment:
+                  type: string
+                months:
+                  type: array
+                  items:
+                    type: integer
+                year:
+                  type: integer
+      responses:
+        "201":
+          description: Compensation created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  status:
+                    type: string
+
+  /api/clan/{clan_id}/treasury/{operation_id}:
+    put:
+      summary: Update treasury operation
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: operation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                compensation_flag:
+                  type: boolean
+                compensation_comment:
+                  type: string
+      responses:
+        "200":
+          description: Operation updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/clan/{clan_id}/treasury/import:
+    post:
+      summary: Import treasury operations
+      description: Bulk import treasury operations from parsed text. Admin only.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                operations:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: integer
+                  failed:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: string
+
+  /api/compare:
+    get:
+      summary: List compare characters
+      tags:
+        - Compare
+      responses:
+        "200":
+          description: Character list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  characters:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CompareCharacter"
+    post:
+      summary: Add character to compare
+      tags:
+        - Compare
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - character_name
+                - snapshot_data
+              properties:
+                character_name:
+                  type: string
+                snapshot_data:
+                  type: object
+      responses:
+        "200":
+          description: Character added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  character_id:
+                    type: integer
+
+  /api/compare/{char_id}:
+    delete:
+      summary: Remove character from compare
+      tags:
+        - Compare
+      parameters:
+        - name: char_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Character removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/closed-profiles:
+    get:
+      summary: List closed profiles
+      tags:
+        - Closed Profiles
+      responses:
+        "200":
+          description: Closed profile list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClosedProfile"
+    post:
+      summary: Add closed profile
+      tags:
+        - Closed Profiles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nick
+              properties:
+                nick:
+                  type: string
+      responses:
+        "201":
+          description: Profile added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClosedProfile"
+        "200":
+          description: Profile already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+                  is_scanned_open:
+                    type: boolean
+                  scanned_open_at:
+                    type: string
+                    format: date-time
+
+  /api/closed-profiles/{profile_id}:
+    put:
+      summary: Update closed profile
+      tags:
+        - Closed Profiles
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClosedProfile"
+    delete:
+      summary: Delete closed profile
+      tags:
+        - Closed Profiles
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Profile deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /api/closed-profiles/{nick}/check:
+    post:
+      summary: Check if profile opened
+      description: Fetch character page and check if the profile is now open.
+      tags:
+        - Closed Profiles
+      parameters:
+        - name: nick
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [opened, closed, error]
+                  data:
+                    type: object
+                  profile:
+                    $ref: "#/components/schemas/ClosedProfile"
+
+  /api/closed-profiles/batch-scan:
+    post:
+      summary: Batch scan profiles
+      description: Check multiple profiles at once.
+      tags:
+        - Closed Profiles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nicks
+              properties:
+                nicks:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Scan results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        nick:
+                          type: string
+                        status:
+                          type: string
+                          enum: [opened, closed, error, not_found]
+                        data:
+                          type: object
+
+  /api/closed-profiles/batch-delete:
+    post:
+      summary: Batch delete profiles
+      tags:
+        - Closed Profiles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ids
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        "200":
+          description: Profiles deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deleted:
+                    type: integer
+
+  /api/closed-profiles/delete-all:
+    post:
+      summary: Delete all profiles
+      tags:
+        - Closed Profiles
+      responses:
+        "200":
+          description: All profiles deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deleted:
+                    type: integer
+
+  /api/closed-profiles/{nick}/save-snapshot:
+    post:
+      summary: Save snapshot for opened profile
+      tags:
+        - Closed Profiles
+      parameters:
+        - name: nick
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - snapshot_data
+              properties:
+                snapshot_data:
+                  type: object
+                snapshot_name:
+                  type: string
+      responses:
+        "200":
+          description: Snapshot saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  snapshot_id:
+                    type: integer
+
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+
+    LoginResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        role:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+
+    AnalyzeRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: Character profile URL or nick
+        force_refresh:
+          type: boolean
+          default: false
+          description: Skip cache and re-fetch
+
+    CharacterAnalysis:
+      type: object
+      description: Full character analysis result
+
+    SnapshotList:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        pages:
+          type: integer
+        snapshots:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              nick:
+                type: string
+              name:
+                type: string
+              race:
+                type: string
+              rank:
+                type: string
+              clan:
+                type: string
+              snapshot_name:
+                type: string
+              analyzed_at:
+                type: string
+                format: date-time
+
+    SaveSnapshotRequest:
+      type: object
+      required:
+        - snapshot_data
+      properties:
+        snapshot_data:
+          type: object
+        snapshot_name:
+          type: string
+        url:
+          type: string
+
+    ScenarioSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        is_public:
+          type: boolean
+        created_by:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    Scenario:
+      allOf:
+        - $ref: "#/components/schemas/ScenarioSummary"
+        - type: object
+          properties:
+            data:
+              type: object
+
+    ScenarioCreate:
+      type: object
+      required:
+        - name
+        - data
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        data:
+          type: object
+        is_public:
+          type: boolean
+
+    TrackSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        character_nick:
+          type: string
+        scenario_id:
+          type: integer
+        total_progress:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Track:
+      allOf:
+        - $ref: "#/components/schemas/TrackSummary"
+        - type: object
+          properties:
+            steps:
+              type: array
+              items:
+                type: object
+
+    ClanSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ClanMember:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        username:
+          type: string
+        role:
+          type: string
+        joined_at:
+          type: string
+          format: date-time
+
+    ClanChatRoom:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ClanChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        username:
+          type: string
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        is_deleted:
+          type: boolean
+
+    ClanInfo:
+      type: object
+      properties:
+        clan_id:
+          type: integer
+        name:
+          type: string
+        logo_url:
+          type: string
+        logo_big:
+          type: string
+        logo_small:
+          type: string
+        description:
+          type: string
+        leader_nick:
+          type: string
+        leader_rank:
+          type: string
+        clan_rank:
+          type: string
+        clan_level:
+          type: integer
+        step:
+          type: integer
+        talents:
+          type: integer
+        total_players:
+          type: integer
+        current_players:
+          type: integer
+        council:
+          type: array
+          items:
+            type: object
+        clan_structure:
+          type: object
+        structure_warning:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+
+    ClanMemberInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        nick:
+          type: string
+        icon:
+          type: string
+        game_rank:
+          type: string
+        level:
+          type: integer
+        profession:
+          type: string
+        profession_level:
+          type: integer
+        clan_role:
+          type: string
+        join_date:
+          type: string
+        trial_until:
+          type: string
+
+    ClanMemberInfoLeft:
+      allOf:
+        - $ref: "#/components/schemas/ClanMemberInfo"
+        - type: object
+          properties:
+            left_date:
+              type: string
+            leave_reason:
+              type: string
+
+    ClanMemberInfoCreate:
+      type: object
+      required:
+        - nick
+        - level
+        - clan_role
+      properties:
+        nick:
+          type: string
+        icon:
+          type: string
+        game_rank:
+          type: string
+        level:
+          type: integer
+        profession:
+          type: string
+        profession_level:
+          type: integer
+        clan_role:
+          type: string
+        join_date:
+          type: string
+        trial_until:
+          type: string
+
+    TreasuryOperation:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+        nick:
+          type: string
+        operation_type:
+          type: string
+        object_name:
+          type: string
+        quantity:
+          type: integer
+        compensation_flag:
+          type: boolean
+        compensation_comment:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    TreasuryOperationsResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        pages:
+          type: integer
+        operations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TreasuryOperation"
+
+    CompareCharacter:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        data:
+          type: object
+        added_at:
+          type: string
+          format: date-time
+        sort_order:
+          type: integer
+
+    ClosedProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        nick:
+          type: string
+        first_seen_closed:
+          type: string
+          format: date-time
+        last_checked:
+          type: string
+          format: date-time
+        check_count:
+          type: integer
+        status:
+          type: string
+          enum: [closed, opened]
+        level:
+          type: string
+        rank:
+          type: string
+        clan:
+          type: string
+        snapshot_id:
+          type: integer
+        notes:
+          type: string
+        is_scanned_open:
+          type: boolean
+        scanned_open_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

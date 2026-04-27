@@ -1,0 +1,28 @@
+name: API Docs Check
+
+on:
+  pull_request:
+    paths:
+      - 'backend/routes/**'
+      - 'backend/docs/openapi.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/routes/**'
+      - 'backend/docs/openapi.yaml'
+
+jobs:
+  check-api-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Check API docs are up to date
+        working-directory: backend
+        run: |
+          python scripts/generate_openapi.py --check
