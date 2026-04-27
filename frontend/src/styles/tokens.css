@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
+
+:root {
+  /* Background colors */
+  --bg-primary: #0a0e14;
+  --bg-secondary: #121824;
+  --bg-card: #1a2235;
+  --bg-card-hover: #243050;
+
+  /* Text colors */
+  --text-primary: #e8edf5;
+  --text-secondary: #8899b0;
+  --text-muted: #556677;
+
+  /* Accent colors */
+  --accent: #00d4aa;
+  --accent-hover: #00ffcc;
+  --accent-subtle: rgba(0, 212, 170, 0.15);
+  --accent-glow: rgba(0, 212, 170, 0.4);
+
+  /* Border colors */
+  --border: #2a3548;
+  --border-light: #1e2a3d;
+
+  /* Semantic colors */
+  --gold: #ffc857;
+  --green: #50fa7b;
+  --red: #ff5555;
+  --purple: #bd93f9;
+  --orange: #ffb86c;
+  --blue: #8be9fd;
+
+  /* Border radius */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 30px var(--accent-glow);
+
+  /* Transitions */
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Typography */
+  --font-display: 'Rajdhani', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+
+  /* Spacing scale */
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 20px;
+  --space-xl: 24px;
+  --space-xxl: 28px;
+  --space-section: 40px;
+}
