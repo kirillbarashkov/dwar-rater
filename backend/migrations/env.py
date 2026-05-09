@@ -6,20 +6,21 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models import db
-from models.user import User
-from models.clan import Clan, ClanMember, ClanChatRoom, ClanChatMessage
-from models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation
-from models.character_snapshot import CharacterSnapshot
-from models.character_cache import CharacterCache
-from models.analysis_log import AnalysisLog
-from models.leveling_scenario import LevelingScenario
-from models.improvement_track import ImprovementTrack
-from models.compare_character import CompareCharacter
-from models.equipment_item import EquipmentItem
-from models.closed_profile import ClosedProfile
+from shared.models import db
+from shared.models.user import User
+from shared.models.clan import Clan, ClanMember, ClanChatRoom, ClanChatMessage
+from shared.models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation
+from shared.models.character_snapshot import CharacterSnapshot
+from shared.models.character_cache import CharacterCache
+from shared.models.analysis_log import AnalysisLog
+from shared.models.leveling_scenario import LevelingScenario
+from shared.models.improvement_track import ImprovementTrack
+from shared.models.compare_character import CompareCharacter
+from shared.models.equipment_item import EquipmentItem
+from shared.models.closed_profile import ClosedProfile
+from shared.rbac.models import Permission, Role, RolePermission, UserPermission, SessionToken, AuditLog
 
 config = context.config
 

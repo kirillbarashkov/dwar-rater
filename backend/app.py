@@ -13,6 +13,7 @@ from shared.config import Config
 from shared.models import db
 from shared.models.user import User
 from shared.models.compare_character import CompareCharacter
+from shared.rbac.models import Permission, Role, RolePermission, UserPermission, SessionToken, AuditLog
 from shared.middleware.rate_limiter import check_rate_limit
 from shared.middleware.security import add_security_headers
 
@@ -69,7 +70,7 @@ def create_app():
 
     @app.before_request
     def security_checks():
-        if request.path == '/api/login' or request.path == '/' or request.path.startswith('/static/'):
+        if request.path in ('/api/login', '/api/auth/login', '/api/auth/login/2fa', '/api/auth/logout', '/api/auth/change-password', '/', '/api/health') or request.path.startswith('/static/'):
             return
         if request.method == 'OPTIONS':
             return
@@ -180,6 +181,19 @@ def create_app():
         member_count = ClanMemberInfo.query.filter_by(is_deleted=False).count()
         clan_count = ClanInfo.query.count()
         data_logger.info(f'Database state: {clan_count} clans, {member_count} active members')
+
+        # RBAC: seed roles, permissions, role_permissions
+        from shared.rbac.seed import seed_all
+        seed_all(db)
+        db.session.commit()
+        data_logger.info('RBAC: seed data loaded')
+
+        # RBAC: sync registered permissions with DB
+        from shared.rbac import sync_permissions
+        sync_permissions(db)
+        db.session.commit()
+        data_logger.info('RBAC: permissions synced')
+
         data_logger.info('=== STARTUP COMPLETE ===')
         data_logger.info('')
         if not User.query.filter_by(username=Config.ADMIN_USER).first():
