@@ -7,7 +7,7 @@ NEVER raises exceptions — always returns a Result type.
 
 from urllib.parse import urlparse
 
-from services.url_validator.spec import (
+from shared.services.url_validator.spec import (
     UrlValidationInput,
     UrlValidationResult,
     UrlValidationSuccess,

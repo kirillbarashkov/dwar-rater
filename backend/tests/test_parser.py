@@ -3,7 +3,7 @@
 No live HTTP requests to dwar.ru — all data comes from tests/fixtures/.
 """
 
-from services.parser import parse_character
+from shared.services.parser import parse_character
 
 
 def test_parse_full_profile(fixture_data):

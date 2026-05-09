@@ -5,8 +5,8 @@ and valid input is accepted. Data-driven table tests.
 """
 
 import pytest
-from services.url_validator.spec import UrlValidationInput, UrlValidationSuccess, UrlValidationError
-from services.url_validator.handler import UrlValidationHandler
+from shared.services.url_validator.spec import UrlValidationInput, UrlValidationSuccess, UrlValidationError
+from shared.services.url_validator.handler import UrlValidationHandler
 
 
 @pytest.fixture
