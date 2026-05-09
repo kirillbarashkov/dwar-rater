@@ -9,12 +9,12 @@ from flask import Flask, request, jsonify, abort, g
 from flask import render_template
 from flask_cors import CORS
 
-from config import Config
-from models import db
-from models.user import User
-from models.compare_character import CompareCharacter
-from middleware.rate_limiter import check_rate_limit
-from middleware.security import add_security_headers
+from shared.config import Config
+from shared.models import db
+from shared.models.user import User
+from shared.models.compare_character import CompareCharacter
+from shared.middleware.rate_limiter import check_rate_limit
+from shared.middleware.security import add_security_headers
 
 
 def create_app():
@@ -24,21 +24,21 @@ def create_app():
         template_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates'),
     )
     app.config.from_object(Config)
-    
+
     cors = CORS(app, resources={r"/api/*": {"origins": Config.CORS_ORIGINS, "supports_credentials": True}})
 
     db.init_app(app)
 
-    from routes.auth import auth_bp
-    from routes.analyze import analyze_bp
-    from routes.snapshots import snapshots_bp
-    from routes.health import health_bp
-    from routes.scenarios import scenarios_bp
-    from routes.tracks import tracks_bp
-    from routes.clans import clans_bp
-    from routes.clan_info import clan_info_bp
-    from routes.compare import compare_bp
-    from routes.closed_profiles import closed_profiles_bp
+    from features.auth.routes import auth_bp
+    from features.analyze.routes import analyze_bp
+    from features.snapshots.routes import snapshots_bp
+    from features.health.routes import health_bp
+    from features.scenarios.routes import scenarios_bp
+    from features.tracks.routes import tracks_bp
+    from features.clans.routes import clans_bp
+    from features.clan_info.routes import clan_info_bp
+    from features.compare.routes import compare_bp
+    from features.closed_profiles.routes import closed_profiles_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(analyze_bp)
@@ -87,7 +87,7 @@ def create_app():
         return add_security_headers(response)
 
     with app.app_context():
-        from services.data_logger import data_logger
+        from shared.services.data_logger import data_logger
         import logging
 
         instance_dir = os.path.join(BASE_DIR, 'backend', 'instance')
@@ -176,7 +176,7 @@ def create_app():
                 data_logger.warning(f'Alembic migration failed, falling back to db.create_all(): {e}')
                 db.create_all()
 
-        from models.clan_info import ClanMemberInfo, ClanInfo
+        from shared.models.clan_info import ClanMemberInfo, ClanInfo
         member_count = ClanMemberInfo.query.filter_by(is_deleted=False).count()
         clan_count = ClanInfo.query.count()
         data_logger.info(f'Database state: {clan_count} clans, {member_count} active members')

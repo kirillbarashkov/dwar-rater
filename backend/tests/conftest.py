@@ -6,13 +6,13 @@ import bcrypt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import middleware.auth
-middleware.auth._cached_users = None
+import shared.middleware.auth
+shared.middleware.auth._cached_users = None
 
 from app import create_app
-from models import db
-from models.user import User
-from config import Config
+from shared.models import db
+from shared.models.user import User
+from shared.config import Config
 
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
@@ -23,9 +23,9 @@ def reset_config():
     Config.ADMIN_USER = 'admin'
     Config.ADMIN_PASS = 'testpass'
     Config.AUTH_ENABLED = True
-    middleware.auth._cached_users = None
+    shared.middleware.auth._cached_users = None
     yield
-    middleware.auth._cached_users = None
+    shared.middleware.auth._cached_users = None
 
 
 @pytest.fixture
@@ -41,7 +41,7 @@ def app():
     Config.ADMIN_USER = 'admin'
     Config.ADMIN_PASS = 'testpass'
     Config.AUTH_ENABLED = True
-    middleware.auth._cached_users = None
+    shared.middleware.auth._cached_users = None
 
     app = create_app()
     app.config['TESTING'] = True
