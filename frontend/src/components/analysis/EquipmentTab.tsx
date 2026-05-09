@@ -113,7 +113,7 @@ function ItemCard({ item }: { item: EquipmentItem }) {
   return (
     <div className="item-card">
       <div className="item-header">
-        <span className="item-title" style={{ color: item.quality.color }}>
+        <span className="item-title" style={{ color: item.quality.color }} title={item.title}>
           {item.title}
         </span>
         <span className="item-level">{item.level}</span>
