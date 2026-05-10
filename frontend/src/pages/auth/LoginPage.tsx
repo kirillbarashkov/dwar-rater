@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import './LoginPage.css';
 
 export function LoginPage() {
-  const { login, login2fa } = useAuth();
+  const { login, login2fa, changePassword } = useAuth();
+  const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -26,6 +28,8 @@ export function LoginPage() {
         setUserId2fa(result.user_id || 0);
       } else if (result.must_change_password) {
         setMustChangePassword(true);
+      } else {
+        navigate('/', { replace: true });
       }
     } catch {
       setError('Неверный логин или пароль');
@@ -40,6 +44,7 @@ export function LoginPage() {
     setLoading(true);
     try {
       await login2fa(userId2fa, code2fa);
+      navigate('/', { replace: true });
     } catch {
       setError('Неверный код');
     } finally {
@@ -60,9 +65,8 @@ export function LoginPage() {
     }
     setLoading(true);
     try {
-      const { changePassword } = useAuth();
       await changePassword(newPassword);
-      setMustChangePassword(false);
+      navigate('/', { replace: true });
     } catch {
       setError('Ошибка смены пароля');
     } finally {
