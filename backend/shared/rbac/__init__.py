@@ -73,10 +73,15 @@ def sync_permissions(db):
         perm = PermModel(**data)
         db.session.add(perm)
 
-    # Deprecate orphaned permissions
+    # Handle orphaned permissions (in DB but not registered via @feature)
+    # Only deprecate if they have NO role_permissions assigned
     for key in orphaned:
         perm = in_db[key]
-        if not perm.is_deprecated:
+        has_roles = RolePermission.query.filter_by(permission_id=perm.id).first()
+        if has_roles and perm.is_deprecated:
+            # Un-deprecate: it has role assignments, so it's intentionally seeded
+            perm.is_deprecated = False
+        elif not perm.is_deprecated and not has_roles:
             perm.is_deprecated = True
 
     # Assign default role_permissions for new permissions

@@ -40,6 +40,7 @@ def create_app():
     from features.clan_info.routes import clan_info_bp
     from features.compare.routes import compare_bp
     from features.closed_profiles.routes import closed_profiles_bp
+    from features.admin.routes import admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(analyze_bp)
@@ -51,6 +52,7 @@ def create_app():
     app.register_blueprint(clan_info_bp)
     app.register_blueprint(compare_bp)
     app.register_blueprint(closed_profiles_bp)
+    app.register_blueprint(admin_bp)
 
     @app.route('/')
     def index():
@@ -69,8 +71,23 @@ def create_app():
             return f.read(), 200, {'Content-Type': 'text/yaml'}
 
     @app.before_request
+    def session_auth():
+        """Validate Bearer token and set g.current_user."""
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+            from shared.rbac.models import SessionToken
+            session = SessionToken.query.filter_by(token=token).first()
+            if session and not session.is_expired:
+                g.current_user = session.user
+                return
+            # Token invalid or expired
+            if request.path.startswith('/api/admin/') or request.path.startswith('/api/auth/'):
+                return jsonify({'error': 'Сессия истекла'}), 401
+
+    @app.before_request
     def security_checks():
-        if request.path in ('/api/login', '/api/auth/login', '/api/auth/login/2fa', '/api/auth/logout', '/api/auth/change-password', '/', '/api/health') or request.path.startswith('/static/'):
+        if request.path in ('/api/login', '/api/auth/login', '/api/auth/login/2fa', '/api/auth/logout', '/api/auth/change-password', '/', '/api/health', '/apidocs', '/api/openapi.yaml') or request.path.startswith('/static/'):
             return
         if request.method == 'OPTIONS':
             return
