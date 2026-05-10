@@ -29,10 +29,10 @@ os.environ['CLI_MODE'] = 'true'
 
 from app import create_app
 from models import db
-from models.user import User
-from models.character_cache import CharacterCache
-from models.clan_info import ClanInfo, ClanMemberInfo
-from models.character_snapshot import CharacterSnapshot
+from shared.models.user import User
+from shared.models.character_cache import CharacterCache
+from shared.models.clan_info import ClanInfo, ClanMemberInfo
+from shared.models.character_snapshot import CharacterSnapshot
 from sqlalchemy import text
 
 
@@ -217,7 +217,7 @@ def cmd_health(args):
 # ── analyze (dry-run) ──────────────────────────────────────────────
 
 def cmd_analyze(args):
-    from utils.validators import validate_dwar_url
+    from shared.utils.validators import validate_dwar_url
     url = args.url
     valid, error = validate_dwar_url(url)
     if not valid:
