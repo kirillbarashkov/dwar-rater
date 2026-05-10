@@ -1,14 +1,14 @@
-def test_scenarios_empty_list(client, admin_auth):
-    resp = client.get('/api/scenarios', auth=admin_auth)
+def test_scenarios_empty_list(client, admin_token):
+    resp = client.get('/api/scenarios', headers={'Authorization': f'Bearer {admin_token}'})
     assert resp.status_code == 200
     assert resp.get_json() == []
 
 
-def test_scenarios_create_admin_only(client, user_auth):
+def test_scenarios_create_admin_only(client, user_token):
     resp = client.post('/api/scenarios', json={
         'name': 'Test',
         'data': {'target_stats': {}}
-    }, auth=user_auth)
+    }, headers={'Authorization': f'Bearer {user_token}'})
     assert resp.status_code == 403
 
 
@@ -22,6 +22,7 @@ def test_tracks_requires_auth(client):
     assert resp.status_code == 401
 
 
-def test_tracks_generate_no_data(client, admin_auth):
-    resp = client.post('/api/tracks/generate', json={}, auth=admin_auth)
+def test_tracks_generate_no_data(client, admin_token):
+    resp = client.post('/api/tracks/generate', json={},
+                       headers={'Authorization': f'Bearer {admin_token}'})
     assert resp.status_code == 400
