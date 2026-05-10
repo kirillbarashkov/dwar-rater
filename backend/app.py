@@ -246,8 +246,6 @@ def _ensure_admin(db, logger):
         except Exception:
             pass
 
-    return app
-
 
 if os.environ.get('CLI_MODE') != 'true':
     app = create_app()
