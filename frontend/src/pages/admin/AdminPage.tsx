@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { UserTable } from './UserTable';
 import { PermissionMatrix } from './PermissionMatrix';
@@ -14,6 +15,7 @@ const TABS = [
 ];
 
 export function AdminPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('users');
 
@@ -23,7 +25,12 @@ export function AdminPage() {
 
   return (
     <div className="admin-page">
-      <h1 className="admin-title">Администрирование</h1>
+      <div className="admin-header">
+        <button className="btn btn-ghost admin-back-btn" onClick={() => navigate('/')}>
+          ← Назад
+        </button>
+        <h1 className="admin-title">Администрирование</h1>
+      </div>
       <div className="admin-tabs">
         {TABS.map((tab) => (
           <button
