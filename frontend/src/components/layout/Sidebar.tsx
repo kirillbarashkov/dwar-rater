@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import './Sidebar.css';
 
 interface TabItem {
@@ -61,6 +62,7 @@ export function Sidebar({
 }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [expandedGroup, setExpandedGroup] = useState<string>(() => 
     location.pathname.startsWith('/clan') ? 'clan' : 'analysis'
   );
@@ -130,6 +132,17 @@ export function Sidebar({
           })}
         </div>
       </nav>
+      {user?.role === 'admin' && (
+        <div className="sidebar-admin">
+          <button
+            className={`sidebar-item ${location.pathname === '/admin' ? 'active' : ''}`}
+            onClick={() => navigate('/admin')}
+          >
+            <span className="sidebar-icon">⚙️</span>
+            <span>Админка</span>
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

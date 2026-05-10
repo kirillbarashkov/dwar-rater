@@ -159,3 +159,30 @@
     display: none;
   }
 }
+
+.sidebar-admin {
+  padding: 20px;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-admin .sidebar-item {
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 200, 87, 0.1), rgba(255, 200, 87, 0.05));
+  border: 1px solid rgba(255, 200, 87, 0.3);
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.sidebar-admin .sidebar-item:hover {
+  background: linear-gradient(135deg, rgba(255, 200, 87, 0.2), rgba(255, 200, 87, 0.1));
+  border-color: var(--gold);
+  color: var(--gold);
+  transform: translateX(0) scale(1.02);
+}
+
+.sidebar-admin .sidebar-item.active {
+  background: linear-gradient(135deg, rgba(255, 200, 87, 0.25), rgba(255, 200, 87, 0.15));
+  border-color: var(--gold);
+  color: var(--gold);
+}
