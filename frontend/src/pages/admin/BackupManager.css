@@ -1,0 +1,68 @@
+.backup-manager {
+  padding: 0;
+}
+
+.backup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.backup-header h2 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.backup-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.backup-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.backup-info-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.backup-info-item span:last-child {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.backup-error {
+  padding: 12px 16px;
+  background: rgba(255, 85, 85, 0.1);
+  border: 1px solid var(--red);
+  border-radius: var(--radius);
+  color: var(--red);
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+}
+
+.backup-filename {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.backup-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

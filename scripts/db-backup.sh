@@ -1,11 +1,10 @@
 #!/bin/bash
 # PostgreSQL backup script — runs inside the container via cron
-# Creates timestamped dumps with retention policy
+# Creates timestamped dumps. NO automatic deletion.
 
 set -e
 
 BACKUP_DIR="/backups"
-RETENTION_DAYS=7
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 FILENAME="dwar_rater_backup_${TIMESTAMP}.sql.gz"
 FILEPATH="${BACKUP_DIR}/${FILENAME}"
@@ -23,9 +22,5 @@ else
     rm -f "${FILEPATH}"
     exit 1
 fi
-
-# Cleanup old backups
-echo "[$(date)] Cleaning up backups older than ${RETENTION_DAYS} days"
-find "${BACKUP_DIR}" -name "dwar_rater_backup_*.sql.gz" -mtime +${RETENTION_DAYS} -delete
 
 echo "[$(date)] Backup complete"

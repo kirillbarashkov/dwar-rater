@@ -5,11 +5,13 @@ import { UserTable } from './UserTable';
 import { PermissionMatrix } from './PermissionMatrix';
 import { AuditLogTable } from './AuditLogTable';
 import { FeatureMatrix } from './FeatureMatrix';
+import { BackupManager } from './BackupManager';
 import './AdminPage.css';
 
 const TABS = [
   { key: 'users', label: 'Пользователи' },
   { key: 'permissions', label: 'Роли и права' },
+  { key: 'backups', label: 'Бэкапы БД' },
   { key: 'audit', label: 'Audit Log' },
   { key: 'features', label: 'Матрица фич' },
 ];
@@ -45,6 +47,7 @@ export function AdminPage() {
       <div className="admin-content">
         {activeTab === 'users' && <UserTable />}
         {activeTab === 'permissions' && <PermissionMatrix />}
+        {activeTab === 'backups' && <BackupManager />}
         {activeTab === 'audit' && <AuditLogTable />}
         {activeTab === 'features' && <FeatureMatrix />}
       </div>

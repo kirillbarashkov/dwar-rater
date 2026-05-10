@@ -1,8 +1,10 @@
 """Admin API endpoints for user management, permissions, and audit log."""
 
 import bcrypt
+import os
+import subprocess
 from datetime import datetime, timezone
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, send_file
 from shared.models import db
 from shared.models.user import User
 from shared.models.clan_info import ClanMemberInfo
@@ -11,6 +13,7 @@ from shared.rbac import require_permission, feature, Permission as PermDef
 from shared.utils.transliterate import ensure_unique_username
 
 DEFAULT_PASSWORD = 'ChangeMe123!'
+BACKUP_DIR = os.environ.get('BACKUP_DIR', '/backups')
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -385,3 +388,180 @@ def delete_deprecated_permissions():
     _audit('deprecated_permissions_deleted', target_type='permission', new={'count': count})
 
     return jsonify({'status': 'deleted', 'count': count})
+
+
+# ── Database Backups ────────────────────────────────────────────────────
+
+def _get_backup_info(filepath):
+    """Get backup file metadata."""
+    stat = os.stat(filepath)
+    return {
+        'filename': os.path.basename(filepath),
+        'size': stat.st_size,
+        'size_human': _human_size(stat.st_size),
+        'created_at': datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+    }
+
+
+def _human_size(size):
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size < 1024:
+            return f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} TB"
+
+
+@admin_bp.route('/api/admin/backups', methods=['GET'])
+@require_permission('admin', 'read')
+def list_backups():
+    """List all database backups."""
+    if not os.path.exists(BACKUP_DIR):
+        return jsonify({'backups': [], 'total': 0, 'total_size': 0})
+
+    backups = []
+    total_size = 0
+    for f in sorted(os.listdir(BACKUP_DIR), reverse=True):
+        if f.startswith('dwar_rater_backup_') and f.endswith('.sql.gz'):
+            filepath = os.path.join(BACKUP_DIR, f)
+            info = _get_backup_info(filepath)
+            backups.append(info)
+            total_size += info['size']
+
+    return jsonify({
+        'backups': backups,
+        'total': len(backups),
+        'total_size': _human_size(total_size),
+        'schedule': 'Daily at 03:00 UTC',
+        'retention': 'No automatic deletion',
+    })
+
+
+@admin_bp.route('/api/admin/backups', methods=['POST'])
+@require_permission('admin', 'write')
+def create_backup():
+    """Trigger manual database backup."""
+    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
+    filename = f"dwar_rater_backup_{timestamp}.sql.gz"
+    filepath = os.path.join(BACKUP_DIR, filename)
+
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+
+    env = os.environ.copy()
+    env['PGPASSWORD'] = os.environ.get('POSTGRES_PASSWORD', 'change-me-in-production')
+
+    cmd = [
+        'pg_dump',
+        '-h', os.environ.get('POSTGRES_HOST', 'postgres'),
+        '-p', os.environ.get('POSTGRES_PORT', '5432'),
+        '-U', os.environ.get('POSTGRES_USER', 'dwar'),
+        '-d', os.environ.get('POSTGRES_DB', 'dwar_rater'),
+        '--no-owner', '--no-acl'
+    ]
+
+    try:
+        with open(filepath, 'wb') as f:
+            result = subprocess.run(
+                cmd,
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=300
+            )
+            if result.returncode != 0:
+                os.remove(filepath)
+                return jsonify({'error': f'Backup failed: {result.stderr.decode()}'}), 500
+
+            # Compress
+            import gzip
+            with gzip.open(filepath + '.tmp', 'wb') as gz:
+                gz.write(result.stdout)
+            os.rename(filepath + '.tmp', filepath)
+
+        info = _get_backup_info(filepath)
+        _audit('backup_created', target_type='backup', new={'filename': filename, 'size': info['size']})
+
+        return jsonify({'status': 'created', 'backup': info})
+    except subprocess.TimeoutExpired:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        return jsonify({'error': 'Backup timed out'}), 504
+    except Exception as e:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/backups/<filename>', methods=['DELETE'])
+@require_permission('admin', 'write')
+def delete_backup(filename):
+    """Delete a specific backup file."""
+    if not filename.startswith('dwar_rater_backup_') or not filename.endswith('.sql.gz'):
+        return jsonify({'error': 'Invalid filename'}), 400
+
+    filepath = os.path.join(BACKUP_DIR, filename)
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'Backup not found'}), 404
+
+    os.remove(filepath)
+    _audit('backup_deleted', target_type='backup', old={'filename': filename})
+
+    return jsonify({'status': 'deleted', 'filename': filename})
+
+
+@admin_bp.route('/api/admin/backups/<filename>/download', methods=['GET'])
+@require_permission('admin', 'read')
+def download_backup(filename):
+    """Download a backup file."""
+    if not filename.startswith('dwar_rater_backup_') or not filename.endswith('.sql.gz'):
+        return jsonify({'error': 'Invalid filename'}), 400
+
+    filepath = os.path.join(BACKUP_DIR, filename)
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'Backup not found'}), 404
+
+    return send_file(filepath, as_attachment=True, download_name=filename)
+
+
+@admin_bp.route('/api/admin/backups/<filename>/restore', methods=['POST'])
+@require_permission('admin', 'admin')
+def restore_backup(filename):
+    """Restore database from a backup file."""
+    if not filename.startswith('dwar_rater_backup_') or not filename.endswith('.sql.gz'):
+        return jsonify({'error': 'Invalid filename'}), 400
+
+    filepath = os.path.join(BACKUP_DIR, filename)
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'Backup not found'}), 404
+
+    env = os.environ.copy()
+    env['PGPASSWORD'] = os.environ.get('POSTGRES_PASSWORD', 'change-me-in-production')
+
+    cmd = [
+        'psql',
+        '-h', os.environ.get('POSTGRES_HOST', 'postgres'),
+        '-p', os.environ.get('POSTGRES_PORT', '5432'),
+        '-U', os.environ.get('POSTGRES_USER', 'dwar'),
+        '-d', os.environ.get('POSTGRES_DB', 'dwar_rater'),
+    ]
+
+    try:
+        import gzip
+        with gzip.open(filepath, 'rb') as gz:
+            result = subprocess.run(
+                cmd,
+                env=env,
+                stdin=gz,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=600
+            )
+            if result.returncode != 0:
+                return jsonify({'error': f'Restore failed: {result.stderr.decode()}'}), 500
+
+        _audit('backup_restored', target_type='backup', new={'filename': filename})
+
+        return jsonify({'status': 'restored', 'filename': filename})
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Restore timed out'}), 504
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
