@@ -8,33 +8,45 @@ echo "Waiting for database..."
 sleep 3
 
 echo "Creating admin user if not exists..."
-python3 -c "
-import bcrypt, os, sys
-sys.path.insert(0, '/app')
-os.environ['DATABASE_URL'] = os.environ.get('DATABASE_URL', 'postgresql://dwar:change-me-in-production@postgres:5432/dwar_rater')
-os.environ['AUTH_ENABLED'] = 'false'
-os.environ['SECRET_KEY'] = 'init-key'
+python3 << 'PYEOF'
+import bcrypt
+import os
+import psycopg2
 
-from shared.models import db
-from app import create_app
+ADMIN_USER = os.environ.get('ADMIN_USER', 'admin')
+ADMIN_PASS = os.environ.get('ADMIN_PASS', 'change-me-in-production')
 
-app = create_app()
-with app.app_context():
-    result = db.session.execute(
-        db.text(\"SELECT id FROM app_user WHERE username = :u\"),
-        {'u': os.environ.get('ADMIN_USER', 'admin')}
-    ).first()
-    if not result:
-        h = bcrypt.hashpw(os.environ.get('ADMIN_PASS', 'change-me-in-production').encode(), bcrypt.gensalt()).decode()
-        db.session.execute(
-            db.text(\"INSERT INTO app_user (username, password_hash, role, is_active, must_change_password, created_at) VALUES (:u, :h, 'admin', true, false, NOW())\"),
-            {'u': os.environ.get('ADMIN_USER', 'admin'), 'h': h}
-        )
-        db.session.commit()
-        print('Admin user created')
+# Parse DATABASE_URL
+db_url = os.environ.get('DATABASE_URL', 'postgresql://dwar:change-me-in-production@postgres:5432/dwar_rater')
+# postgresql://user:pass@host:port/dbname
+parts = db_url.replace('postgresql://', '').split('@')
+user_pass = parts[0].split(':')
+host_db = parts[1].split('/')
+host_port = host_db[0].split(':')
+
+conn = psycopg2.connect(
+    host=host_port[0],
+    port=int(host_port[1]) if len(host_port) > 1 else 5432,
+    dbname=host_db[1],
+    user=user_pass[0],
+    password=user_pass[1]
+)
+conn.autocommit = True
+
+with conn.cursor() as cur:
+    cur.execute("SELECT id FROM app_user WHERE username = %s", (ADMIN_USER,))
+    if cur.fetchone():
+        print(f'Admin user already exists: {ADMIN_USER}')
     else:
-        print('Admin user already exists')
-"
+        h = bcrypt.hashpw(ADMIN_PASS.encode(), bcrypt.gensalt()).decode()
+        cur.execute(
+            "INSERT INTO app_user (username, password_hash, role, is_active, must_change_password, created_at) VALUES (%s, %s, 'admin', true, false, NOW())",
+            (ADMIN_USER, h)
+        )
+        print(f'Admin user created: {ADMIN_USER}')
+
+conn.close()
+PYEOF
 
 echo "Starting gunicorn..."
 exec gunicorn --bind 0.0.0.0:5000 --workers 2 --timeout 30 app:app
