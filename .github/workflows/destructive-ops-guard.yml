@@ -1,0 +1,44 @@
+name: Destructive Operations Guard
+
+on:
+  pull_request:
+    paths:
+      - 'docker-compose.yml'
+      - 'backend/migrations/versions/**'
+      - 'scripts/**'
+
+jobs:
+  check-destructive-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for volume destruction
+        run: |
+          if git diff origin/main -- docker-compose.yml | grep -q "down -v\|volumes.*remove\|driver:.*destroy"; then
+            echo "::error::PR contains volume destruction changes. Requires owner approval."
+            exit 1
+          fi
+          echo "No volume destruction detected."
+
+      - name: Check migration safety
+        run: |
+          NEW_MIGRATIONS=$(git diff --name-only origin/main -- backend/migrations/versions/ | wc -l)
+          if [ "$NEW_MIGRATIONS" -gt 0 ]; then
+            echo "New migrations detected: $NEW_MIGRATIONS"
+            echo "Ensure pre-migration backup is configured."
+          fi
+
+      - name: Check backup script exists
+        run: |
+          if [ ! -f "scripts/db-backup.sh" ]; then
+            echo "::error::Backup script missing. Cannot merge without backup capability."
+            exit 1
+          fi
+          if [ ! -f "scripts/pre-destroy-check.sh" ]; then
+            echo "::error::Pre-destroy check script missing."
+            exit 1
+          fi
+          echo "Safety scripts present."
