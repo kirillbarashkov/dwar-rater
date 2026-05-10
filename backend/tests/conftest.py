@@ -65,7 +65,7 @@ def app():
     yield app
 
     with app.app_context():
-        db.drop_all()
+        db.session.remove()
 
 
 @pytest.fixture
@@ -85,13 +85,7 @@ def user_auth():
 
 @pytest.fixture
 def fixture_data():
-    """Load JSON fixtures from tests/fixtures/.
-
-    Usage:
-        def test_something(fixture_data):
-            data = fixture_data("parse_full_profile")
-            assert data["name"] == "ТестовыйПерсонаж"
-    """
+    """Load JSON fixtures from tests/fixtures/."""
     def _load(name):
         path = os.path.join(FIXTURES_DIR, f'{name}.json')
         with open(path, 'r', encoding='utf-8') as f:
