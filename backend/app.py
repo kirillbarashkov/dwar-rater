@@ -213,14 +213,23 @@ def create_app():
 
         data_logger.info('=== STARTUP COMPLETE ===')
         data_logger.info('')
-        if not User.query.filter_by(username=Config.ADMIN_USER).first():
-            admin = User(
-                username=Config.ADMIN_USER,
-                password_hash=bcrypt.hashpw(Config.ADMIN_PASS.encode(), bcrypt.gensalt()).decode('utf-8'),
-                role='admin'
-            )
-            db.session.add(admin)
-            db.session.commit()
+
+        # Create admin user if not exists
+        try:
+            if not User.query.filter_by(username=Config.ADMIN_USER).first():
+                admin = User(
+                    username=Config.ADMIN_USER,
+                    password_hash=bcrypt.hashpw(Config.ADMIN_PASS.encode(), bcrypt.gensalt()).decode('utf-8'),
+                    role='admin'
+                )
+                db.session.add(admin)
+                db.session.commit()
+                data_logger.info(f'Admin user created: {Config.ADMIN_USER}')
+            else:
+                data_logger.info(f'Admin user already exists: {Config.ADMIN_USER}')
+        except Exception as e:
+            data_logger.error(f'Failed to create admin user: {e}')
+            db.session.rollback()
 
     return app
 
