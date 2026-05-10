@@ -59,4 +59,10 @@ services:
 
 volumes:
   postgres_data:
+    name: dwar-rater_postgres_data
+    labels:
+      com.dwar-rater.protection: "critical-data"
   postgres_backups:
+    name: dwar-rater_postgres_backups
+    labels:
+      com.dwar-rater.protection: "backup-data"

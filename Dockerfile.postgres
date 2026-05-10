@@ -6,7 +6,7 @@ COPY scripts/db-backup.sh /usr/local/bin/db-backup.sh
 RUN chmod +x /usr/local/bin/db-backup.sh && \
     mkdir -p /backups
 
-# Set up cron to run backup once per day at 3:00 AM UTC
-RUN echo "0 3 * * * /usr/local/bin/db-backup.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root
+# Set up cron to run backup every hour
+RUN echo "0 * * * * /usr/local/bin/db-backup.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root
 
 CMD ["sh", "-c", "crond -f -l 2 & docker-entrypoint.sh postgres"]

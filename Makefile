@@ -6,11 +6,12 @@
 #   make restart      — Restart containers (safe)
 #   make backup       — Create database backup
 #   make migrate      — Run Alembic migrations (with auto-backup)
-#   make destroy      — Destroy everything (requires confirmation)
+#   make destroy      — Destroy everything (requires confirmation + backup)
 #   make status       — Show container and database status
 #   make logs         — Show backend logs
+#   make restore      — Restore from latest backup
 
-.PHONY: start stop restart backup migrate destroy status logs
+.PHONY: start stop restart backup migrate destroy status logs restore
 
 start:
 	docker compose up -d
@@ -44,6 +45,23 @@ status:
 
 logs:
 	docker logs dwar-rater-backend-1 --tail 50 -f
+
+restore:
+	@echo "=== Restore from latest backup ==="
+	@LATEST=$$(docker exec dwar_rater_postgres ls -t /backups/dwar_rater_backup_*.sql.gz 2>/dev/null | head -1); \
+	if [ -z "$$LATEST" ]; then \
+		echo "No backups found!"; \
+		exit 1; \
+	fi; \
+	echo "Latest backup: $$LATEST"; \
+	read -p "Restore from this backup? Type 'YES' to confirm: " confirm; \
+	if [ "$$confirm" != "YES" ]; then \
+		echo "Aborted."; \
+		exit 1; \
+	fi; \
+	echo "Restoring..."; \
+	docker exec dwar_rater_postgres sh -c "gunzip -c $$LATEST | psql -U dwar -d dwar_rater"; \
+	echo "Restore complete"
 
 destroy:
 	@echo "=== WARNING: This will destroy ALL data ==="
