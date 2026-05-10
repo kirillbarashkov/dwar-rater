@@ -98,13 +98,18 @@ function ItemCard({ item }: { item: EquipmentItem }) {
   const frames = item.enchants.filter(e => e.type === 'Оправа').map(e => ({ value: e.value, color: e.color }));
   const lacquers = item.enchants.filter(e => e.type === 'Лак').map(e => ({ value: e.value, color: e.color }));
   const enhancements = item.enchants.filter(e => e.type === 'Усиление').map(e => ({ value: e.value, color: e.color }));
+  const plates = item.enchants.filter(e => e.type === 'Пластина').map(e => ({ value: e.value, color: e.color }));
   const builtins = item.enchants.filter(e => e.type === 'Встроено').map(e => ({ value: e.value, color: e.color }));
   const symbols = item.enchants.filter(e => e.type.startsWith('Символ')).map(e => ({ value: e.value, color: e.color }));
 
+  const stars = item.star_level > 0 ? '★'.repeat(item.star_level) + '☆'.repeat(5 - item.star_level) : '';
+
   const groups = [
     { title: 'ХАРАКТЕРИСТИКИ', items: skills },
+    { title: 'УЗОР', items: item.pattern ? [{ value: item.pattern, color: item.quality.color }] : [] },
     { title: 'РУНА', items: runes },
     { title: 'ОПРАВА', items: frames },
+    { title: 'ПЛАСТИНА', items: plates },
     { title: 'УСИЛЕНИЯ', items: lacquers },
     { title: 'СИМВОЛЫ', items: symbols },
     { title: 'ВСТРОЙКИ', items: builtins },
@@ -116,7 +121,10 @@ function ItemCard({ item }: { item: EquipmentItem }) {
         <span className="item-title" style={{ color: item.quality.color }} title={item.title}>
           {item.title}
         </span>
-        <span className="item-level">{item.level}</span>
+        <span className="item-level">
+          {stars && <span className="item-stars">{stars} </span>}
+          {item.level}
+        </span>
       </div>
       <div className="item-details">
         <span className="item-durability">{item.durability}</span>

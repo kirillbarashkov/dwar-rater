@@ -9,7 +9,8 @@ QUALITY_MAP = {
     '3': {'name': 'Фиолетовый', 'color': '#990099', 'emoji': '🟣'},
     '4': {'name': 'Красный', 'color': '#016e71', 'emoji': '🔴'},
     '5': {'name': 'Оранжевый', 'color': '#ff0000', 'emoji': '🟠'},
-    '6': {'name': 'Уникальный', 'color': '#f55e27', 'emoji': '🌟'},
+    '6': {'name': 'Легендарный', 'color': '#f55e27', 'emoji': '🌟'},
+    '7': {'name': 'Экзотический', 'color': '#f400a1', 'emoji': '💎'},
 }
 
 
@@ -79,8 +80,10 @@ def format_enchants(item):
     raw_enchant5 = item.get('enchant5', {})
     if raw_enchant5:
         raw_value = raw_enchant5.get('value', '')
+        desc = raw_enchant5.get('description', '')
+        enchant_type = 'Пластина' if desc == 'Пластина' else 'Усиление'
         enchants.append({
-            'type': 'Усиление',
+            'type': enchant_type,
             'value': clean_html(raw_value),
             'color': extract_color_from_html(raw_value)
         })
@@ -93,6 +96,21 @@ def format_enchants(item):
             'color': extract_color_from_html(raw_value)
         })
     return enchants
+
+
+def _parse_star_level(desc):
+    """Parse star level from item description.
+
+    Exotic/legendary items have star info in desc like:
+    <STRONG><U>1★</U></STRONG> <STRONG><SPAN style="color:green">...
+    """
+    if not desc:
+        return 0
+    # Look for <U>N★</U> followed by green color
+    match = re.search(r'<U>(\d)★?</U>.*?color:green', desc, re.DOTALL)
+    if match:
+        return int(match.group(1))
+    return 0
 
 
 def _resolve_reputation(rep_name):
@@ -226,6 +244,9 @@ def process_character(raw_data):
         'Эффекты': 'Эффекты',
         'Кольца': 'Кольца',
         'Амулет': 'Амулеты',
+        # Exotic items
+        'Экзотическое кольцо': 'Кольца',
+        'Экзотический амулет': 'Амулеты',
     }
 
     for item in equipment_raw:
@@ -269,14 +290,27 @@ def process_character(raw_data):
 
         plate_val = ''
         if enchant5_data and isinstance(enchant5_data, dict):
-            desc = enchant5_data.get('description', '')
-            if desc == 'Пластина':
+            desc5 = enchant5_data.get('description', '')
+            if desc5 == 'Пластина':
                 plate_val = clean_html(enchant5_data.get('value', ''))
+
+        # Parse star level from desc (exotic/legendary items)
+        item_desc = item_data.get('desc', '')
+        star_level = _parse_star_level(item_desc)
+
+        # Parse pattern (узор) from enchant field for exotic items
+        pattern_val = ''
+        if enchant_data and isinstance(enchant_data, dict):
+            enchant_value = clean_html(enchant_data.get('value', ''))
+            if 'узор' in enchant_value.lower() or 'Узор' in enchant_value:
+                pattern_val = enchant_value
 
         equipment_item = {
             'title': title,
             'quality': QUALITY_MAP.get(quality_str, QUALITY_MAP['0']),
             'level': _extract_level_from_data(item_data),
+            'star_level': star_level,
+            'pattern': pattern_val,
             'trend': item_data.get('trend', ''),
             'durability': f"{item_data.get('dur', '?')}/{item_data.get('dur_max', '?')}" if 'dur' in item_data else '∞',
             'skills': format_skills(item_data.get('skills', [])),

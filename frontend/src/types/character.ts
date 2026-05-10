@@ -20,6 +20,8 @@ export interface EquipmentItem {
   title: string;
   quality: QualityInfo;
   level: string;
+  star_level: number;
+  pattern: string;
   trend: string;
   durability: string;
   skills: Skill[];
