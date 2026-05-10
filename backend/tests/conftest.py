@@ -9,13 +9,29 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import shared.middleware.auth
 shared.middleware.auth._cached_users = None
 
-from app import create_app
+from test_app import create_test_app
 from shared.models import db
 from shared.models.user import User
 from shared.config import Config
 
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
+
+
+def _truncate_all():
+    """Truncate all tables between tests.
+
+    Disables FK checks temporarily to avoid cascade issues with PostgreSQL.
+    """
+    try:
+        db.session.execute(db.text("SET session_replication_role = 'replica'"))
+        db.session.execute(db.text('TRUNCATE TABLE audit_log, user_permission, role_permission, session_token, equipment_item, compare_character, improvement_track, analysis_log, treasury_operations, clan_member_info, clan_chat_message, clan_chat_room, clan_member, character_snapshot, character_cache, closed_profiles, clan_info, clan, permission, app_user, role RESTART IDENTITY'))
+        db.session.execute(db.text("SET session_replication_role = 'origin'"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        db.session.execute(db.text("SET session_replication_role = 'origin'"))
+        db.session.commit()
 
 
 @pytest.fixture(autouse=True)
@@ -30,7 +46,11 @@ def reset_config():
 
 @pytest.fixture
 def app():
-    os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
+    test_db_url = os.environ.get(
+        'TEST_DATABASE_URL',
+        'postgresql://dwar:change-me-in-production@postgres:5432/dwar_rater_test'
+    )
+    os.environ['DATABASE_URL'] = test_db_url
     os.environ['AUTH_ENABLED'] = 'true'
     os.environ['ADMIN_USER'] = 'admin'
     os.environ['ADMIN_PASS'] = 'testpass'
@@ -38,15 +58,18 @@ def app():
     os.environ['RATE_LIMIT_WINDOW'] = '60'
     os.environ['SECRET_KEY'] = 'test-secret-key'
 
+    Config.DATABASE_URL = test_db_url
     Config.ADMIN_USER = 'admin'
     Config.ADMIN_PASS = 'testpass'
     Config.AUTH_ENABLED = True
     shared.middleware.auth._cached_users = None
 
-    app = create_app()
+    app = create_test_app()
     app.config['TESTING'] = True
+
     with app.app_context():
         db.create_all()
+
         if not User.query.filter_by(username='admin').first():
             admin = User(
                 username='admin',
@@ -62,10 +85,11 @@ def app():
             )
             db.session.add(user)
         db.session.commit()
+
     yield app
 
     with app.app_context():
-        db.session.remove()
+        _truncate_all()
 
 
 @pytest.fixture
@@ -85,7 +109,6 @@ def user_auth():
 
 @pytest.fixture
 def fixture_data():
-    """Load JSON fixtures from tests/fixtures/."""
     def _load(name):
         path = os.path.join(FIXTURES_DIR, f'{name}.json')
         with open(path, 'r', encoding='utf-8') as f:
