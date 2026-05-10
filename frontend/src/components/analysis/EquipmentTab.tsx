@@ -96,6 +96,7 @@ function ItemCard({ item }: { item: EquipmentItem }) {
   const skills = item.skills.map(s => ({ value: `${s.title}: ${s.value}`, color: s.color }));
   const runes = item.enchants.filter(e => e.type === 'Руна' || e.type === 'Руна 2').map(e => ({ value: e.value, color: e.color }));
   const frames = item.enchants.filter(e => e.type === 'Оправа').map(e => ({ value: e.value, color: e.color }));
+  const lacquers = item.enchants.filter(e => e.type === 'Лак').map(e => ({ value: e.value, color: e.color }));
   const plates = item.enchants.filter(e => e.type === 'Пластина').map(e => ({ value: e.value, color: e.color }));
   const enhancements = item.enchants.filter(e => e.type === 'Усиление').map(e => ({ value: e.value, color: e.color }));
   const builtins = item.enchants.filter(e => e.type === 'Встроено').map(e => ({ value: e.value, color: e.color }));
@@ -108,6 +109,7 @@ function ItemCard({ item }: { item: EquipmentItem }) {
     { title: 'УЗОР', items: item.pattern ? [{ value: item.pattern, color: item.quality.color }] : [] },
     { title: 'РУНА', items: runes },
     { title: 'ОПРАВА', items: frames },
+    { title: 'ЛАК', items: lacquers },
     { title: 'ПЛАСТИНА', items: plates },
     { title: 'УСИЛЕНИЯ', items: enhancements },
     { title: 'СИМВОЛЫ', items: symbols },

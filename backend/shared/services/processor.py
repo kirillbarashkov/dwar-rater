@@ -101,15 +101,26 @@ def format_enchants(item):
 def _parse_star_level(desc):
     """Parse star level from item description.
 
-    Exotic/legendary items have star info in desc like:
-    <STRONG><U>1★</U></STRONG> <STRONG><SPAN style="color:green">...
+    Exotic items: current star has color:green, higher stars have color:808080
+    Legendary items: current star has color:red, higher stars have color:808080
+
+    Pattern: <U>N★</U> followed by color indicator
     """
     if not desc:
         return 0
-    # Look for <U>N★</U> followed by green color
-    match = re.search(r'<U>(\d)★?</U>.*?color:green', desc, re.DOTALL)
-    if match:
-        return int(match.group(1))
+    # Find all star markers with their color
+    matches = re.findall(r'<U>(\d)★?</U>.*?color:([#\w]+)', desc, re.DOTALL)
+    if not matches:
+        return 0
+
+    # The current star level is the LAST one that has an active color (green or red)
+    # Higher levels have color:808080 (gray)
+    active_colors = {'green', 'red', '008000', 'ff0000'}
+    for num, color in reversed(matches):
+        if color.lower() in active_colors:
+            return int(num)
+
+    # Fallback: if no active color found, return 0
     return 0
 
 
