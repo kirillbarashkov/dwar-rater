@@ -221,22 +221,34 @@ def create_app():
 
 
 def _ensure_admin(db, logger):
-    """Ensure admin user exists. Called after app context is established."""
+    """Ensure admin user exists. Uses raw SQL to avoid session issues."""
     from shared.config import Config
-    from shared.models.user import User
 
     try:
-        existing = User.query.filter_by(username=Config.ADMIN_USER).first()
-        if existing:
+        # Check if admin exists using raw SQL
+        result = db.session.execute(
+            db.text("SELECT id FROM app_user WHERE username = :username"),
+            {"username": Config.ADMIN_USER}
+        ).first()
+
+        if result:
             logger.info(f'Admin user already exists: {Config.ADMIN_USER}')
             return
 
-        admin = User(
-            username=Config.ADMIN_USER,
-            password_hash=bcrypt.hashpw(Config.ADMIN_PASS.encode(), bcrypt.gensalt()).decode('utf-8'),
-            role='admin'
+        # Create admin using raw SQL
+        import bcrypt
+        password_hash = bcrypt.hashpw(Config.ADMIN_PASS.encode(), bcrypt.gensalt()).decode('utf-8')
+        db.session.execute(
+            db.text("""
+                INSERT INTO app_user (username, password_hash, role, is_active, must_change_password, created_at)
+                VALUES (:username, :password_hash, :role, true, false, NOW())
+            """),
+            {
+                "username": Config.ADMIN_USER,
+                "password_hash": password_hash,
+                "role": "admin"
+            }
         )
-        db.session.add(admin)
         db.session.commit()
         logger.info(f'Admin user created: {Config.ADMIN_USER}')
     except Exception as e:
