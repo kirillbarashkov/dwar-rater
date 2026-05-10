@@ -1,6 +1,8 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
     container_name: dwar_rater_postgres
     environment:
       POSTGRES_DB: dwar_rater
@@ -8,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backups:/backups
+      - postgres_backups:/backups
     ports:
       - "5432:5432"
     healthcheck:
@@ -57,3 +59,4 @@ services:
 
 volumes:
   postgres_data:
+  postgres_backups:

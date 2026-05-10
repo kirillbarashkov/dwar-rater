@@ -1,0 +1,12 @@
+FROM postgres:16-alpine
+
+RUN apk add --no-cache dcron
+
+COPY scripts/db-backup.sh /usr/local/bin/db-backup.sh
+RUN chmod +x /usr/local/bin/db-backup.sh && \
+    mkdir -p /backups
+
+# Set up cron to run backup every 6 hours
+RUN echo "0 */6 * * * /usr/local/bin/db-backup.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root
+
+CMD ["sh", "-c", "crond -f -l 2 & docker-entrypoint.sh postgres"]
