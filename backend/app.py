@@ -215,21 +215,36 @@ def create_app():
         data_logger.info('')
 
         # Create admin user if not exists
+        _ensure_admin(db, data_logger)
+
+    return app
+
+
+def _ensure_admin(db, logger):
+    """Ensure admin user exists. Called after app context is established."""
+    from shared.config import Config
+    from shared.models.user import User
+
+    try:
+        existing = User.query.filter_by(username=Config.ADMIN_USER).first()
+        if existing:
+            logger.info(f'Admin user already exists: {Config.ADMIN_USER}')
+            return
+
+        admin = User(
+            username=Config.ADMIN_USER,
+            password_hash=bcrypt.hashpw(Config.ADMIN_PASS.encode(), bcrypt.gensalt()).decode('utf-8'),
+            role='admin'
+        )
+        db.session.add(admin)
+        db.session.commit()
+        logger.info(f'Admin user created: {Config.ADMIN_USER}')
+    except Exception as e:
+        logger.error(f'Failed to create admin user: {e}')
         try:
-            if not User.query.filter_by(username=Config.ADMIN_USER).first():
-                admin = User(
-                    username=Config.ADMIN_USER,
-                    password_hash=bcrypt.hashpw(Config.ADMIN_PASS.encode(), bcrypt.gensalt()).decode('utf-8'),
-                    role='admin'
-                )
-                db.session.add(admin)
-                db.session.commit()
-                data_logger.info(f'Admin user created: {Config.ADMIN_USER}')
-            else:
-                data_logger.info(f'Admin user already exists: {Config.ADMIN_USER}')
-        except Exception as e:
-            data_logger.error(f'Failed to create admin user: {e}')
             db.session.rollback()
+        except Exception:
+            pass
 
     return app
 
