@@ -43,6 +43,26 @@ def feature(feature_name: str, permissions: list[Permission]):
     return decorator
 
 
+def register_feature(feature_name: str, permissions: list[Permission]):
+    """Register permissions for a feature without using a decorator.
+
+    Usage:
+        analyze_bp = Blueprint('analyze', __name__)
+        register_feature('analyze', [
+            Permission('read', 'Анализ персонажа', 'POST /api/analyze'),
+            Permission('write', 'Принудительное обновление', 'force_refresh=true'),
+        ])
+    """
+    for perm in permissions:
+        key = (feature_name, perm.action)
+        _registered_permissions[key] = {
+            'feature': feature_name,
+            'action': perm.action,
+            'label': perm.label,
+            'description': perm.description,
+        }
+
+
 def get_registered_permissions():
     """Return all permissions registered via @feature() decorators."""
     return dict(_registered_permissions)

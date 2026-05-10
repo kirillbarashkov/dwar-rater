@@ -1,6 +1,6 @@
 import json
 from flask import Blueprint, request, jsonify, g
-from shared.middleware.auth import require_auth
+from shared.rbac import require_permission, feature, Permission as PermDef
 from shared.models.character_cache import CharacterCache
 from shared.models.character_snapshot import CharacterSnapshot
 from shared.models import db
@@ -9,9 +9,17 @@ from shared.services.cache_service import create_named_snapshot, log_analysis
 
 snapshots_bp = Blueprint('snapshots', __name__)
 
+from shared.rbac import register_feature
+register_feature('snapshots', [
+    PermDef('read', 'Просмотр снапшотов', 'GET /api/snapshots'),
+    PermDef('write', 'Сохранение снапшота', 'POST /api/save-snapshot'),
+    PermDef('delete', 'Удаление снапшота', 'DELETE /api/snapshots/:id'),
+    PermDef('admin', 'Очистка кэша', 'DELETE /api/cache'),
+])
+
 
 @snapshots_bp.route('/api/snapshots', methods=['GET'])
-@require_auth
+@require_permission('snapshots', 'read')
 def list_snapshots():
     nick = request.args.get('nick', '')
     page = request.args.get('page', 1, type=int)
@@ -45,7 +53,7 @@ def list_snapshots():
 
 
 @snapshots_bp.route('/api/snapshots/<int:snapshot_id>', methods=['GET'])
-@require_auth
+@require_permission('snapshots', 'read')
 def get_snapshot(snapshot_id):
     user = g.current_user
     snapshot = CharacterSnapshot.query.get_or_404(snapshot_id)
@@ -59,7 +67,7 @@ def get_snapshot(snapshot_id):
 
 
 @snapshots_bp.route('/api/snapshots/<int:snapshot_id>', methods=['DELETE'])
-@require_auth
+@require_permission('snapshots', 'delete')
 def delete_snapshot(snapshot_id):
     user = g.current_user
     snapshot = CharacterSnapshot.query.get_or_404(snapshot_id)
@@ -71,7 +79,7 @@ def delete_snapshot(snapshot_id):
 
 
 @snapshots_bp.route('/api/save-snapshot', methods=['POST'])
-@require_auth
+@require_permission('snapshots', 'write')
 def save_snapshot_endpoint():
     data = request.json
     snapshot_data = data.get('snapshot_data')
@@ -94,12 +102,8 @@ def save_snapshot_endpoint():
 
 
 @snapshots_bp.route('/api/cache', methods=['DELETE'])
-@require_auth
+@require_permission('snapshots', 'admin')
 def clear_cache():
-    user = g.current_user
-    if user.role != 'admin':
-        return jsonify({'error': 'Доступ запрещён'}), 403
-
     nick = request.args.get('nick', '').strip()
 
     try:

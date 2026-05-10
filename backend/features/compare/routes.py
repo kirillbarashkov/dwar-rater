@@ -1,15 +1,22 @@
 import json
 from flask import Blueprint, request, jsonify, g
-from shared.middleware.auth import require_auth
+from shared.rbac import require_permission, feature, Permission as PermDef
 from shared.models.compare_character import CompareCharacter
 from shared.models import db
 
 
+
 compare_bp = Blueprint('compare', __name__)
+
+from shared.rbac import register_feature
+register_feature('compare', [
+    PermDef('read', 'Просмотр сравнений', 'GET /api/compare'),
+    PermDef('write', 'Управление сравнениями', 'POST/DELETE /api/compare/*'),
+])
 
 
 @compare_bp.route('/api/compare', methods=['GET'])
-@require_auth
+@require_permission('compare', 'read')
 def list_compare():
     user = g.current_user
     characters = CompareCharacter.query.filter_by(user_id=user.id).order_by(CompareCharacter.sort_order).all()
@@ -19,7 +26,7 @@ def list_compare():
 
 
 @compare_bp.route('/api/compare', methods=['POST'])
-@require_auth
+@require_permission('compare', 'write')
 def add_compare():
     user = g.current_user
     data = request.get_json()
@@ -51,7 +58,7 @@ def add_compare():
 
 
 @compare_bp.route('/api/compare/<int:char_id>', methods=['DELETE'])
-@require_auth
+@require_permission('compare', 'write')
 def delete_compare(char_id):
     user = g.current_user
     character = CompareCharacter.query.filter_by(id=char_id, user_id=user.id).first()

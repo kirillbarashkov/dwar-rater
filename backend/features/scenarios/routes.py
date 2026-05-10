@@ -1,15 +1,22 @@
 import json
 from flask import Blueprint, request, jsonify, g
-from shared.middleware.auth import require_auth
+from shared.rbac import require_permission, feature, Permission as PermDef
 from shared.models import db
 from shared.models.leveling_scenario import LevelingScenario
 
 
+
 scenarios_bp = Blueprint('scenarios', __name__)
+
+from shared.rbac import register_feature
+register_feature('scenarios', [
+    PermDef('read', 'Просмотр сценариев', 'GET /api/scenarios'),
+    PermDef('write', 'Создание/редактирование сценариев', 'POST/PUT/DELETE /api/scenarios/*'),
+])
 
 
 @scenarios_bp.route('/api/scenarios', methods=['GET'])
-@require_auth
+@require_permission('scenarios', 'read')
 def list_scenarios():
     user = g.current_user
     query = LevelingScenario.query.filter(
@@ -30,7 +37,7 @@ def list_scenarios():
 
 
 @scenarios_bp.route('/api/scenarios/<int:scenario_id>', methods=['GET'])
-@require_auth
+@require_permission('scenarios', 'read')
 def get_scenario(scenario_id):
     scenario = LevelingScenario.query.get_or_404(scenario_id)
     data = json.loads(scenario.scenario_data)
@@ -46,7 +53,7 @@ def get_scenario(scenario_id):
 
 
 @scenarios_bp.route('/api/scenarios', methods=['POST'])
-@require_auth
+@require_permission('scenarios', 'write')
 def create_scenario():
     user = g.current_user
     if user.role != 'admin':
@@ -74,7 +81,7 @@ def create_scenario():
 
 
 @scenarios_bp.route('/api/scenarios/<int:scenario_id>', methods=['PUT'])
-@require_auth
+@require_permission('scenarios', 'write')
 def update_scenario(scenario_id):
     user = g.current_user
     scenario = LevelingScenario.query.get_or_404(scenario_id)
@@ -97,7 +104,7 @@ def update_scenario(scenario_id):
 
 
 @scenarios_bp.route('/api/scenarios/<int:scenario_id>', methods=['DELETE'])
-@require_auth
+@require_permission('scenarios', 'write')
 def delete_scenario(scenario_id):
     user = g.current_user
     scenario = LevelingScenario.query.get_or_404(scenario_id)
@@ -111,7 +118,7 @@ def delete_scenario(scenario_id):
 
 
 @scenarios_bp.route('/api/scenarios/<int:scenario_id>/compare', methods=['POST'])
-@require_auth
+@require_permission('scenarios', 'read')
 def compare_scenario(scenario_id):
     scenario = LevelingScenario.query.get_or_404(scenario_id)
     scenario_data = json.loads(scenario.scenario_data)

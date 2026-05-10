@@ -3,24 +3,31 @@ from datetime import datetime, timezone
 from shared.services.parser import fetch_character_page, parse_character
 from shared.services.processor import process_character
 from shared.services.cache_service import save_character_cache
-from models import db
+from shared.models import db
 from shared.models.closed_profile import ClosedProfile
 from shared.models.character_snapshot import CharacterSnapshot
-from shared.middleware.auth import require_auth
+from shared.rbac import require_permission, feature, Permission as PermDef
+
 
 
 closed_profiles_bp = Blueprint('closed_profiles', __name__)
 
+from shared.rbac import register_feature
+register_feature('closed_profiles', [
+    PermDef('read', 'Просмотр закрытых профилей', 'GET /api/closed-profiles'),
+    PermDef('write', 'Добавление/удаление/проверка', 'POST/PUT/DELETE /api/closed-profiles/*'),
+])
+
 
 @closed_profiles_bp.route('/api/closed-profiles', methods=['GET'])
-@require_auth
+@require_permission('closed_profiles', 'read')
 def get_closed_profiles():
     profiles = ClosedProfile.query.order_by(ClosedProfile.last_checked.asc().nullsfirst()).all()
     return jsonify([p.to_dict() for p in profiles])
 
 
 @closed_profiles_bp.route('/api/closed-profiles', methods=['POST'])
-@require_auth
+@require_permission('closed_profiles', 'read')
 def add_closed_profile():
     data = request.json
     nick = data.get('nick', '').strip()
@@ -42,7 +49,7 @@ def add_closed_profile():
 
 
 @closed_profiles_bp.route('/api/closed-profiles/<int:profile_id>', methods=['PUT'])
-@require_auth
+@require_permission('closed_profiles', 'read')
 def update_closed_profile(profile_id):
     profile = ClosedProfile.query.get_or_404(profile_id)
     data = request.json
@@ -53,7 +60,7 @@ def update_closed_profile(profile_id):
 
 
 @closed_profiles_bp.route('/api/closed-profiles/<int:profile_id>', methods=['DELETE'])
-@require_auth
+@require_permission('closed_profiles', 'read')
 def delete_closed_profile(profile_id):
     profile = ClosedProfile.query.get_or_404(profile_id)
     db.session.delete(profile)
@@ -62,7 +69,7 @@ def delete_closed_profile(profile_id):
 
 
 @closed_profiles_bp.route('/api/closed-profiles/<nick>/check', methods=['POST'])
-@require_auth
+@require_permission('closed_profiles', 'read')
 def check_profile(nick):
     profile = ClosedProfile.query.filter_by(nick=nick).first()
     if not profile:
@@ -120,7 +127,7 @@ def check_profile(nick):
 
 
 @closed_profiles_bp.route('/api/closed-profiles/batch-scan', methods=['POST'])
-@require_auth
+@require_permission('closed_profiles', 'read')
 def batch_scan():
     data = request.json
     nicks = data.get('nicks', [])
@@ -180,7 +187,7 @@ def batch_scan():
 
 
 @closed_profiles_bp.route('/api/closed-profiles/batch-delete', methods=['POST'])
-@require_auth
+@require_permission('closed_profiles', 'read')
 def batch_delete():
     data = request.json
     ids = data.get('ids', [])
@@ -193,7 +200,7 @@ def batch_delete():
 
 
 @closed_profiles_bp.route('/api/closed-profiles/delete-all', methods=['POST'])
-@require_auth
+@require_permission('closed_profiles', 'read')
 def delete_all():
     count = ClosedProfile.query.count()
     ClosedProfile.query.delete()
@@ -202,7 +209,7 @@ def delete_all():
 
 
 @closed_profiles_bp.route('/api/closed-profiles/<nick>/save-snapshot', methods=['POST'])
-@require_auth
+@require_permission('closed_profiles', 'read')
 def save_snapshot_for_profile(nick):
     profile = ClosedProfile.query.filter_by(nick=nick).first()
     if not profile:

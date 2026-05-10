@@ -1,13 +1,20 @@
 import json
 from datetime import datetime
 from flask import Blueprint, request, jsonify, g
-from shared.middleware.auth import require_auth
+from shared.rbac import require_permission, feature, Permission as PermDef
 from shared.models import db
 from shared.models.improvement_track import ImprovementTrack
 from shared.models.leveling_scenario import LevelingScenario
 
 
+
 tracks_bp = Blueprint('tracks', __name__)
+
+from shared.rbac import register_feature
+register_feature('tracks', [
+    PermDef('read', 'Просмотр треков', 'GET /api/tracks'),
+    PermDef('write', 'Генерация/обновление треков', 'POST/PUT/DELETE /api/tracks/*'),
+])
 
 
 def _generate_steps(character_data, scenario_data):
@@ -75,7 +82,7 @@ def _generate_steps(character_data, scenario_data):
 
 
 @tracks_bp.route('/api/tracks', methods=['GET'])
-@require_auth
+@require_permission('tracks', 'read')
 def list_tracks():
     user = g.current_user
     tracks = ImprovementTrack.query.filter_by(user_id=user.id).order_by(ImprovementTrack.updated_at.desc()).all()
@@ -90,7 +97,7 @@ def list_tracks():
 
 
 @tracks_bp.route('/api/tracks/generate', methods=['POST'])
-@require_auth
+@require_permission('tracks', 'write')
 def generate_track():
     user = g.current_user
     data = request.json
@@ -126,7 +133,7 @@ def generate_track():
 
 
 @tracks_bp.route('/api/tracks/<int:track_id>', methods=['GET'])
-@require_auth
+@require_permission('tracks', 'read')
 def get_track(track_id):
     user = g.current_user
     track = ImprovementTrack.query.get_or_404(track_id)
@@ -144,7 +151,7 @@ def get_track(track_id):
 
 
 @tracks_bp.route('/api/tracks/<int:track_id>/step/<step_id>', methods=['PUT'])
-@require_auth
+@require_permission('tracks', 'write')
 def update_step(track_id, step_id):
     user = g.current_user
     track = ImprovementTrack.query.get_or_404(track_id)
@@ -172,7 +179,7 @@ def update_step(track_id, step_id):
 
 
 @tracks_bp.route('/api/tracks/<int:track_id>', methods=['DELETE'])
-@require_auth
+@require_permission('tracks', 'write')
 def delete_track(track_id):
     user = g.current_user
     track = ImprovementTrack.query.get_or_404(track_id)

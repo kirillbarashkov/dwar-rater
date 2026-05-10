@@ -1,11 +1,25 @@
 import json
 from flask import Blueprint, request, jsonify, g
-from shared.middleware.auth import require_auth
+from shared.rbac import require_permission, feature, Permission as PermDef
 from shared.models import db
 from shared.models.clan import Clan, ClanMember, ClanChatRoom, ClanChatMessage
 
 
 clans_bp = Blueprint('clans', __name__)
+
+from shared.rbac import register_feature
+register_feature('clans', [
+    PermDef('read', 'Просмотр кланов', 'GET /api/clans'),
+    PermDef('write', 'Управление кланами', 'POST/DELETE /api/clans/*'),
+    PermDef('admin', 'Управление чатом', 'Chat rooms/messages admin'),
+])
+
+from shared.rbac import register_feature
+register_feature('clans', [
+    PermDef('read', 'Просмотр кланов', 'GET /api/clans, GET /api/clans/:id/members, rooms, messages'),
+    PermDef('write', 'Управление кланами', 'POST/DELETE /api/clans/*'),
+    PermDef('admin', 'Управление чатом', 'Chat rooms/messages admin'),
+])
 
 
 def _is_clan_admin(user, clan_id):
@@ -18,7 +32,7 @@ def _is_clan_member(user, clan_id):
 
 
 @clans_bp.route('/api/clans', methods=['GET'])
-@require_auth
+@require_permission('clans', 'read')
 def list_clans():
     user = g.current_user
     if user.role == 'admin':
@@ -35,7 +49,7 @@ def list_clans():
 
 
 @clans_bp.route('/api/clans', methods=['POST'])
-@require_auth
+@require_permission('clans', 'write')
 def create_clan():
     user = g.current_user
     if user.role != 'admin':
@@ -53,7 +67,7 @@ def create_clan():
 
 
 @clans_bp.route('/api/clans/<int:clan_id>/members', methods=['GET'])
-@require_auth
+@require_permission('clans', 'read')
 def list_members(clan_id):
     user = g.current_user
     if not _is_clan_member(user, clan_id) and user.role != 'admin':
@@ -68,7 +82,7 @@ def list_members(clan_id):
 
 
 @clans_bp.route('/api/clans/<int:clan_id>/members', methods=['POST'])
-@require_auth
+@require_permission('clans', 'write')
 def add_member(clan_id):
     user = g.current_user
     if not _is_clan_admin(user, clan_id) and user.role != 'admin':
@@ -87,7 +101,7 @@ def add_member(clan_id):
 
 
 @clans_bp.route('/api/clans/<int:clan_id>/members/<int:user_id>', methods=['DELETE'])
-@require_auth
+@require_permission('clans', 'write')
 def remove_member(clan_id, user_id):
     user = g.current_user
     if not _is_clan_admin(user, clan_id) and user.role != 'admin':
@@ -101,7 +115,7 @@ def remove_member(clan_id, user_id):
 
 
 @clans_bp.route('/api/clans/<int:clan_id>/rooms', methods=['GET'])
-@require_auth
+@require_permission('clans', 'read')
 def list_rooms(clan_id):
     user = g.current_user
     if not _is_clan_member(user, clan_id) and user.role != 'admin':
@@ -115,7 +129,7 @@ def list_rooms(clan_id):
 
 
 @clans_bp.route('/api/clans/<int:clan_id>/rooms', methods=['POST'])
-@require_auth
+@require_permission('clans', 'admin')
 def create_room(clan_id):
     user = g.current_user
     if not _is_clan_admin(user, clan_id) and user.role != 'admin':
@@ -130,7 +144,7 @@ def create_room(clan_id):
 
 
 @clans_bp.route('/api/clans/<int:clan_id>/rooms/<int:room_id>/messages', methods=['GET'])
-@require_auth
+@require_permission('clans', 'read')
 def list_messages(clan_id, room_id):
     user = g.current_user
     if not _is_clan_member(user, clan_id) and user.role != 'admin':
@@ -153,7 +167,7 @@ def list_messages(clan_id, room_id):
 
 
 @clans_bp.route('/api/clans/<int:clan_id>/rooms/<int:room_id>/messages', methods=['POST'])
-@require_auth
+@require_permission('clans', 'read')
 def send_message(clan_id, room_id):
     user = g.current_user
     if not _is_clan_member(user, clan_id) and user.role != 'admin':
@@ -174,7 +188,7 @@ def send_message(clan_id, room_id):
 
 
 @clans_bp.route('/api/clans/<int:clan_id>/rooms/<int:room_id>/messages/<int:msg_id>', methods=['DELETE'])
-@require_auth
+@require_permission('clans', 'admin')
 def delete_message(clan_id, room_id, msg_id):
     user = g.current_user
     msg = ClanChatMessage.query.get_or_404(msg_id)

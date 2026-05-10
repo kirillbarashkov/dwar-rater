@@ -2,12 +2,20 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 from shared.services.clan_parser import fetch_clan_page, parse_clan_info, fetch_clan_treasury_report, parse_clan_treasury_operations
 from shared.services.data_logger import data_logger
-from models import db
+from shared.models import db
 from shared.models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation
-from shared.middleware.auth import require_auth
+from shared.rbac import require_permission, feature, Permission as PermDef
 
 
 clan_info_bp = Blueprint('clan_info', __name__)
+
+from shared.rbac import register_feature
+register_feature('clan_info', [
+    PermDef('read', 'Просмотр инфо/состава/казны', 'GET /api/clan/*'),
+    PermDef('write', 'Редактирование участников', 'POST/PUT/DELETE /api/clan/*/members/*'),
+    PermDef('admin', 'Импорт/экспорт казны, бэкапы', 'Treasury import/export/backup admin'),
+])
+
 
 LEADER_ROLE = 'Глава Ордена'
 DEPUTY_ROLE = 'Зам. Главы'
@@ -68,7 +76,7 @@ def build_clan_structure_from_members(clan_id, existing_structure=None):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/info', methods=['GET'])
-@require_auth
+@require_permission('clan_info', 'read')
 def get_clan_info(clan_id):
     cached = ClanInfo.query.filter_by(clan_id=clan_id).first()
 
@@ -152,7 +160,7 @@ def get_clan_info(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/info', methods=['PUT'])
-@require_auth
+@require_permission('clan_info', 'write')
 def update_clan_info(clan_id):
     cached = ClanInfo.query.filter_by(clan_id=clan_id).first()
     if not cached:
@@ -218,7 +226,7 @@ def update_clan_info(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members', methods=['GET'])
-@require_auth
+@require_permission('clan_info', 'read')
 def get_clan_members(clan_id):
     members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).all()
     return jsonify([{
@@ -236,7 +244,7 @@ def get_clan_members(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members/left', methods=['GET'])
-@require_auth
+@require_permission('clan_info', 'read')
 def get_left_members(clan_id):
     members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=True).all()
     return jsonify([{
@@ -255,7 +263,7 @@ def get_left_members(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members', methods=['POST'])
-@require_auth
+@require_permission('clan_info', 'write')
 def add_clan_member(clan_id):
     data = request.json
     required = ['nick', 'level', 'clan_role']
@@ -293,7 +301,7 @@ def add_clan_member(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members/import', methods=['POST'])
-@require_auth
+@require_permission('clan_info', 'admin')
 def import_clan_members(clan_id):
     from flask import g
     
@@ -420,7 +428,7 @@ def import_clan_members(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members/<int:member_id>', methods=['DELETE'])
-@require_auth
+@require_permission('clan_info', 'write')
 def delete_clan_member(clan_id, member_id):
     member = ClanMemberInfo.query.filter_by(id=member_id, clan_id=clan_id).first()
     if not member:
@@ -438,7 +446,7 @@ def delete_clan_member(clan_id, member_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/members/<int:member_id>', methods=['PUT'])
-@require_auth
+@require_permission('clan_info', 'write')
 def update_clan_member(clan_id, member_id):
     member = ClanMemberInfo.query.filter_by(id=member_id, clan_id=clan_id).first()
     if not member:
@@ -480,7 +488,7 @@ def update_clan_member(clan_id, member_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/export', methods=['GET'])
-@require_auth
+@require_permission('clan_info', 'read')
 def export_treasury_operations(clan_id):
     operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).all()
     
@@ -511,7 +519,7 @@ def export_treasury_operations(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/backup', methods=['POST'])
-@require_auth
+@require_permission('clan_info', 'write')
 def save_treasury_backup(clan_id):
     import os
     from flask import current_app
@@ -560,7 +568,7 @@ def save_treasury_backup(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/backups', methods=['GET'])
-@require_auth
+@require_permission('clan_info', 'read')
 def list_treasury_backups(clan_id):
     import os
     import glob
@@ -583,7 +591,7 @@ def list_treasury_backups(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/backup/<filename>', methods=['GET'])
-@require_auth
+@require_permission('clan_info', 'read')
 def get_treasury_backup(clan_id, filename):
     import os
     import re
@@ -605,7 +613,7 @@ def get_treasury_backup(clan_id, filename):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/backup/restore', methods=['POST'])
-@require_auth
+@require_permission('clan_info', 'admin')
 def restore_treasury_backup(clan_id):
     from flask import g
     
@@ -663,7 +671,7 @@ def restore_treasury_backup(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury', methods=['GET'])
-@require_auth
+@require_permission('clan_info', 'read')
 def get_treasury_operations(clan_id):
     operations = TreasuryOperation.query.filter_by(clan_id=clan_id).order_by(TreasuryOperation.id.desc()).all()
     return jsonify([{
@@ -679,7 +687,7 @@ def get_treasury_operations(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/<int:operation_id>', methods=['PUT'])
-@require_auth
+@require_permission('clan_info', 'admin')
 def update_treasury_operation(clan_id, operation_id):
     from flask import g
     
@@ -716,7 +724,7 @@ def update_treasury_operation(clan_id, operation_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/compensation', methods=['POST'])
-@require_auth
+@require_permission('clan_info', 'admin')
 def create_treasury_compensation(clan_id):
     from flask import g
     
@@ -771,7 +779,7 @@ def create_treasury_compensation(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/import', methods=['POST'])
-@require_auth
+@require_permission('clan_info', 'admin')
 def import_treasury_operations(clan_id):
     from flask import g
     
@@ -877,7 +885,7 @@ def import_treasury_operations(clan_id):
 
 
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury', methods=['POST'])
-@require_auth
+@require_permission('clan_info', 'admin')
 def fetch_treasury_operations(clan_id):
     from flask import g
     

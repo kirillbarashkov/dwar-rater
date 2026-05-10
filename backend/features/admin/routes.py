@@ -14,6 +14,14 @@ DEFAULT_PASSWORD = 'ChangeMe123!'
 
 admin_bp = Blueprint('admin', __name__)
 
+from shared.rbac import register_feature
+register_feature('admin', [
+    PermDef('read', 'Просмотр админки', 'GET /api/admin/*'),
+    PermDef('write', 'Управление пользователями и ролями', 'POST/PUT/DELETE /api/admin/*'),
+    PermDef('admin', 'Просмотр audit log', 'GET /api/admin/audit'),
+])
+
+
 
 def _audit(action, target_type=None, target_id=None, old=None, new=None):
     """Log an audit entry for the current admin user."""
