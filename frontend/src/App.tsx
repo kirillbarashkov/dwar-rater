@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useCharacterAnalysis } from './hooks/useCharacterAnalysis';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
@@ -20,7 +19,6 @@ import { ClosedProfilesTab } from './components/analysis/ClosedProfilesTab';
 
 import { CharacterPanel } from './components/snapshots/CharacterPanel';
 import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
-import { SnapshotCard } from './components/snapshots/SnapshotCard';
 import { ClosedProfileBanner } from './components/snapshots/ClosedProfileBanner';
 import { ScenarioComparison } from './components/analysis/ScenarioComparison';
 import { ImprovementTrackPanel } from './components/analysis/ImprovementTrack';
@@ -36,59 +34,9 @@ import { saveSnapshot } from './api/snapshots';
 import { addCompareCharacter } from './api/compare';
 import type { AnalysisResult } from './types/character';
 import type { Snapshot } from './types/snapshot';
+import { LoginPage } from './pages/auth/LoginPage';
+import { AdminPage } from './pages/admin/AdminPage';
 import './styles/globals.css';
-
-function LoginPage() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-    try {
-      await login(username, password);
-      navigate('/', { replace: true });
-    } catch {
-      setError('Неверный логин или пароль');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="login-section">
-      <div className="login-card">
-        <h2>Вход</h2>
-        <form onSubmit={handleSubmit}>
-          <Input
-            label="Логин"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            required
-          />
-          <Input
-            label="Пароль"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
-          {error && <p className="login-error">{error}</p>}
-          <Button type="submit" variant="primary" disabled={isLoading}>
-            {isLoading ? 'Вход...' : 'Войти'}
-          </Button>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 function AnalysisResultDisplay({
   result,
@@ -382,6 +330,14 @@ export default function App() {
 <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/"
           element={
