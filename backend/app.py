@@ -263,72 +263,10 @@ def create_app():
         db.session.commit()
         data_logger.info('RBAC: permissions synced')
 
-        # Create admin user if not exists (using direct psycopg2 to avoid SQLAlchemy session issues)
-        _create_admin_direct(db, data_logger)
-
         data_logger.info('=== STARTUP COMPLETE ===')
         data_logger.info('')
 
     return app
-
-
-def _create_admin_direct(db, logger):
-    """Create admin user using direct psycopg2 connection.
-    
-    This runs AFTER migrations and seed data, so the app_user table exists.
-    Uses direct psycopg2 to avoid SQLAlchemy session issues with gunicorn.
-    """
-    import psycopg2
-    import bcrypt
-    from shared.config import Config
-
-    admin_user = Config.ADMIN_USER
-    admin_pass = Config.ADMIN_PASS
-
-    try:
-        # Parse DATABASE_URL for psycopg2 connection
-        db_url = Config.DATABASE_URL
-        parts = db_url.replace('postgresql://', '').split('@')
-        user_pass = parts[0].split(':')
-        host_db = parts[1].split('/')
-        host_port = host_db[0].split(':')
-
-        conn = psycopg2.connect(
-            host=host_port[0],
-            port=int(host_port[1]) if len(host_port) > 1 else 5432,
-            dbname=host_db[1],
-            user=user_pass[0],
-            password=user_pass[1]
-        )
-        conn.autocommit = True
-
-        with conn.cursor() as cur:
-            # Check if admin exists
-            cur.execute("SELECT id FROM app_user WHERE username = %s", (admin_user,))
-            if cur.fetchone():
-                logger.info(f'Admin user already exists: {admin_user}')
-                conn.close()
-                return
-
-            # Create admin
-            h = bcrypt.hashpw(admin_pass.encode(), bcrypt.gensalt()).decode()
-            cur.execute(
-                "INSERT INTO app_user (username, password_hash, role, is_active, must_change_password, created_at) VALUES (%s, %s, 'admin', true, false, NOW())",
-                (admin_user, h)
-            )
-            conn.commit()
-
-            # Verify
-            cur.execute("SELECT id, username FROM app_user WHERE username = %s", (admin_user,))
-            row = cur.fetchone()
-            if row:
-                logger.info(f'Admin user created: id={row[0]}, username={row[1]}')
-            else:
-                logger.error('Admin creation: INSERT succeeded but verification failed')
-
-        conn.close()
-    except Exception as e:
-        logger.error(f'Failed to create admin user: {e}')
 
 
 if os.environ.get('CLI_MODE') != 'true':

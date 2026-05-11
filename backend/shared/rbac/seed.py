@@ -173,8 +173,11 @@ def seed_role_permissions(db, Role, Permission, RolePermission):
 
 
 def seed_all(db):
-    """Run all seed operations."""
+    """Run all seed operations including admin user creation."""
+    import bcrypt
+    import os
     from shared.rbac.models import Role, Permission, RolePermission
+    from shared.models.user import User
 
     seed_roles(db, Role)
     db.session.flush()
@@ -183,3 +186,16 @@ def seed_all(db):
     db.session.flush()
 
     seed_role_permissions(db, Role, Permission, RolePermission)
+
+    # Create admin user if not exists
+    admin_user = os.environ.get('ADMIN_USER', 'admin')
+    admin_pass = os.environ.get('ADMIN_PASS', 'change-me-in-production')
+    existing_admin = User.query.filter_by(username=admin_user).first()
+    if not existing_admin:
+        admin = User(
+            username=admin_user,
+            password_hash=bcrypt.hashpw(admin_pass.encode(), bcrypt.gensalt()).decode('utf-8'),
+            role='admin'
+        )
+        db.session.add(admin)
+        db.session.flush()
