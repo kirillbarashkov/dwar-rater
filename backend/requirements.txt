@@ -10,3 +10,4 @@ psycopg2-binary>=2.9
 alembic>=1.13
 pyotp>=2.9
 qrcode[pil]>=7.4
+weasyprint>=60.0

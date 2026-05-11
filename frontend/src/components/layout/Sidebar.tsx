@@ -42,6 +42,7 @@ const navGroups: TabGroup[] = [
     { key: 'other', label: 'Прочее', icon: '📋' },
     { key: 'closed', label: 'Закрытые', icon: '🔒' },
     { key: 'history', label: 'История слепков', icon: '💾' },
+    { key: 'export', label: 'Экспорт', icon: '📤' },
   ]},
   { key: 'track', label: 'Трек улучшений', icon: '📈', children: [
     { key: 'track', label: 'Трек', icon: '📈' },

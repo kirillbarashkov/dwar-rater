@@ -41,6 +41,7 @@ def create_app():
     from features.compare.routes import compare_bp
     from features.closed_profiles.routes import closed_profiles_bp
     from features.admin.routes import admin_bp
+    from features.export.routes import export_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(analyze_bp)
@@ -53,6 +54,7 @@ def create_app():
     app.register_blueprint(compare_bp)
     app.register_blueprint(closed_profiles_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(export_bp)
 
     @app.route('/')
     def index():

@@ -4,13 +4,13 @@ import './Toast.css';
 interface ToastMessage {
   id: number;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
 }
 
-let toastCallback: ((message: string, type: 'success' | 'error' | 'info') => void) | null = null;
+let toastCallback: ((message: string, type: 'success' | 'error' | 'info' | 'warning') => void) | null = null;
 
 // eslint-disable-next-line react-refresh/only-export-components
-export function showToast(message: string, type: 'success' | 'error' | 'info' = 'info') {
+export function showToast(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') {
   if (toastCallback) {
     toastCallback(message, type);
   }
@@ -20,7 +20,7 @@ export function ToastProvider() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   useEffect(() => {
-    toastCallback = (message: string, type: 'success' | 'error' | 'info') => {
+    toastCallback = (message: string, type: 'success' | 'error' | 'info' | 'warning') => {
       const id = Date.now();
       setToasts(prev => [...prev, { id, message, type }]);
       setTimeout(() => {

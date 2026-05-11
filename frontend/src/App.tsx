@@ -16,6 +16,7 @@ import { RecordsTab } from './components/analysis/RecordsTab';
 import { MedalsTab } from './components/analysis/MedalsTab';
 import { OtherTab } from './components/analysis/OtherTab';
 import { ClosedProfilesTab } from './components/analysis/ClosedProfilesTab';
+import { ExportTab } from './pages/analysis/ExportTab';
 
 import { CharacterPanel } from './components/snapshots/CharacterPanel';
 import { SnapshotHistory } from './components/snapshots/SnapshotHistory';
@@ -239,9 +240,11 @@ function HomePage() {
             </div>
           )}
 
-          {!isLoading && (
+          {!isLoading && activeTab !== 'export' && (
             <AnalysisResultDisplay result={currentResult} activeTab={activeTab} onLoadSnapshot={handleLoadSnapshot} />
           )}
+
+          {activeTab === 'export' && <ExportTab currentResult={currentResult} />}
 
           {currentResult && <ScenarioComparison character={currentResult} />}
 
