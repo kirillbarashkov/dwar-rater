@@ -177,6 +177,7 @@ def seed_all(db):
     import bcrypt
     import os
     import logging
+    import psycopg2
     from shared.rbac.models import Role, Permission, RolePermission
     from shared.models.user import User
 
@@ -184,32 +185,58 @@ def seed_all(db):
 
     seed_roles(db, Role)
     db.session.flush()
-    logger.info(f'RBAC: roles seeded')
+    logger.info('RBAC: roles seeded')
 
     seed_permissions(db, Permission)
     db.session.flush()
-    logger.info(f'RBAC: permissions seeded')
+    logger.info('RBAC: permissions seeded')
 
     seed_role_permissions(db, Role, Permission, RolePermission)
-    logger.info(f'RBAC: role_permissions seeded')
+    logger.info('RBAC: role_permissions seeded')
 
-    # Create admin user if not exists
+    # Commit seed data first
+    db.session.commit()
+    logger.info('RBAC: seed data committed')
+
+    # Create admin user using DIRECT psycopg2 with autocommit
+    # This bypasses all SQLAlchemy session issues
     admin_user = os.environ.get('ADMIN_USER', 'admin')
     admin_pass = os.environ.get('ADMIN_PASS', 'change-me-in-production')
+
     try:
-        existing_admin = User.query.filter_by(username=admin_user).first()
-        logger.info(f'RBAC: admin check - existing={existing_admin is not None}')
-        if not existing_admin:
-            admin = User(
-                username=admin_user,
-                password_hash=bcrypt.hashpw(admin_pass.encode(), bcrypt.gensalt()).decode('utf-8'),
-                role='admin'
-            )
-            db.session.add(admin)
-            db.session.flush()
-            logger.info(f'RBAC: admin user created: {admin_user}')
-        else:
-            logger.info(f'RBAC: admin user already exists: {admin_user}')
+        db_url = os.environ.get('DATABASE_URL', 'postgresql://dwar:change-me-in-production@postgres:5432/dwar_rater')
+        parts = db_url.replace('postgresql://', '').split('@')
+        user_pass = parts[0].split(':')
+        host_db = parts[1].split('/')
+        host_port = host_db[0].split(':')
+
+        conn = psycopg2.connect(
+            host=host_port[0],
+            port=int(host_port[1]) if len(host_port) > 1 else 5432,
+            dbname=host_db[1],
+            user=user_pass[0],
+            password=user_pass[1]
+        )
+        conn.autocommit = True
+
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM app_user WHERE username = %s", (admin_user,))
+            if cur.fetchone():
+                logger.info(f'RBAC: admin user already exists: {admin_user}')
+            else:
+                h = bcrypt.hashpw(admin_pass.encode(), bcrypt.gensalt()).decode()
+                cur.execute(
+                    "INSERT INTO app_user (username, password_hash, role, is_active, must_change_password, created_at) VALUES (%s, %s, 'admin', true, false, NOW())",
+                    (admin_user, h)
+                )
+                # autocommit=True means INSERT is immediately committed
+                cur.execute("SELECT id, username FROM app_user WHERE username = %s", (admin_user,))
+                row = cur.fetchone()
+                if row:
+                    logger.info(f'RBAC: admin user created via psycopg2: id={row[0]}, username={row[1]}')
+                else:
+                    logger.error('RBAC: admin INSERT succeeded but SELECT returned nothing')
+
+        conn.close()
     except Exception as e:
-        logger.error(f'RBAC: failed to create admin user: {e}')
-        db.session.rollback()
+        logger.error(f'RBAC: failed to create admin user via psycopg2: {e}')
