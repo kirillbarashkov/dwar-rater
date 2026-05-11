@@ -71,13 +71,14 @@ def export_character():
         analysis_data = raw_data
 
     # Generate export
+    page_format = data.get('page_format', 'landscape')
     try:
         if fmt == 'html':
-            content = export_to_html(analysis_data, sections)
+            content = export_to_html(analysis_data, sections, page_format)
         elif fmt == 'markdown':
-            content = export_to_markdown(analysis_data, sections)
+            content = export_to_markdown(analysis_data, sections, page_format)
         elif fmt == 'pdf':
-            content = export_to_pdf(analysis_data, sections)
+            content = export_to_pdf(analysis_data, sections, page_format)
     except Exception as e:
         return jsonify({'error': f'Ошибка генерации: {str(e)}'}), 500
 

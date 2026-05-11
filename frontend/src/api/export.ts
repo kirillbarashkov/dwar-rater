@@ -3,6 +3,7 @@ import apiClient from './client';
 export interface ExportRequest {
   format: 'html' | 'markdown' | 'pdf';
   sections: string[];
+  page_format?: 'landscape' | 'portrait';
   snapshot_id?: number;
   data?: Record<string, unknown>;
 }
@@ -30,4 +31,9 @@ export const EXPORT_FORMATS = [
   { key: 'html', label: 'HTML' },
   { key: 'markdown', label: 'Markdown' },
   { key: 'pdf', label: 'PDF' },
+] as const;
+
+export const PAGE_FORMATS = [
+  { key: 'landscape', label: 'Альбомный' },
+  { key: 'portrait', label: 'Книжный' },
 ] as const;

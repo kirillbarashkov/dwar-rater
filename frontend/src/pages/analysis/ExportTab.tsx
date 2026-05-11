@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { exportCharacter, EXPORT_SECTIONS, EXPORT_FORMATS } from '../../api/export';
+import { exportCharacter, EXPORT_SECTIONS, EXPORT_FORMATS, PAGE_FORMATS } from '../../api/export';
 import type { AnalysisResult } from '../../types/character';
 import './ExportTab.css';
 
@@ -9,6 +9,7 @@ interface ExportTabProps {
 
 export function ExportTab({ currentResult }: ExportTabProps) {
   const [format, setFormat] = useState<'html' | 'markdown' | 'pdf'>('html');
+  const [pageFormat, setPageFormat] = useState<'landscape' | 'portrait'>('landscape');
   const [sections, setSections] = useState<Set<string>>(
     new Set(['identity', 'combat_stats', 'characteristics', 'equipment', 'effects', 'medals', 'records', 'professions'])
   );
@@ -51,6 +52,7 @@ export function ExportTab({ currentResult }: ExportTabProps) {
     try {
       const blob = await exportCharacter({
         format,
+        page_format: pageFormat,
         sections: Array.from(sections),
         data: currentResult as unknown as Record<string, unknown>,
       });
@@ -88,13 +90,28 @@ export function ExportTab({ currentResult }: ExportTabProps) {
       <h2 className="export-title">Экспорт аналитики</h2>
 
       <div className="export-section">
-        <h3>Формат</h3>
+        <h3>Формат документа</h3>
         <div className="export-format-group">
           {EXPORT_FORMATS.map(f => (
             <button
               key={f.key}
               className={`export-format-btn ${format === f.key ? 'active' : ''}`}
               onClick={() => setFormat(f.key)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="export-section">
+        <h3>Ориентация страницы</h3>
+        <div className="export-format-group">
+          {PAGE_FORMATS.map(f => (
+            <button
+              key={f.key}
+              className={`export-format-btn ${pageFormat === f.key ? 'active' : ''}`}
+              onClick={() => setPageFormat(f.key)}
             >
               {f.label}
             </button>
