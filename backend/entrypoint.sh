@@ -6,8 +6,8 @@
 set -e
 
 echo "=== Pre-start: Creating test database ==="
-PGPASSWORD="${POSTGRES_PASSWORD:-change-me-in-production}" psql -h postgres -p 5432 -U "${POSTGRES_USER:-dwar}" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'dwar_rater_test'" | grep -q 1 || \
-  PGPASSWORD="${POSTGRES_PASSWORD:-change-me-in-production}" psql -h postgres -p 5432 -U "${POSTGRES_USER:-dwar}" -d postgres -c "CREATE DATABASE dwar_rater_test"
+PGPASSWORD="${POSTGRES_PASSWORD:-change-me-in-production}" psql -h postgres -p 5432 -U "${POSTGRES_USER:-dwar}" -d postgres -c "DROP DATABASE IF EXISTS dwar_rater_test"
+PGPASSWORD="${POSTGRES_PASSWORD:-change-me-in-production}" psql -h postgres -p 5432 -U "${POSTGRES_USER:-dwar}" -d postgres -c "CREATE DATABASE dwar_rater_test"
 echo "Test database ready"
 
 echo "=== Pre-start: Running migrations, seed, and admin creation ==="
