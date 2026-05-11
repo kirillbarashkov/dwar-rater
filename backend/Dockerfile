@@ -2,12 +2,13 @@ FROM python:3.14-slim
 
 WORKDIR /app
 
-# System dependencies for WeasyPrint (PDF generation)
+# System dependencies for WeasyPrint (PDF generation) and PostgreSQL client (pg_dump)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
     libcairo2 \
     libgdk-pixbuf-2.0-0 \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

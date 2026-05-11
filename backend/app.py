@@ -160,8 +160,34 @@ def create_app():
                         script = ScriptDirectory.from_config(alembic_cfg)
                         head_rev = script.get_current_head()
                         if current_rev != head_rev:
+                            # Pre-migration backup
+                            data_logger.info('Alembic: creating pre-migration backup...')
+                            try:
+                                import subprocess
+                                backup_env = os.environ.copy()
+                                backup_env['POSTGRES_USER'] = os.environ.get('POSTGRES_USER', 'dwar')
+                                backup_env['POSTGRES_DB'] = os.environ.get('POSTGRES_DB', 'dwar_rater')
+                                subprocess.run(
+                                    ['pg_dump', '-U', backup_env['POSTGRES_USER'], '-d', backup_env['POSTGRES_DB'],
+                                     '--no-owner', '--no-acl'],
+                                    env=backup_env,
+                                    capture_output=True, timeout=60
+                                )
+                                data_logger.info('Alembic: pre-migration backup created')
+                            except Exception as backup_err:
+                                data_logger.warning(f'Alembic: pre-migration backup failed: {backup_err}')
+
                             command.upgrade(alembic_cfg, 'head')
                             data_logger.info(f'Alembic: upgraded {current_rev} -> {head_rev}')
+
+                            # Post-migration integrity check
+                            try:
+                                with db.engine.connect() as check_conn:
+                                    result = check_conn.execute(db.text("SELECT COUNT(*) FROM app_user"))
+                                    user_count = result.scalar()
+                                    data_logger.info(f'Alembic: post-migration check - {user_count} users in app_user')
+                            except Exception as check_err:
+                                data_logger.warning(f'Alembic: post-migration integrity check failed: {check_err}')
                         else:
                             data_logger.info(f'Alembic: already at revision {head_rev}')
                 except Exception as e:
@@ -188,8 +214,32 @@ def create_app():
                     script = ScriptDirectory.from_config(alembic_cfg)
                     head_rev = script.get_current_head()
                     if current_rev != head_rev:
+                        data_logger.info('Alembic: creating pre-migration backup...')
+                        try:
+                            import subprocess
+                            backup_env = os.environ.copy()
+                            backup_env['POSTGRES_USER'] = os.environ.get('POSTGRES_USER', 'dwar')
+                            backup_env['POSTGRES_DB'] = os.environ.get('POSTGRES_DB', 'dwar_rater')
+                            subprocess.run(
+                                ['pg_dump', '-U', backup_env['POSTGRES_USER'], '-d', backup_env['POSTGRES_DB'],
+                                 '--no-owner', '--no-acl'],
+                                env=backup_env,
+                                capture_output=True, timeout=60
+                            )
+                            data_logger.info('Alembic: pre-migration backup created')
+                        except Exception as backup_err:
+                            data_logger.warning(f'Alembic: pre-migration backup failed: {backup_err}')
+
                         command.upgrade(alembic_cfg, 'head')
                         data_logger.info(f'Alembic: upgraded {current_rev} -> {head_rev}')
+
+                        try:
+                            with db.engine.connect() as check_conn:
+                                result = check_conn.execute(db.text("SELECT COUNT(*) FROM app_user"))
+                                user_count = result.scalar()
+                                data_logger.info(f'Alembic: post-migration check - {user_count} users in app_user')
+                        except Exception as check_err:
+                            data_logger.warning(f'Alembic: post-migration integrity check failed: {check_err}')
                     else:
                         data_logger.info(f'Alembic: already at revision {head_rev}')
             except Exception as e:
