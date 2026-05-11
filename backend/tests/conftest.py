@@ -3,6 +3,7 @@ import sys
 import os
 import json
 import bcrypt
+import psycopg2
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -19,6 +20,49 @@ import secrets
 
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
+
+
+def _recreate_test_db():
+    """Drop and recreate the test database to ensure clean state."""
+    test_db_url = os.environ.get(
+        'TEST_DATABASE_URL',
+        'postgresql://dwar:change-me-in-production@postgres:5432/dwar_rater_test'
+    )
+    parts = test_db_url.replace('postgresql://', '').split('@')
+    user_pass = parts[0].split(':')
+    host_db = parts[1].split('/')
+    host_port = host_db[0].split(':')
+
+    # Connect to postgres database to drop/create test db
+    conn = psycopg2.connect(
+        host=host_port[0],
+        port=int(host_port[1]) if len(host_port) > 1 else 5432,
+        dbname='postgres',
+        user=user_pass[0],
+        password=user_pass[1]
+    )
+    conn.autocommit = True
+    test_db_name = host_db[1]
+
+    with conn.cursor() as cur:
+        # Terminate all connections to test db
+        cur.execute(f"""
+            SELECT pg_terminate_backend(pg_stat_activity.pid)
+            FROM pg_stat_activity
+            WHERE pg_stat_activity.datname = '{test_db_name}'
+            AND pid <> pg_backend_pid()
+        """)
+        cur.execute(f"DROP DATABASE IF EXISTS {test_db_name}")
+        cur.execute(f"CREATE DATABASE {test_db_name}")
+
+    conn.close()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def session_setup():
+    """Recreate test database once per test session."""
+    _recreate_test_db()
+    yield
 
 
 def _create_token(user_id, hours=24):
