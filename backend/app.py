@@ -216,47 +216,7 @@ def create_app():
         data_logger.info('=== STARTUP COMPLETE ===')
         data_logger.info('')
 
-        # Create admin user if not exists (after migrations and seed)
-        _ensure_admin(db, data_logger)
-
     return app
-
-
-def _ensure_admin(db, logger):
-    """Ensure admin user exists. Called after migrations and seed data."""
-    from shared.config import Config
-
-    try:
-        result = db.session.execute(
-            db.text("SELECT id FROM app_user WHERE username = :username"),
-            {"username": Config.ADMIN_USER}
-        ).first()
-
-        if result:
-            logger.info(f'Admin user already exists: {Config.ADMIN_USER}')
-            return
-
-        import bcrypt
-        password_hash = bcrypt.hashpw(Config.ADMIN_PASS.encode(), bcrypt.gensalt()).decode('utf-8')
-        db.session.execute(
-            db.text("""
-                INSERT INTO app_user (username, password_hash, role, is_active, must_change_password, created_at)
-                VALUES (:username, :password_hash, :role, true, false, NOW())
-            """),
-            {
-                "username": Config.ADMIN_USER,
-                "password_hash": password_hash,
-                "role": "admin"
-            }
-        )
-        db.session.commit()
-        logger.info(f'Admin user created: {Config.ADMIN_USER}')
-    except Exception as e:
-        logger.error(f'Failed to create admin user: {e}')
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
 
 
 if os.environ.get('CLI_MODE') != 'true':
