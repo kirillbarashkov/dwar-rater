@@ -176,26 +176,40 @@ def seed_all(db):
     """Run all seed operations including admin user creation."""
     import bcrypt
     import os
+    import logging
     from shared.rbac.models import Role, Permission, RolePermission
     from shared.models.user import User
 
+    logger = logging.getLogger('data_operations')
+
     seed_roles(db, Role)
     db.session.flush()
+    logger.info(f'RBAC: roles seeded')
 
     seed_permissions(db, Permission)
     db.session.flush()
+    logger.info(f'RBAC: permissions seeded')
 
     seed_role_permissions(db, Role, Permission, RolePermission)
+    logger.info(f'RBAC: role_permissions seeded')
 
     # Create admin user if not exists
     admin_user = os.environ.get('ADMIN_USER', 'admin')
     admin_pass = os.environ.get('ADMIN_PASS', 'change-me-in-production')
-    existing_admin = User.query.filter_by(username=admin_user).first()
-    if not existing_admin:
-        admin = User(
-            username=admin_user,
-            password_hash=bcrypt.hashpw(admin_pass.encode(), bcrypt.gensalt()).decode('utf-8'),
-            role='admin'
-        )
-        db.session.add(admin)
-        db.session.flush()
+    try:
+        existing_admin = User.query.filter_by(username=admin_user).first()
+        logger.info(f'RBAC: admin check - existing={existing_admin is not None}')
+        if not existing_admin:
+            admin = User(
+                username=admin_user,
+                password_hash=bcrypt.hashpw(admin_pass.encode(), bcrypt.gensalt()).decode('utf-8'),
+                role='admin'
+            )
+            db.session.add(admin)
+            db.session.flush()
+            logger.info(f'RBAC: admin user created: {admin_user}')
+        else:
+            logger.info(f'RBAC: admin user already exists: {admin_user}')
+    except Exception as e:
+        logger.error(f'RBAC: failed to create admin user: {e}')
+        db.session.rollback()
