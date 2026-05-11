@@ -71,6 +71,7 @@ def app():
     os.environ['SECRET_KEY'] = 'test-secret-key'
 
     Config.DATABASE_URL = test_db_url
+    Config.SQLALCHEMY_DATABASE_URI = test_db_url
     Config.ADMIN_USER = 'admin'
     Config.ADMIN_PASS = 'testpass'
     Config.AUTH_ENABLED = True
