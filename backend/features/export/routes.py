@@ -84,15 +84,12 @@ def export_character():
 
     # Determine filename
     name = analysis_data.get('name', 'character')
-    # Sanitize filename
-    safe_name = ''.join(c for c in name if c.isalnum() or c in ' _-')[:50] or 'character'
+    # Sanitize filename - use ASCII only for Content-Disposition
+    safe_name = ''.join(c for c in name if c.isascii() and (c.isalnum() or c in ' _-'))[:50] or 'character'
+    safe_name = safe_name.replace(' ', '_')
     ext = FILE_EXTENSIONS[fmt]
     filename = f'{safe_name}_export.{ext}'
 
     # Return file
-    if fmt == 'pdf':
-        return Response(content, mimetype=CONTENT_TYPES[fmt],
-                       headers={'Content-Disposition': f'attachment; filename="{filename}"'})
-    else:
-        return Response(content, mimetype=CONTENT_TYPES[fmt],
-                       headers={'Content-Disposition': f'attachment; filename="{filename}"'})
+    return Response(content, mimetype=CONTENT_TYPES[fmt],
+                   headers={'Content-Disposition': f'attachment; filename="{filename}"'})
