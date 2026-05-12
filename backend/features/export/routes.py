@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify, g, Response
 from shared.rbac import require_permission, feature, Permission as PermDef
 from shared.models.character_snapshot import CharacterSnapshot
 from shared.services.exporter import export_to_html, export_to_markdown, export_to_pdf
+from shared.utils.transliterate import transliterate
 
 export_bp = Blueprint('export', __name__)
 
@@ -82,11 +83,11 @@ def export_character():
     except Exception as e:
         return jsonify({'error': f'Ошибка генерации: {str(e)}'}), 500
 
-    # Determine filename
+    # Determine filename - transliterate Cyrillic to Latin for consistency
     name = analysis_data.get('name', 'character')
-    # Sanitize filename - use ASCII only for Content-Disposition
-    safe_name = ''.join(c for c in name if c.isascii() and (c.isalnum() or c in ' _-'))[:50] or 'character'
-    safe_name = safe_name.replace(' ', '_')
+    # Use transliterate (same as admin sync from clan)
+    transliterated = transliterate(str(name))
+    safe_name = transliterated[:50] if transliterated else 'character'
     ext = FILE_EXTENSIONS[fmt]
     filename = f'{safe_name}_export.{ext}'
 
