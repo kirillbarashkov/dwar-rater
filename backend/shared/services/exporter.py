@@ -319,10 +319,6 @@ def _html_equipment_items(items):
         rune2_html = ''
         if rune2:
             rune2_html = f'<div class="item-group"><div class="item-group-header">Руна 2</div><div class="item-group-content"><span class="item-tag">{_esc(_strip_html(rune2))}</span></div></div>'
-        runicSetting = item.get('runicSetting', '')
-        runic_html = ''
-        if runicSetting:
-            runic_html = f'<div class="item-group"><div class="item-group-header">Руническая настройка</div><div class="item-group-content"><span class="item-tag">{_esc(_strip_html(runicSetting))}</span></div></div>'
         enchants = item.get('enchants', [])
         enchant_groups = _format_item_enchants(enchants)
         has_stone = item.get('stone', '')
@@ -348,7 +344,7 @@ def _html_equipment_items(items):
 <span class="quality-badge" style="background: {qcolor}20; color: {qcolor}">{_esc(qname)}</span>
 </div>
 <div class="item-details">{''.join(details)}</div>
-{skills_html}{pattern_skills_html}{stone_skills_html}{pattern_html}{stone_html}{rune_html}{rune2_html}{runic_html}{enchant_html}{symbols_html}
+{skills_html}{pattern_skills_html}{stone_skills_html}{pattern_html}{stone_html}{rune_html}{rune2_html}{enchant_html}{symbols_html}
 </div>''')
     return cards
 
@@ -625,9 +621,6 @@ def _md_equipment_items(items):
         rune2 = item.get('rune2', '')
         if rune2:
             lines.append(f'  - **Руна 2:** {_strip_html(rune2)}')
-        runicSetting = item.get('runicSetting', '')
-        if runicSetting:
-            lines.append(f'  - **Руническая настройка:** {_strip_html(runicSetting)}')
         enchants = item.get('enchants', [])
         enchant_groups = _format_item_enchants(enchants)
         enchant_types = ['Оправа', 'Лак', 'Пластина', 'Встроено']

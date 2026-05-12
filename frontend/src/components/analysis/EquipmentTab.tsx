@@ -114,7 +114,6 @@ function ItemCard({ item }: { item: EquipmentItem }) {
     { title: 'КАМЕНЬ', items: item.stone ? [{ value: item.stone, color: '#50fa7b' }] : [] },
     { title: 'РУНА', items: item.rune ? [{ value: item.rune, color: '' }] : [] },
     { title: 'РУНА 2', items: item.rune2 ? [{ value: item.rune2, color: '' }] : [] },
-    { title: 'РУНИЧЕСКАЯ НАСТРОЙКА', items: item.runicSetting ? [{ value: item.runicSetting, color: '' }] : [] },
     { title: 'ОПРАВА', items: frames },
     { title: 'ЛАК', items: lacquers },
     { title: 'ПЛАСТИНА', items: plates },
