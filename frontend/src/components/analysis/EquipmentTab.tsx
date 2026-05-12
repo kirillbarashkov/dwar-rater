@@ -100,16 +100,17 @@ function ItemCard({ item }: { item: EquipmentItem }) {
   const frames = item.enchants.filter(e => e.type === 'Оправа').map(e => ({ value: e.value, color: e.color }));
   const lacquers = item.enchants.filter(e => e.type === 'Лак').map(e => ({ value: e.value, color: e.color }));
   const plates = item.enchants.filter(e => e.type === 'Пластина').map(e => ({ value: e.value, color: e.color }));
-  const enhancements = item.enchants.filter(e => e.type === 'Усиление').map(e => ({ value: e.value, color: e.color }));
+  // Don't show enhancements when there's a stone (enchant5 is the stone, not an enhancement)
+  const enhancements = item.stone ? [] : item.enchants.filter(e => e.type === 'Усиление').map(e => ({ value: e.value, color: e.color }));
   const builtins = item.enchants.filter(e => e.type === 'Встроено').map(e => ({ value: e.value, color: e.color }));
   const symbols = item.enchants.filter(e => e.type.startsWith('Символ')).map(e => ({ value: e.value, color: e.color }));
 
   const stars = item.star_level > 0 ? '★'.repeat(item.star_level) + '☆'.repeat(5 - item.star_level) : '';
 
   const groups = [
+    { title: 'ХАРАКТЕРИСТИКИ', items: skills },
     { title: 'ХАРАКТЕРИСТИКИ УЗОРА', items: patternSkills },
     { title: 'ХАРАКТЕРИСТИКИ КАМНЯ', items: stoneSkills },
-    { title: 'ХАРАКТЕРИСТИКИ', items: skills },
     { title: 'УЗОР', items: item.pattern ? [{ value: item.pattern, color: item.quality.color }] : [] },
     { title: 'КАМЕНЬ', items: item.stone ? [{ value: item.stone, color: '#50fa7b' }] : [] },
     { title: 'РУНА', items: item.rune ? [{ value: item.rune, color: '' }] : [] },

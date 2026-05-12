@@ -320,7 +320,12 @@ def _html_equipment_items(items):
             runic_html = f'<div class="item-group"><div class="item-group-header">Руническая настройка</div><div class="item-group-content"><span class="item-tag">{_esc(_strip_html(runicSetting))}</span></div></div>'
         enchants = item.get('enchants', [])
         enchant_groups = _format_item_enchants(enchants)
-        enchant_labels = {'Руна': 'Руна', 'Руна 2': 'Руна 2', 'Оправа': 'Оправа', 'Лак': 'Лак', 'Пластина': 'Пластина', 'Усиление': 'Усиление', 'Встроено': 'Встроено'}
+        # Don't show enhancement when there's a stone (enchant5 is the stone)
+        has_stone = item.get('stone', '')
+        enchant_labels = {'Руна': 'Руна', 'Руна 2': 'Руна 2', 'Оправа': 'Оправа', 'Лак': 'Лак', 'Пластина': 'Пластина'}
+        if not has_stone:
+            enchant_labels['Усиление'] = 'Усиление'
+        enchant_labels['Встроено'] = 'Встроено'
         enchant_html = ''
         for etype, label in enchant_labels.items():
             values = enchant_groups.get(etype, [])
@@ -339,7 +344,7 @@ def _html_equipment_items(items):
 <span class="quality-badge" style="background: {qcolor}20; color: {qcolor}">{_esc(qname)}</span>
 </div>
 <div class="item-details">{''.join(details)}</div>
-{pattern_skills_html}{stone_skills_html}{skills_html}{pattern_html}{stone_html}{rune_html}{rune2_html}{runic_html}{enchant_html}{symbols_html}
+{skills_html}{pattern_skills_html}{stone_skills_html}{pattern_html}{stone_html}{rune_html}{rune2_html}{runic_html}{enchant_html}{symbols_html}
 </div>''')
     return cards
 
@@ -586,6 +591,12 @@ def _md_equipment_items(items):
             details.append(f'Сет: {set_name}')
         if details:
             lines.append(f'  - {", ".join(details)}')
+        skills = item.get('skills', [])
+        if skills:
+            lines.append('  - **Характеристики:**')
+            for s in skills:
+                if s.get('title'):
+                    lines.append(f'    - {s["title"]}: {s.get("value", "")}')
         pattern_skills = item.get('pattern_skills', [])
         if pattern_skills:
             lines.append('  - **Характеристики узора:**')
@@ -596,12 +607,6 @@ def _md_equipment_items(items):
         if stone_skills:
             lines.append('  - **Характеристики камня:**')
             for s in stone_skills:
-                if s.get('title'):
-                    lines.append(f'    - {s["title"]}: {s.get("value", "")}')
-        skills = item.get('skills', [])
-        if skills:
-            lines.append('  - **Характеристики:**')
-            for s in skills:
                 if s.get('title'):
                     lines.append(f'    - {s["title"]}: {s.get("value", "")}')
         pattern = item.get('pattern', '')
@@ -621,7 +626,11 @@ def _md_equipment_items(items):
             lines.append(f'  - **Руническая настройка:** {_strip_html(runicSetting)}')
         enchants = item.get('enchants', [])
         enchant_groups = _format_item_enchants(enchants)
-        for etype in ['Оправа', 'Лак', 'Пластина', 'Усиление', 'Встроено']:
+        # Don't show enhancement when there's a stone
+        enchant_types = ['Оправа', 'Лак', 'Пластина', 'Встроено']
+        if not stone:
+            enchant_types.insert(3, 'Усиление')
+        for etype in enchant_types:
             values = enchant_groups.get(etype, [])
             if values:
                 lines.append(f'  - **{etype}:** {", ".join(_strip_html(v) for v in values)}')
