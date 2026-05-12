@@ -94,6 +94,8 @@ const EQUIP_CATEGORIES: EquipCategory[] = [
 
 function ItemCard({ item }: { item: EquipmentItem }) {
   const skills = item.skills.map(s => ({ value: `${s.title}: ${s.value}`, color: s.color }));
+  const patternSkills = item.pattern_skills.map(s => ({ value: `${s.title}: ${s.value}`, color: '#339900' }));
+  const stoneSkills = item.stone_skills.map(s => ({ value: `${s.title}: ${s.value}`, color: '#f400a1' }));
   const runes = item.enchants.filter(e => e.type === 'Руна' || e.type === 'Руна 2').map(e => ({ value: e.value, color: e.color }));
   const frames = item.enchants.filter(e => e.type === 'Оправа').map(e => ({ value: e.value, color: e.color }));
   const lacquers = item.enchants.filter(e => e.type === 'Лак').map(e => ({ value: e.value, color: e.color }));
@@ -105,10 +107,14 @@ function ItemCard({ item }: { item: EquipmentItem }) {
   const stars = item.star_level > 0 ? '★'.repeat(item.star_level) + '☆'.repeat(5 - item.star_level) : '';
 
   const groups = [
+    { title: 'ХАРАКТЕРИСТИКИ УЗОРА', items: patternSkills },
+    { title: 'ХАРАКТЕРИСТИКИ КАМНЯ', items: stoneSkills },
     { title: 'ХАРАКТЕРИСТИКИ', items: skills },
     { title: 'УЗОР', items: item.pattern ? [{ value: item.pattern, color: item.quality.color }] : [] },
     { title: 'КАМЕНЬ', items: item.stone ? [{ value: item.stone, color: '#50fa7b' }] : [] },
-    { title: 'РУНА', items: runes },
+    { title: 'РУНА', items: item.rune ? [{ value: item.rune, color: '' }] : [] },
+    { title: 'РУНА 2', items: item.rune2 ? [{ value: item.rune2, color: '' }] : [] },
+    { title: 'РУНИЧЕСКАЯ НАСТРОЙКА', items: item.runicSetting ? [{ value: item.runicSetting, color: '' }] : [] },
     { title: 'ОПРАВА', items: frames },
     { title: 'ЛАК', items: lacquers },
     { title: 'ПЛАСТИНА', items: plates },

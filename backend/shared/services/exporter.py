@@ -280,6 +280,18 @@ def _html_equipment_items(items):
             details.append(f'<span>Прочность: {_esc(dur)}</span>')
         if set_name:
             details.append(f'<span>Сет: {_esc(set_name)}</span>')
+        # Pattern skills (характеристики узора)
+        pattern_skills = item.get('pattern_skills', [])
+        pattern_skills_html = ''
+        if pattern_skills:
+            skill_tags = ''.join(f'<span class="item-tag" style="color:#339900;border-color:#339900">{_esc(s.get("title", ""))}: {_esc(s.get("value", ""))}</span>' for s in pattern_skills if s.get('title'))
+            pattern_skills_html = f'<div class="item-group"><div class="item-group-header">Характеристики узора</div><div class="item-group-content">{skill_tags}</div></div>'
+        # Stone skills (характеристики камня)
+        stone_skills = item.get('stone_skills', [])
+        stone_skills_html = ''
+        if stone_skills:
+            skill_tags = ''.join(f'<span class="item-tag" style="color:#f400a1;border-color:#f400a1">{_esc(s.get("title", ""))}: {_esc(s.get("value", ""))}</span>' for s in stone_skills if s.get('title'))
+            stone_skills_html = f'<div class="item-group"><div class="item-group-header">Характеристики камня</div><div class="item-group-content">{skill_tags}</div></div>'
         skills = item.get('skills', [])
         skills_html = ''
         if skills:
@@ -293,6 +305,19 @@ def _html_equipment_items(items):
         stone_html = ''
         if stone:
             stone_html = f'<div class="item-group"><div class="item-group-header">Камень</div><div class="item-group-content"><span class="item-tag">{_esc(_strip_html(stone))}</span></div></div>'
+        # Rune - only show if not a pattern
+        rune = item.get('rune', '')
+        rune_html = ''
+        if rune:
+            rune_html = f'<div class="item-group"><div class="item-group-header">Руна</div><div class="item-group-content"><span class="item-tag">{_esc(_strip_html(rune))}</span></div></div>'
+        rune2 = item.get('rune2', '')
+        rune2_html = ''
+        if rune2:
+            rune2_html = f'<div class="item-group"><div class="item-group-header">Руна 2</div><div class="item-group-content"><span class="item-tag">{_esc(_strip_html(rune2))}</span></div></div>'
+        runicSetting = item.get('runicSetting', '')
+        runic_html = ''
+        if runicSetting:
+            runic_html = f'<div class="item-group"><div class="item-group-header">Руническая настройка</div><div class="item-group-content"><span class="item-tag">{_esc(_strip_html(runicSetting))}</span></div></div>'
         enchants = item.get('enchants', [])
         enchant_groups = _format_item_enchants(enchants)
         enchant_labels = {'Руна': 'Руна', 'Руна 2': 'Руна 2', 'Оправа': 'Оправа', 'Лак': 'Лак', 'Пластина': 'Пластина', 'Усиление': 'Усиление', 'Встроено': 'Встроено'}
@@ -314,7 +339,7 @@ def _html_equipment_items(items):
 <span class="quality-badge" style="background: {qcolor}20; color: {qcolor}">{_esc(qname)}</span>
 </div>
 <div class="item-details">{''.join(details)}</div>
-{skills_html}{pattern_html}{stone_html}{enchant_html}{symbols_html}
+{pattern_skills_html}{stone_skills_html}{skills_html}{pattern_html}{stone_html}{rune_html}{rune2_html}{runic_html}{enchant_html}{symbols_html}
 </div>''')
     return cards
 
@@ -561,6 +586,18 @@ def _md_equipment_items(items):
             details.append(f'Сет: {set_name}')
         if details:
             lines.append(f'  - {", ".join(details)}')
+        pattern_skills = item.get('pattern_skills', [])
+        if pattern_skills:
+            lines.append('  - **Характеристики узора:**')
+            for s in pattern_skills:
+                if s.get('title'):
+                    lines.append(f'    - {s["title"]}: {s.get("value", "")}')
+        stone_skills = item.get('stone_skills', [])
+        if stone_skills:
+            lines.append('  - **Характеристики камня:**')
+            for s in stone_skills:
+                if s.get('title'):
+                    lines.append(f'    - {s["title"]}: {s.get("value", "")}')
         skills = item.get('skills', [])
         if skills:
             lines.append('  - **Характеристики:**')
@@ -573,9 +610,18 @@ def _md_equipment_items(items):
         stone = item.get('stone', '')
         if stone:
             lines.append(f'  - **Камень:** {_strip_html(stone)}')
+        rune = item.get('rune', '')
+        if rune:
+            lines.append(f'  - **Руна:** {_strip_html(rune)}')
+        rune2 = item.get('rune2', '')
+        if rune2:
+            lines.append(f'  - **Руна 2:** {_strip_html(rune2)}')
+        runicSetting = item.get('runicSetting', '')
+        if runicSetting:
+            lines.append(f'  - **Руническая настройка:** {_strip_html(runicSetting)}')
         enchants = item.get('enchants', [])
         enchant_groups = _format_item_enchants(enchants)
-        for etype in ['Руна', 'Руна 2', 'Оправа', 'Лак', 'Пластина', 'Усиление', 'Встроено']:
+        for etype in ['Оправа', 'Лак', 'Пластина', 'Усиление', 'Встроено']:
             values = enchant_groups.get(etype, [])
             if values:
                 lines.append(f'  - **{etype}:** {", ".join(_strip_html(v) for v in values)}')

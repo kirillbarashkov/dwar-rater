@@ -323,10 +323,17 @@ def process_character(raw_data):
 
         # Parse pattern (узор) from enchant field for exotic items
         pattern_val = ''
+        is_pattern_enchant = False
         if enchant_data and isinstance(enchant_data, dict):
             enchant_value = clean_html(enchant_data.get('value', ''))
             if 'узор' in enchant_value.lower() or 'Узор' in enchant_value:
                 pattern_val = enchant_value
+                is_pattern_enchant = True
+
+        # For exotic items, skills = pattern stats, skills_e = stone stats
+        # Keep them separate from regular item skills
+        pattern_skills = format_skills(item_data.get('skills', [])) if is_pattern_enchant else []
+        stone_skills = format_skills(item_data.get('skills_e', [])) if is_pattern_enchant else []
 
         equipment_item = {
             'title': title,
@@ -335,13 +342,16 @@ def process_character(raw_data):
             'star_level': star_level,
             'pattern': pattern_val,
             'stone': stone_val,
+            'pattern_skills': pattern_skills,
+            'stone_skills': stone_skills,
             'trend': item_data.get('trend', ''),
             'durability': f"{item_data.get('dur', '?')}/{item_data.get('dur_max', '?')}" if 'dur' in item_data else '∞',
             'skills': format_skills(item_data.get('skills', [])),
             'skills_e': format_skills(item_data.get('skills_e', [])),
             'enchants': format_enchants(item_data),
             'set': clean_html(item_data.get('set', {}).get('value', '')) if 'set' in item_data else '',
-            'rune': clean_html(enchant_val) if enchant_val and isinstance(enchant_val, str) else (clean_html(enchant_data.get('value', '')) if enchant_data else ''),
+            # Don't show enchant as rune when it's a pattern
+            'rune': '' if is_pattern_enchant else (clean_html(enchant_val) if enchant_val and isinstance(enchant_val, str) else (clean_html(enchant_data.get('value', '')) if enchant_data else '')),
             'rune2': clean_html(enchant2_val) if enchant2_val and isinstance(enchant2_val, str) else (clean_html(enchant2_data.get('value', '')) if enchant2_data else ''),
             'runicSetting': clean_html(enchant3_val) if enchant3_val and isinstance(enchant3_val, str) else (clean_html(enchant3_data.get('value', '')) if enchant3_data else ''),
             'plate': plate_val,

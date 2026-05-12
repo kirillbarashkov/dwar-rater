@@ -23,6 +23,8 @@ export interface EquipmentItem {
   star_level: number;
   pattern: string;
   stone: string;
+  pattern_skills: Skill[];
+  stone_skills: Skill[];
   trend: string;
   durability: string;
   skills: Skill[];
