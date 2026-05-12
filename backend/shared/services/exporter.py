@@ -289,6 +289,10 @@ def _html_equipment_items(items):
         pattern_html = ''
         if pattern:
             pattern_html = f'<div class="item-group"><div class="item-group-header">Узор</div><div class="item-group-content"><span class="item-tag">{_esc(_strip_html(pattern))}</span></div></div>'
+        stone = item.get('stone', '')
+        stone_html = ''
+        if stone:
+            stone_html = f'<div class="item-group"><div class="item-group-header">Камень</div><div class="item-group-content"><span class="item-tag">{_esc(_strip_html(stone))}</span></div></div>'
         enchants = item.get('enchants', [])
         enchant_groups = _format_item_enchants(enchants)
         enchant_labels = {'Руна': 'Руна', 'Руна 2': 'Руна 2', 'Оправа': 'Оправа', 'Лак': 'Лак', 'Пластина': 'Пластина', 'Усиление': 'Усиление', 'Встроено': 'Встроено'}
@@ -310,7 +314,7 @@ def _html_equipment_items(items):
 <span class="quality-badge" style="background: {qcolor}20; color: {qcolor}">{_esc(qname)}</span>
 </div>
 <div class="item-details">{''.join(details)}</div>
-{skills_html}{pattern_html}{enchant_html}{symbols_html}
+{skills_html}{pattern_html}{stone_html}{enchant_html}{symbols_html}
 </div>''')
     return cards
 
@@ -566,6 +570,9 @@ def _md_equipment_items(items):
         pattern = item.get('pattern', '')
         if pattern:
             lines.append(f'  - **Узор:** {_strip_html(pattern)}')
+        stone = item.get('stone', '')
+        if stone:
+            lines.append(f'  - **Камень:** {_strip_html(stone)}')
         enchants = item.get('enchants', [])
         enchant_groups = _format_item_enchants(enchants)
         for etype in ['Руна', 'Руна 2', 'Оправа', 'Лак', 'Пластина', 'Усиление', 'Встроено']:

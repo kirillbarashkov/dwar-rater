@@ -107,6 +107,7 @@ function ItemCard({ item }: { item: EquipmentItem }) {
   const groups = [
     { title: 'ХАРАКТЕРИСТИКИ', items: skills },
     { title: 'УЗОР', items: item.pattern ? [{ value: item.pattern, color: item.quality.color }] : [] },
+    { title: 'КАМЕНЬ', items: item.stone ? [{ value: item.stone, color: '#50fa7b' }] : [] },
     { title: 'РУНА', items: runes },
     { title: 'ОПРАВА', items: frames },
     { title: 'ЛАК', items: lacquers },

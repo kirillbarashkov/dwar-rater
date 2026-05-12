@@ -309,10 +309,13 @@ def process_character(raw_data):
         symbols = item_data.get('symbols', [])
 
         plate_val = ''
+        stone_val = ''
         if enchant5_data and isinstance(enchant5_data, dict):
             desc5 = enchant5_data.get('description', '')
             if desc5 == 'Пластина':
                 plate_val = clean_html(enchant5_data.get('value', ''))
+            elif desc5 == 'Драгоценный камень':
+                stone_val = clean_html(enchant5_data.get('value', ''))
 
         # Parse star level from desc (exotic/legendary items)
         item_desc = item_data.get('desc', '')
@@ -331,6 +334,7 @@ def process_character(raw_data):
             'level': _extract_level_from_data(item_data),
             'star_level': star_level,
             'pattern': pattern_val,
+            'stone': stone_val,
             'trend': item_data.get('trend', ''),
             'durability': f"{item_data.get('dur', '?')}/{item_data.get('dur_max', '?')}" if 'dur' in item_data else '∞',
             'skills': format_skills(item_data.get('skills', [])),
