@@ -96,7 +96,6 @@ function ItemCard({ item }: { item: EquipmentItem }) {
   const skills = item.skills.map(s => ({ value: `${s.title}: ${s.value}`, color: s.color }));
   const patternSkills = item.pattern_skills.map(s => ({ value: `${s.title}: ${s.value}`, color: '#339900' }));
   const stoneSkills = item.stone_skills.map(s => ({ value: `${s.title}: ${s.value}`, color: '#f400a1' }));
-  const runes = item.enchants.filter(e => e.type === 'Руна' || e.type === 'Руна 2').map(e => ({ value: e.value, color: e.color }));
   const frames = item.enchants.filter(e => e.type === 'Оправа').map(e => ({ value: e.value, color: e.color }));
   const lacquers = item.enchants.filter(e => e.type === 'Лак').map(e => ({ value: e.value, color: e.color }));
   const plates = item.enchants.filter(e => e.type === 'Пластина').map(e => ({ value: e.value, color: e.color }));
