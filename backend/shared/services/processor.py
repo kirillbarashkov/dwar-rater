@@ -260,6 +260,12 @@ def process_character(raw_data):
         'Экзотический амулет': 'Амулеты',
     }
 
+    # Normalize exotic jewelry kinds to base kinds for UI display
+    EXOTIC_TO_BASE_KIND = {
+        'Экзотическое кольцо': 'Кольца',
+        'Экзотический амулет': 'Амулет',
+    }
+
     for item in equipment_raw:
         item_data = item.get('full_data', {})
         title = item_data.get('title', item.get('title', ''))
@@ -269,6 +275,9 @@ def process_character(raw_data):
         
         kind = item_data.get('kind', 'Другое')
         original_kind = kind
+        
+        # Normalize exotic jewelry to base kinds (for UI and exporter)
+        kind = EXOTIC_TO_BASE_KIND.get(kind, kind)
         
         if is_style_item:
             kind = 'Вещи стиля'
