@@ -1,6 +1,7 @@
 """Character analysis exporter — generates HTML, Markdown, and PDF reports.
 
 Exports match the UI exactly: same data, same grouping, same order.
+PDF uses WeasyPrint with @page rules for landscape/portrait orientation.
 """
 
 import re
@@ -89,49 +90,51 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
 <style>
-  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; line-height: 1.5; padding: 20px; }}
-  .report {{ max-width: 1100px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); overflow: hidden; }}
-  .report-header {{ background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; padding: 28px 32px; }}
-  .report-header h1 {{ font-size: 1.6rem; margin-bottom: 6px; }}
-  .report-header .subtitle {{ opacity: 0.8; font-size: 0.9rem; }}
-  .section {{ padding: 20px 32px; border-bottom: 1px solid #eee; }}
-  .section:last-child {{ border-bottom: none; }}
-  .section-title {{ font-size: 1rem; font-weight: 700; color: #1a1a2e; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 2px solid #00d4aa; display: inline-block; }}
-  .info-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }}
-  .info-item {{ display: flex; flex-direction: column; }}
-  .info-label {{ font-size: 0.7rem; text-transform: uppercase; color: #888; letter-spacing: 0.5px; }}
-  .info-value {{ font-size: 0.95rem; font-weight: 500; }}
-  table {{ width: 100%%; border-collapse: collapse; margin-top: 6px; }}
-  th, td {{ padding: 6px 10px; text-align: left; border-bottom: 1px solid #eee; font-size: 0.85rem; }}
-  th {{ background: #f8f9fa; font-weight: 600; color: #555; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }}
-  .quality-badge {{ display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 0.75rem; font-weight: 600; }}
-  .item-card {{ background: #f8f9fa; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; border-left: 3px solid #ccc; }}
-  .item-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }}
-  .item-title {{ font-weight: 600; font-size: 0.95rem; }}
-  .item-stars {{ color: #ffc857; font-size: 0.75rem; }}
-  .item-details {{ font-size: 0.8rem; color: #555; }}
-  .item-details span {{ margin-right: 12px; }}
-  .item-group {{ margin-top: 8px; }}
-  .item-group-header {{ font-size: 0.7rem; text-transform: uppercase; color: #888; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600; }}
-  .item-group-content {{ display: flex; flex-wrap: wrap; gap: 4px; }}
-  .item-tag {{ display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; border: 1px solid #ddd; background: white; }}
-  .effect-card {{ background: #f8f9fa; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }}
-  .effect-title {{ font-weight: 600; font-size: 0.9rem; }}
-  .effect-time {{ font-size: 0.75rem; color: #888; }}
-  .effect-skills {{ font-size: 0.8rem; color: #555; margin-top: 3px; }}
-  .medal-group {{ margin-bottom: 12px; }}
-  .medal-group h4 {{ font-size: 0.85rem; color: #555; margin-bottom: 6px; }}
-  .medal-item {{ padding: 3px 0; font-size: 0.85rem; }}
-  .category-title {{ font-size: 0.95rem; font-weight: 700; color: #333; margin: 16px 0 10px; padding-bottom: 4px; border-bottom: 1px solid #ddd; }}
-  .sub-category-title {{ font-size: 0.85rem; font-weight: 600; color: #555; margin: 12px 0 8px; }}
-  .set-section {{ margin-top: 16px; padding-top: 12px; border-top: 1px solid #ddd; }}
-  .set-name {{ font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }}
-  .set-items {{ font-size: 0.8rem; color: #555; }}
-  .footer {{ padding: 12px 32px; background: #f8f9fa; text-align: center; font-size: 0.75rem; color: #888; }}
+@page {{
+    size: {page_size};
+    margin: 15mm;
+}}
+* {{ margin: 0; padding: 0; box-sizing: border-box; }}
+body {{ font-family: 'Segoe UI', Arial, sans-serif; color: #333; line-height: 1.4; }}
+.report {{ }}
+.report-header {{ background: #1a1a2e; color: white; padding: 16px 20px; }}
+.report-header h1 {{ font-size: 1.4rem; margin-bottom: 4px; }}
+.report-header .subtitle {{ opacity: 0.8; font-size: 0.85rem; }}
+.section {{ padding: 14px 20px; border-bottom: 1px solid #eee; page-break-inside: avoid; }}
+.section:last-child {{ border-bottom: none; }}
+.section-title {{ font-size: 0.95rem; font-weight: 700; color: #1a1a2e; margin-bottom: 10px; padding-bottom: 4px; border-bottom: 2px solid #00d4aa; display: inline-block; }}
+.info-grid {{ display: table; width: 100%%; }}
+.info-row {{ display: table-row; }}
+.info-item {{ display: table-cell; padding: 3px 8px; font-size: 0.8rem; }}
+.info-label {{ font-size: 0.65rem; text-transform: uppercase; color: #888; }}
+.info-value {{ font-weight: 500; }}
+table {{ width: 100%%; border-collapse: collapse; margin-top: 4px; font-size: 0.8rem; }}
+th, td {{ padding: 4px 8px; text-align: left; border-bottom: 1px solid #eee; }}
+th {{ background: #f8f9fa; font-weight: 600; color: #555; font-size: 0.7rem; text-transform: uppercase; }}
+.quality-badge {{ display: inline-block; padding: 1px 5px; border-radius: 2px; font-size: 0.7rem; font-weight: 600; }}
+.item-card {{ background: #f8f9fa; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; border-left: 3px solid #ccc; page-break-inside: avoid; }}
+.item-header {{ font-weight: 600; font-size: 0.85rem; margin-bottom: 3px; }}
+.item-stars {{ color: #ffc857; font-size: 0.7rem; }}
+.item-details {{ font-size: 0.75rem; color: #555; }}
+.item-details span {{ margin-right: 10px; }}
+.item-group {{ margin-top: 4px; }}
+.item-group-header {{ font-size: 0.65rem; text-transform: uppercase; color: #888; margin-bottom: 2px; font-weight: 600; }}
+.item-tag {{ display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 0.7rem; border: 1px solid #ddd; background: white; margin: 1px 2px; }}
+.effect-card {{ background: #f8f9fa; border-radius: 4px; padding: 6px 10px; margin-bottom: 6px; }}
+.effect-title {{ font-weight: 600; font-size: 0.8rem; }}
+.effect-time {{ font-size: 0.7rem; color: #888; }}
+.effect-skills {{ font-size: 0.75rem; color: #555; margin-top: 2px; }}
+.medal-group {{ margin-bottom: 8px; }}
+.medal-group h4 {{ font-size: 0.8rem; color: #555; margin-bottom: 4px; }}
+.medal-item {{ padding: 2px 0; font-size: 0.8rem; }}
+.category-title {{ font-size: 0.85rem; font-weight: 700; color: #333; margin: 12px 0 6px; padding-bottom: 3px; border-bottom: 1px solid #ddd; }}
+.sub-category-title {{ font-size: 0.75rem; font-weight: 600; color: #555; margin: 8px 0 4px; }}
+.set-section {{ margin-top: 10px; padding-top: 8px; border-top: 1px solid #ddd; }}
+.set-name {{ font-weight: 600; font-size: 0.8rem; margin-bottom: 3px; }}
+.set-items {{ font-size: 0.75rem; color: #555; }}
+.footer {{ padding: 8px 20px; background: #f8f9fa; text-align: center; font-size: 0.7rem; color: #888; }}
 </style>
 </head>
 <body>
@@ -148,6 +151,9 @@ def export_to_html(data, sections, page_format='landscape'):
     race = data.get('race', '')
     rank = data.get('rank', '')
     title = f'{name}' + (f' — {race}' if race else '')
+
+    page_size = 'A4 landscape' if page_format == 'landscape' else 'A4 portrait'
+
     body_parts.append(f'''<div class="report-header">
 <h1>{_esc(name)}</h1>
 <div class="subtitle">{_esc(race)} | {_esc(rank)}</div>
@@ -174,7 +180,7 @@ def export_to_html(data, sections, page_format='landscape'):
 
     now = datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')
     body_parts.append(f'<div class="footer">Dwar Rater — {now}</div>')
-    return HTML_TEMPLATE.format(title=_esc(title), body='\n'.join(body_parts))
+    return HTML_TEMPLATE.format(title=_esc(title), body='\n'.join(body_parts), page_size=page_size)
 
 
 def _html_identity(data):
@@ -182,10 +188,10 @@ def _html_identity(data):
     for key, label in [('name', 'Имя'), ('race', 'Раса'), ('rank', 'Ранг'), ('level', 'Уровень'), ('clan', 'Клан'), ('clan_rank', 'Роль в клане')]:
         val = data.get(key, '')
         if val:
-            items.append(f'<div class="info-item"><span class="info-label">{label}</span><span class="info-value">{_esc(val)}</span></div>')
+            items.append(f'<div class="info-item"><span class="info-label">{label}</span><br><span class="info-value">{_esc(val)}</span></div>')
     return f'''<div class="section">
 <div class="section-title">Идентификация</div>
-<div class="info-grid">{''.join(items)}</div>
+<div class="info-grid"><div class="info-row">{''.join(items)}</div></div>
 </div>'''
 
 
@@ -221,7 +227,7 @@ def _html_characteristics(data):
         if not stats:
             continue
         rows = ''.join(f'<tr><td>{_esc(k)}</td><td>{_esc(v)}</td></tr>' for k, v in stats.items())
-        parts.append(f'<div style="margin-bottom:12px"><h4 style="font-size:0.85rem;color:#555;margin-bottom:4px">{title}</h4><table><tbody>{rows}</tbody></table></div>')
+        parts.append(f'<div style="margin-bottom:8px"><h4 style="font-size:0.8rem;color:#555;margin-bottom:3px">{title}</h4><table><tbody>{rows}</tbody></table></div>')
     return f'''<div class="section">
 <div class="section-title">Характеристики</div>
 {''.join(parts)}
@@ -280,13 +286,13 @@ def _html_equipment_items(items):
             details.append(f'<span>Прочность: {_esc(dur)}</span>')
         if set_name:
             details.append(f'<span>Сет: {_esc(set_name)}</span>')
-        # Pattern skills (характеристики узора)
+        # Pattern skills
         pattern_skills = item.get('pattern_skills', [])
         pattern_skills_html = ''
         if pattern_skills:
             skill_tags = ''.join(f'<span class="item-tag" style="color:#339900;border-color:#339900">{_esc(s.get("title", ""))}: {_esc(s.get("value", ""))}</span>' for s in pattern_skills if s.get('title'))
             pattern_skills_html = f'<div class="item-group"><div class="item-group-header">Характеристики узора</div><div class="item-group-content">{skill_tags}</div></div>'
-        # Stone skills (характеристики камня)
+        # Stone skills
         stone_skills = item.get('stone_skills', [])
         stone_skills_html = ''
         if stone_skills:
@@ -305,7 +311,6 @@ def _html_equipment_items(items):
         stone_html = ''
         if stone:
             stone_html = f'<div class="item-group"><div class="item-group-header">Камень</div><div class="item-group-content"><span class="item-tag">{_esc(_strip_html(stone))}</span></div></div>'
-        # Rune - only show if not a pattern
         rune = item.get('rune', '')
         rune_html = ''
         if rune:
@@ -320,7 +325,6 @@ def _html_equipment_items(items):
             runic_html = f'<div class="item-group"><div class="item-group-header">Руническая настройка</div><div class="item-group-content"><span class="item-tag">{_esc(_strip_html(runicSetting))}</span></div></div>'
         enchants = item.get('enchants', [])
         enchant_groups = _format_item_enchants(enchants)
-        # Don't show enhancement when there's a stone (enchant5 is the stone)
         has_stone = item.get('stone', '')
         enchant_labels = {'Руна': 'Руна', 'Руна 2': 'Руна 2', 'Оправа': 'Оправа', 'Лак': 'Лак', 'Пластина': 'Пластина'}
         if not has_stone:
@@ -340,7 +344,7 @@ def _html_equipment_items(items):
                 symbols_html = f'<div class="item-group"><div class="item-group-header">Символы</div><div class="item-group-content">{tags}</div></div>'
         cards.append(f'''<div class="item-card" style="border-left-color: {qcolor}">
 <div class="item-header">
-<span class="item-title" style="color: {qcolor}">{_esc(title)}</span>
+<span style="color: {qcolor}">{_esc(title)}</span>
 <span class="quality-badge" style="background: {qcolor}20; color: {qcolor}">{_esc(qname)}</span>
 </div>
 <div class="item-details">{''.join(details)}</div>
@@ -355,7 +359,7 @@ def _html_effects(data):
     temp = data.get('temp_effects', [])
     if perm:
         cards = ''.join(_html_effect_card(e, False) for e in perm)
-        parts.append(f'<div style="margin-bottom:12px"><h4 style="font-size:0.85rem;color:#555;margin-bottom:6px">Постоянные эффекты</h4>{cards}</div>')
+        parts.append(f'<div style="margin-bottom:8px"><h4 style="font-size:0.8rem;color:#555;margin-bottom:4px">Постоянные эффекты</h4>{cards}</div>')
     if temp:
         by_cat = {}
         for e in temp:
@@ -367,7 +371,7 @@ def _html_effects(data):
             if not cat_effects:
                 continue
             cards = ''.join(_html_effect_card(e, True) for e in cat_effects)
-            parts.append(f'<div style="margin-bottom:12px"><h4 style="font-size:0.85rem;color:#555;margin-bottom:6px">{cat_labels.get(cat_key, cat_key)}</h4>{cards}</div>')
+            parts.append(f'<div style="margin-bottom:8px"><h4 style="font-size:0.8rem;color:#555;margin-bottom:4px">{cat_labels.get(cat_key, cat_key)}</h4>{cards}</div>')
     if not parts:
         return ''
     return f'''<div class="section">
@@ -406,7 +410,7 @@ def _html_medals(data):
     for rep, rep_medals in by_rep.items():
         items = ''.join(f'''<div class="medal-item">
 <span class="quality-badge" style="background: {_quality_color(m.get('quality', {}))}20; color: {_quality_color(m.get('quality', {}))}">{_esc(_quality_name(m.get('quality', {})))}</span>
-{_esc(m.get('title', ''))} <span style="color:#888;font-size:0.75rem">#{m.get('num', '')}</span>
+{_esc(m.get('title', ''))} <span style="color:#888;font-size:0.7rem">#{m.get('num', '')}</span>
 {_esc(_strip_html(m.get('description', '')))}
 </div>''' for m in rep_medals)
         parts.append(f'<div class="medal-group"><h4>{_esc(rep)}</h4>{items}</div>')
@@ -447,22 +451,22 @@ def _html_additional(data):
     for key, label in [('hp', 'HP'), ('mp', 'MP'), ('gender', 'Пол'), ('online', 'Онлайн'), ('mount', 'Маунт'), ('town', 'Город'), ('location', 'Локация')]:
         val = extra.get(key, '')
         if val:
-            items.append(f'<div class="info-item"><span class="info-label">{label}</span><span class="info-value">{_esc(val)}</span></div>')
+            items.append(f'<div class="info-item"><span class="info-label">{label}</span><br><span class="info-value">{_esc(val)}</span></div>')
     for key, label in [('birthday', 'День рождения'), ('about', 'О персонаже')]:
         val = personal.get(key, '')
         if val:
-            items.append(f'<div class="info-item"><span class="info-label">{label}</span><span class="info-value">{_esc(_strip_html(val))}</span></div>')
+            items.append(f'<div class="info-item"><span class="info-label">{label}</span><br><span class="info-value">{_esc(_strip_html(val))}</span></div>')
     manor = data.get('manor_location', '')
     if manor:
-        items.append(f'<div class="info-item"><span class="info-label">Усадьба</span><span class="info-value">{_esc(manor)}</span></div>')
+        items.append(f'<div class="info-item"><span class="info-label">Усадьба</span><br><span class="info-value">{_esc(manor)}</span></div>')
     buildings = data.get('manor_buildings', [])
     if buildings:
-        items.append(f'<div class="info-item"><span class="info-label">Здания усадьбы</span><span class="info-value">{_esc(", ".join(buildings))}</span></div>')
+        items.append(f'<div class="info-item"><span class="info-label">Здания усадьбы</span><br><span class="info-value">{_esc(", ".join(buildings))}</span></div>')
     if not items:
         return ''
     return f'''<div class="section">
 <div class="section-title">Дополнительно</div>
-<div class="info-grid">{''.join(items)}</div>
+<div class="info-grid"><div class="info-row">{''.join(items)}</div></div>
 </div>'''
 
 
@@ -626,7 +630,6 @@ def _md_equipment_items(items):
             lines.append(f'  - **Руническая настройка:** {_strip_html(runicSetting)}')
         enchants = item.get('enchants', [])
         enchant_groups = _format_item_enchants(enchants)
-        # Don't show enhancement when there's a stone
         enchant_types = ['Оправа', 'Лак', 'Пластина', 'Встроено']
         if not stone:
             enchant_types.insert(3, 'Усиление')
