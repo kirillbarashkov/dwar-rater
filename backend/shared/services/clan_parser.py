@@ -164,6 +164,9 @@ def parse_clan_treasury_operations(html):
         cells = re.findall(r'<td[^>]*class="brd-all p6h"[^>]*>(.*?)</td>', row_html, re.DOTALL)
         
         if len(cells) < 5:
+            cells = re.findall(r'<td[^>]*>(.*?)</td>', row_html, re.DOTALL)
+        
+        if len(cells) < 5:
             skipped_rows.append({'row': i, 'reason': f'cells={len(cells)} < 5', 'cells_preview': str(cells[:3])})
             continue
         
@@ -177,42 +180,254 @@ def parse_clan_treasury_operations(html):
         nick_match = re.search(r'userToTag\(\'([^)]+)\'\)', cells[1])
         if not nick_match:
             nick_match = re.search(r'>([^<]+)\s*\[(\d+)\]</a>', cells[1])
-        nick = nick_match.group(1) if nick_match else 'Unknown'
-        if nick == 'Unknown':
-            skipped_rows.append({'row': i, 'reason': 'no nick match', 'cell1': cells[1][:100]})
-            continue
+        if not nick_match:
+            art_match = re.search(r'"title":"([^"]+)"', cells[1])
+            if art_match:
+                nick = art_match.group(1)
+            else:
+                nick = clean_html(cells[1]).strip()
+                if not nick:
+                    skipped_rows.append({'row': i, 'reason': 'no nick match', 'cell1': cells[1][:100]})
+                    continue
+        else:
+            nick = nick_match.group(1)
         
         operation_type = clean_html(cells[2]).strip()
         
         obj_match = re.search(r'<a[^>]*>([^<]+)</a>', cells[3])
         if not obj_match:
             obj_match = re.search(r'<b>([^<]+)</b>', cells[3])
+        if not obj_match:
+            obj_match = re.search(r'"title":"([^"]+)"', cells[3])
         obj_name = obj_match.group(1).strip() if obj_match else clean_html(cells[3]).strip()
         
         quantity_match = re.search(r'color:\s*(?:green|red)[^>]*>.*?(\d+)', cells[4])
         if not quantity_match:
             quantity_match = re.search(r'color:(?:green|red)[^>]*>.*?(\d+)', cells[4])
         
-        color_match = re.search(r'color:\s*(green|red)', cells[4])
-        direction = 1 if color_match and color_match.group(1) == 'green' else -1
-        
-        quantity = int(quantity_match.group(1)) if quantity_match else 0
-        if quantity_match is None:
-            skipped_rows.append({'row': i, 'reason': 'no quantity match', 'cell4': cells[4][:100]})
-            continue
-        
-        data_logger.debug(f'[PARSER] Row {i}: date={date}, nick={nick}, type={operation_type}, obj={obj_name}, qty={quantity * direction}')
+        if not quantity_match:
+            clean_qty = clean_html(cells[4]).strip().replace('&nbsp;', '').strip()
+            qty_num_match = re.search(r'(-?\d+)', clean_qty)
+            if qty_num_match:
+                quantity = int(qty_num_match.group(1))
+            else:
+                skipped_rows.append({'row': i, 'reason': 'no quantity match', 'cell4': clean_qty[:50]})
+                continue
+        else:
+            quantity = int(quantity_match.group(1))
+            if 'red' in cells[4]:
+                quantity = -quantity
         
         operations.append({
             'date': date,
             'nick': nick,
-            'type': operation_type,
-            'object': obj_name,
-            'quantity': quantity * direction,
+            'operation_type': operation_type,
+            'object_name': obj_name,
+            'quantity': quantity,
         })
     
+    data_logger.info(f'[PARSER] Parsed {len(operations)} operations, skipped {len(skipped_rows)} rows')
     if skipped_rows:
         data_logger.warning(f'[PARSER] Skipped {len(skipped_rows)} rows: {skipped_rows[:10]}')
-    
-    data_logger.info(f'[PARSER] Parsed {len(operations)} operations, skipped {len(skipped_rows)} rows')
     return operations
+
+
+def _parse_date_to_comparable(date_str):
+    """Convert 'DD.MM.YYYY HH:MM' to comparable string 'YYYYMMDDHHMM'."""
+    m = re.match(r'(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})', date_str)
+    if not m:
+        return ''
+    return f'{m.group(3)}{m.group(2)}{m.group(1)}{m.group(4)}{m.group(5)}'
+
+
+def _date_str_to_comparable(date_str):
+    """Convert 'DD.MM.YYYY' to comparable string 'YYYYMMDD'."""
+    m = re.match(r'(\d{2})\.(\d{2})\.(\d{4})', date_str)
+    if not m:
+        return ''
+    return f'{m.group(3)}{m.group(2)}{m.group(1)}'
+
+
+def is_login_redirect(html):
+    """Check if HTML response is a login redirect page.
+
+    Looks for the specific redirect script pattern, not just presence of keywords
+    (which can appear in normal page links like /info/library/index.php).
+    """
+    if 'single_top_redirect' in html:
+        return True
+    if len(html) < 500 and ('login' in html.lower() or 'auth' in html.lower()):
+        return True
+    return False
+
+
+def parse_total_pages(html):
+    """Extract total page count from pagination HTML."""
+    # Pattern: <a ...>N</a> at the end of pagination
+    page_links = re.findall(r'<a[^>]*>(\d+)</a>', html)
+    if page_links:
+        return max(int(p) for p in page_links) + 1  # pages are 0-indexed
+    return None
+
+
+def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=500):
+    """
+    Generator that yields SSE-compatible progress events while fetching pages.
+
+    Yields tuples: (event_type, data_dict)
+    event_type: 'counting' | 'progress' | 'done' | 'error'
+    """
+    import time
+
+    cutoff_comparable = _date_str_to_comparable(cutoff_date_str)
+    all_operations = []
+    start_time = time.time()
+    total_pages = None
+
+    # Step 1: Fetch page 0 to count total pages
+    try:
+        html, session = fetch_clan_treasury_report(session=session, page=0)
+    except Exception as e:
+        yield ('error', {'reason': 'fetch_error', 'message': f'Ошибка загрузки: {str(e)}'})
+        return
+
+    if is_login_redirect(html):
+        yield ('error', {'reason': 'session_expired', 'message': 'Сессия истекла, обновите cookies'})
+        return
+
+    total_pages = parse_total_pages(html)
+    if total_pages is None or total_pages > max_pages:
+        total_pages = max_pages
+
+    yield ('counting', {'total_pages': total_pages, 'cutoff_date': cutoff_date_str})
+
+    # Step 2: Parse page 0 operations
+    page_ops = parse_clan_treasury_operations(html)
+    all_operations.extend(page_ops)
+
+    yield ('progress', {
+        'page': 0,
+        'total_pages': total_pages,
+        'ops_on_page': len(page_ops),
+        'total_ops': len(all_operations),
+        'elapsed': round(time.time() - start_time, 1),
+    })
+
+    # Step 3: Fetch remaining pages
+    for page in range(1, total_pages):
+        try:
+            html, session = fetch_clan_treasury_report(session=session, page=page)
+        except Exception as e:
+            yield ('error', {'reason': 'fetch_error', 'message': f'Ошибка на странице {page}: {str(e)}'})
+            return
+
+        if is_login_redirect(html):
+            yield ('error', {'reason': 'session_expired', 'message': 'Сессия истекла, обновите cookies'})
+            return
+
+        page_ops = parse_clan_treasury_operations(html)
+
+        earliest_on_page = min((_parse_date_to_comparable(op['date']) for op in page_ops), default='')
+        if earliest_on_page and earliest_on_page < cutoff_comparable:
+            filtered = [op for op in page_ops if _parse_date_to_comparable(op['date']) >= cutoff_comparable]
+            all_operations.extend(filtered)
+            yield ('progress', {
+                'page': page,
+                'total_pages': total_pages,
+                'ops_on_page': len(filtered),
+                'total_ops': len(all_operations),
+                'elapsed': round(time.time() - start_time, 1),
+                'cutoff_reached': True,
+            })
+            break
+
+        all_operations.extend(page_ops)
+        yield ('progress', {
+            'page': page,
+            'total_pages': total_pages,
+            'ops_on_page': len(page_ops),
+            'total_ops': len(all_operations),
+            'elapsed': round(time.time() - start_time, 1),
+        })
+
+    elapsed = round(time.time() - start_time, 1)
+    yield ('done', {
+        'total_ops': len(all_operations),
+        'pages_fetched': min(total_pages, max_pages),
+        'elapsed': elapsed,
+        'operations': all_operations,
+    })
+
+
+def fetch_all_pages_until_date(session, cutoff_date_str='01.01.2025', max_pages=500):
+    """
+    Fetches pages 0..n from clan_management.php until:
+    - Найдена операция с датой < cutoff_date
+    - Страница пустая или содержит редирект на login
+    - Достигнут max_pages
+
+    Returns: dict with keys:
+        success (bool), operations (list), pages_fetched (int),
+        stopped_reason (str), error (str or None)
+    """
+    all_operations = []
+    cutoff_comparable = _date_str_to_comparable(cutoff_date_str)
+    pages_fetched = 0
+    stopped_reason = None
+
+    data_logger.info(f'[PARSER] fetch_all_pages: cutoff={cutoff_date_str}, max_pages={max_pages}')
+
+    for page in range(max_pages):
+        try:
+            html, session = fetch_clan_treasury_report(session=session, page=page)
+        except Exception as e:
+            data_logger.error(f'[PARSER] fetch_all_pages: error on page {page}: {e}')
+            return {
+                'success': False,
+                'operations': all_operations,
+                'pages_fetched': pages_fetched,
+                'stopped_reason': 'fetch_error',
+                'error': str(e),
+            }
+
+        if is_login_redirect(html):
+            data_logger.warning(f'[PARSER] fetch_all_pages: login redirect on page {page}')
+            return {
+                'success': False,
+                'operations': all_operations,
+                'pages_fetched': pages_fetched,
+                'stopped_reason': 'session_expired',
+                'error': 'Сессия истекла, обновите cookies',
+            }
+
+        page_ops = parse_clan_treasury_operations(html)
+        pages_fetched += 1
+
+        if not page_ops:
+            data_logger.info(f'[PARSER] fetch_all_pages: no operations on page {page}, stopping')
+            stopped_reason = 'no_more_data'
+            break
+
+        earliest_on_page = min(_parse_date_to_comparable(op['date']) for op in page_ops)
+        if earliest_on_page and earliest_on_page < cutoff_comparable:
+            filtered = [op for op in page_ops if _parse_date_to_comparable(op['date']) >= cutoff_comparable]
+            all_operations.extend(filtered)
+            data_logger.info(f'[PARSER] fetch_all_pages: cutoff reached on page {page}, kept {len(filtered)}/{len(page_ops)} ops')
+            stopped_reason = 'cutoff_reached'
+            break
+
+        all_operations.extend(page_ops)
+        data_logger.info(f'[PARSER] fetch_all_pages: page {page} done, {len(page_ops)} ops, total={len(all_operations)}')
+
+    if stopped_reason is None:
+        stopped_reason = 'max_pages_reached'
+
+    data_logger.info(f'[PARSER] fetch_all_pages: finished. pages={pages_fetched}, ops={len(all_operations)}, reason={stopped_reason}')
+
+    return {
+        'success': True,
+        'operations': all_operations,
+        'pages_fetched': pages_fetched,
+        'stopped_reason': stopped_reason,
+        'error': None,
+    }

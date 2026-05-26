@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from shared.models import db
 from shared.models.user import User
 from shared.models.clan import Clan, ClanMember, ClanChatRoom, ClanChatMessage
-from shared.models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation
+from shared.models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation, ClanCookie
 from shared.models.character_snapshot import CharacterSnapshot
 from shared.models.character_cache import CharacterCache
 from shared.models.analysis_log import AnalysisLog

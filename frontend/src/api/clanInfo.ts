@@ -157,6 +157,43 @@ export async function updateTreasuryOperation(
   return response.data;
 }
 
+export interface ParsedTreasuryOperation {
+  date: string;
+  nick: string;
+  operation_type: string;
+  object_name: string;
+  quantity: number;
+}
+
+export async function saveTreasuryCookies(
+  clanId: number,
+  cookies: string
+): Promise<{ success: boolean; message: string; error?: string }> {
+  const response = await apiClient.post(`/api/clan/${clanId}/treasury/cookies/save`, { cookies });
+  return response.data;
+}
+
+export async function getTreasuryCookiesStatus(
+  clanId: number
+): Promise<{ has_cookies: boolean; is_valid: boolean; updated_at?: string | null }> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury/cookies/status`);
+  return response.data;
+}
+
+export async function autoFetchTreasury(
+  clanId: number
+): Promise<{
+  success: boolean;
+  operations: ParsedTreasuryOperation[];
+  pages_fetched: number;
+  date_range: { earliest: string; latest: string };
+  message: string;
+  error?: string;
+}> {
+  const response = await apiClient.post(`/api/clan/${clanId}/treasury/auto-fetch`, {});
+  return response.data;
+}
+
 export async function createTreasuryCompensation(
   clanId: number,
   nick: string,

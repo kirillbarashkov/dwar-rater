@@ -87,3 +87,16 @@ class TreasuryOperation(db.Model):
 
     def __repr__(self):
         return f'<TreasuryOperation {self.date} {self.nick}>'
+
+
+class ClanCookie(db.Model):
+    __tablename__ = 'clan_cookies'
+    id = db.Column(db.Integer, primary_key=True)
+    clan_id = db.Column(db.Integer, nullable=False, index=True)
+    cookie_string = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_valid = db.Column(db.Boolean, default=True, server_default='1')
+
+    def __repr__(self):
+        return f'<ClanCookie clan_id={self.clan_id} valid={self.is_valid}>'

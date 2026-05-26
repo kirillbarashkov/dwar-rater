@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
-from shared.services.clan_parser import fetch_clan_page, parse_clan_info, fetch_clan_treasury_report, parse_clan_treasury_operations
+import requests
+from shared.services.clan_parser import fetch_clan_page, parse_clan_info, fetch_clan_treasury_report, parse_clan_treasury_operations, fetch_all_pages_until_date, fetch_all_pages_streaming, is_login_redirect
 from shared.services.data_logger import data_logger
 from shared.models import db
-from shared.models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation
+from shared.models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation, ClanCookie
 from shared.rbac import require_permission, feature, Permission as PermDef
 
 
@@ -943,3 +944,215 @@ def fetch_treasury_operations(clan_id):
             'error': str(e),
             'message': 'Ошибка при импорте. Возможно, требуется авторизация на сайте.',
         }), 500
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/cookies/save', methods=['POST'])
+@require_permission('clan_info', 'admin')
+def save_treasury_cookies(clan_id):
+    from flask import g
+    from urllib.parse import unquote
+
+    if not g.current_user or g.current_user.role != 'admin':
+        return jsonify({'error': 'Только администратор может управлять cookies'}), 403
+
+    data = request.json
+    cookies_str = data.get('cookies', '').strip()
+
+    if not cookies_str:
+        return jsonify({'success': False, 'error': 'Cookies не могут быть пустыми'}), 400
+
+    data_logger.info(f'[COOKIES] Saving cookies for clan {clan_id}')
+
+    session = requests.Session()
+    for part in cookies_str.split(';'):
+        part = part.strip()
+        if '=' in part:
+            key, value = part.split('=', 1)
+            key = key.strip()
+            value = unquote(value.strip())
+            session.cookies.set(key, value)
+            data_logger.info(f'[COOKIES] Set cookie: {key}={value[:30]}...')
+
+    try:
+        test_html, _ = fetch_clan_treasury_report(session=session, page=0)
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Ошибка проверки: {str(e)}'}), 500
+
+    data_logger.info(f'[COOKIES] Validation response: {len(test_html)} bytes')
+
+    is_valid = not is_login_redirect(test_html)
+
+    if not is_valid:
+        if 'single_top_redirect' in test_html:
+            redirect_match = __import__('re').search(r'single_top_redirect\(["\']([^"\']+)["\']\)', test_html)
+            redirect_url = redirect_match.group(1) if redirect_match else 'unknown'
+            data_logger.warning(f'[COOKIES] Server redirect to: {redirect_url}')
+
+    existing = ClanCookie.query.filter_by(clan_id=clan_id).first()
+    if existing:
+        existing.cookie_string = cookies_str
+        existing.is_valid = is_valid
+        existing.updated_at = datetime.utcnow()
+        data_logger.info(f'[COOKIES] Updated cookies for clan {clan_id}, valid={is_valid}')
+    else:
+        new_cookie = ClanCookie(
+            clan_id=clan_id,
+            cookie_string=cookies_str,
+            is_valid=is_valid,
+        )
+        db.session.add(new_cookie)
+        data_logger.info(f'[COOKIES] Created cookies for clan {clan_id}, valid={is_valid}')
+
+    db.session.commit()
+
+    if is_valid:
+        return jsonify({'success': True, 'message': 'Cookies сохранены и валидны'})
+    else:
+        return jsonify({
+            'success': False,
+            'error': 'session_expired',
+            'message': 'Сессия истекла. Войдите в игру заново на dwar.ru, затем скопируйте свежие cookies.',
+        })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/cookies/status', methods=['GET'])
+@require_permission('clan_info', 'read')
+def get_treasury_cookies_status(clan_id):
+    cookie = ClanCookie.query.filter_by(clan_id=clan_id).first()
+
+    if not cookie:
+        return jsonify({'has_cookies': False})
+
+    return jsonify({
+        'has_cookies': True,
+        'is_valid': cookie.is_valid,
+        'updated_at': cookie.updated_at.isoformat() if cookie.updated_at else None,
+    })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/auto-fetch', methods=['POST'])
+@require_permission('clan_info', 'admin')
+def auto_fetch_treasury(clan_id):
+    from flask import g
+    from urllib.parse import unquote
+
+    if not g.current_user or g.current_user.role != 'admin':
+        return jsonify({'error': 'Только администратор может запускать авто-импорт'}), 403
+
+    cookie = ClanCookie.query.filter_by(clan_id=clan_id).first()
+    if not cookie or not cookie.is_valid:
+        return jsonify({
+            'success': False,
+            'error': 'no_valid_cookies',
+            'message': 'Нет валидных cookies. Сохраните cookies перед авто-импортом.',
+        })
+
+    data_logger.info(f'[TREASURY] Auto-fetch starting for clan {clan_id}')
+
+    session = requests.Session()
+    for part in cookie.cookie_string.split(';'):
+        part = part.strip()
+        if '=' in part:
+            key, value = part.split('=', 1)
+            session.cookies.set(key.strip(), unquote(value.strip()))
+
+    result = fetch_all_pages_until_date(session, cutoff_date_str='01.01.2025', max_pages=500)
+
+    if not result['success']:
+        data_logger.warning(f'[TREASURY] Auto-fetch failed for clan {clan_id}: {result["stopped_reason"]}')
+
+        if result['stopped_reason'] == 'session_expired':
+            if cookie:
+                cookie.is_valid = False
+                db.session.commit()
+
+        return jsonify({
+            'success': False,
+            'error': result['stopped_reason'],
+            'message': result.get('error', 'Ошибка при сборе данных'),
+            'operations': result['operations'],
+            'pages_fetched': result['pages_fetched'],
+        })
+
+    ops = result['operations']
+
+    date_range = {}
+    if ops:
+        dates = []
+        for op in ops:
+            m = __import__('re').match(r'(\d{2})\.(\d{2})\.(\d{4})', op['date'])
+            if m:
+                dates.append(f'{m.group(3)}-{m.group(2)}-{m.group(1)}')
+        if dates:
+            date_range = {'earliest': min(dates), 'latest': max(dates)}
+
+    data_logger.info(f'[TREASURY] Auto-fetch completed for clan {clan_id}: {len(ops)} ops from {result["pages_fetched"]} pages')
+
+    return jsonify({
+        'success': True,
+        'operations': ops,
+        'pages_fetched': result['pages_fetched'],
+        'date_range': date_range,
+        'message': f'Собрано {len(ops)} операций со {result["pages_fetched"]} страниц',
+    })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/auto-fetch-stream', methods=['GET'])
+def auto_fetch_treasury_stream(clan_id):
+    from flask import Response, request
+    from urllib.parse import unquote
+    import json
+    from shared.rbac.models import SessionToken
+    from shared.models.user import User
+    from datetime import datetime, timezone
+
+    # Auth via query param (for SSE) or standard header
+    token = request.args.get('token') or request.headers.get('Authorization', '').replace('Bearer ', '')
+    current_user = None
+    if token:
+        session_token = SessionToken.query.filter_by(token=token).first()
+        if session_token:
+            expires = session_token.expires_at
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if expires > datetime.now(timezone.utc):
+                current_user = User.query.get(session_token.user_id)
+
+    if not current_user or current_user.role != 'admin':
+        def error_gen():
+            yield 'data: ' + json.dumps({'type': 'error', 'reason': 'forbidden', 'message': 'Только администратор'}) + '\n\n'
+        return Response(error_gen(), mimetype='text/event-stream')
+
+    cookie = ClanCookie.query.filter_by(clan_id=clan_id).first()
+    if not cookie or not cookie.is_valid:
+        def error_gen():
+            yield 'data: ' + json.dumps({'type': 'error', 'reason': 'no_valid_cookies', 'message': 'Нет валидных cookies'}) + '\n\n'
+        return Response(error_gen(), mimetype='text/event-stream')
+
+    data_logger.info(f'[TREASURY] SSE auto-fetch starting for clan {clan_id}')
+
+    def generate():
+        session = requests.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        })
+        for part in cookie.cookie_string.split(';'):
+            part = part.strip()
+            if '=' in part:
+                key, value = part.split('=', 1)
+                session.cookies.set(key.strip(), unquote(value.strip()))
+
+        for event_type, data in fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=500):
+            payload = {'type': event_type}
+            payload.update(data)
+            yield f'data: {json.dumps(payload, ensure_ascii=False)}\n\n'
+
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive',
+        }
+    )

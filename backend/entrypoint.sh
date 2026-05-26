@@ -79,4 +79,4 @@ with app.app_context():
 "
 
 echo "=== Starting gunicorn ==="
-exec gunicorn --bind 0.0.0.0:5000 --workers 2 --timeout 30 app:app
+exec gunicorn --bind 0.0.0.0:5000 --workers 2 --timeout 600 app:app
