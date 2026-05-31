@@ -70,6 +70,20 @@ export interface LeftMemberData {
   leave_reason: string;
 }
 
+export interface DateCoverage {
+  years: Record<string, {
+    months: Record<string, {
+      days: string[];
+      total_ops: number;
+    }>;
+    total_ops: number;
+  }>;
+  total_dates_with_data: number;
+  total_operations: number;
+  earliest_date: string | null;
+  latest_date: string | null;
+}
+
 export interface TreasuryOperationData {
   id: number;
   date: string;

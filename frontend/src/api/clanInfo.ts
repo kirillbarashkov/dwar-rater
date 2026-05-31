@@ -56,6 +56,25 @@ export interface TreasuryFetchResult {
   error?: string;
 }
 
+export interface DateCoverage {
+  years: Record<string, {
+    months: Record<string, {
+      days: string[];
+      total_ops: number;
+    }>;
+    total_ops: number;
+  }>;
+  total_dates_with_data: number;
+  total_operations: number;
+  earliest_date: string | null;
+  latest_date: string | null;
+}
+
+export async function getTreasuryDateCoverage(clanId: number): Promise<DateCoverage> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury/date-coverage`);
+  return response.data;
+}
+
 export async function getTreasuryOperations(clanId: number): Promise<TreasuryOperationData[]> {
   const response = await apiClient.get(`/api/clan/${clanId}/treasury`);
   return response.data;

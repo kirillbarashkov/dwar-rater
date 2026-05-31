@@ -885,6 +885,64 @@ def import_treasury_operations(clan_id):
     })
 
 
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/date-coverage', methods=['GET'])
+@require_permission('clan_info', 'read')
+def get_treasury_date_coverage(clan_id):
+    """Return date coverage structure: years -> months -> days with operation counts."""
+    from collections import defaultdict
+
+    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).all()
+
+    coverage = {}
+    total_ops = 0
+    all_dates = []
+
+    for op in operations:
+        m = __import__('re').match(r'(\d{2})\.(\d{2})\.(\d{4})', op.date)
+        if not m:
+            continue
+        day, month, year = m.group(1), m.group(2), m.group(3)
+        date_key = f'{day}.{month}.{year}'
+        all_dates.append(date_key)
+        total_ops += 1
+
+        if year not in coverage:
+            coverage[year] = {'months': {}, 'total_ops': 0}
+        if month not in coverage[year]['months']:
+            coverage[year]['months'][month] = {'days': set(), 'total_ops': 0}
+        coverage[year]['months'][month]['days'].add(day)
+        coverage[year]['months'][month]['total_ops'] += 1
+        coverage[year]['total_ops'] += 1
+
+    # Convert sets to sorted lists
+    for year_data in coverage.values():
+        for month_data in year_data['months'].values():
+            month_data['days'] = sorted(month_data['days'], key=lambda d: int(d), reverse=True)
+
+    # Sort years and months descending
+    sorted_coverage = {}
+    for year in sorted(coverage.keys(), reverse=True):
+        year_data = coverage[year]
+        sorted_months = {}
+        for month in sorted(year_data['months'].keys(), reverse=True):
+            sorted_months[month] = year_data['months'][month]
+        sorted_coverage[year] = {
+            'months': sorted_months,
+            'total_ops': year_data['total_ops'],
+        }
+
+    earliest = min(all_dates) if all_dates else None
+    latest = max(all_dates) if all_dates else None
+
+    return jsonify({
+        'years': sorted_coverage,
+        'total_dates_with_data': len(set(all_dates)),
+        'total_operations': total_ops,
+        'earliest_date': earliest,
+        'latest_date': latest,
+    })
+
+
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury', methods=['POST'])
 @require_permission('clan_info', 'admin')
 def fetch_treasury_operations(clan_id):
@@ -1131,6 +1189,9 @@ def auto_fetch_treasury_stream(clan_id):
 
     data_logger.info(f'[TREASURY] SSE auto-fetch starting for clan {clan_id}')
 
+    start_date = request.args.get('start_date', '01.01.2025')
+    data_logger.info(f'[TREASURY] SSE start_date={start_date}')
+
     def generate():
         session = requests.Session()
         session.headers.update({
@@ -1142,7 +1203,7 @@ def auto_fetch_treasury_stream(clan_id):
                 key, value = part.split('=', 1)
                 session.cookies.set(key.strip(), unquote(value.strip()))
 
-        for event_type, data in fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=500):
+        for event_type, data in fetch_all_pages_streaming(session, cutoff_date_str=start_date, max_pages=500):
             payload = {'type': event_type}
             payload.update(data)
             yield f'data: {json.dumps(payload, ensure_ascii=False)}\n\n'
@@ -1193,6 +1254,10 @@ def auto_fetch_members_stream(clan_id):
             yield 'data: ' + json.dumps({'type': 'error', 'reason': 'no_valid_cookies', 'message': 'Нет валидных cookies'}) + '\n\n'
         return Response(error_gen(), mimetype='text/event-stream')
 
+    # Capture DB data INSIDE app context before returning Response
+    db_members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).all()
+    db_nicks = {m.nick.lower() for m in db_members}
+
     data_logger.info(f'[MEMBERSHIP] SSE auto-fetch starting for clan {clan_id}')
 
     def generate():
@@ -1219,9 +1284,6 @@ def auto_fetch_members_stream(clan_id):
 
         fetched_members = parse_clan_members_from_management(html, clan_id)
         fetched_nicks = {m['nick'].lower() for m in fetched_members}
-
-        db_members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).all()
-        db_nicks = {m.nick.lower() for m in db_members}
 
         joined = [m for m in fetched_members if m['nick'].lower() not in db_nicks]
         left = [m for m in db_members if m.nick.lower() not in fetched_nicks]
@@ -1273,6 +1335,9 @@ def import_member_diff(clan_id):
             nick = member_data.get('nick', '').strip()
             if not nick:
                 errors.append('Пустой ник в joined')
+                continue
+            if len(nick) > 100:
+                errors.append(f'Ник слишком длинный ({len(nick)} символов): {nick[:30]}...')
                 continue
 
             existing = ClanMemberInfo.query.filter_by(clan_id=clan_id, nick=nick, is_deleted=False).first()

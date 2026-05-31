@@ -475,9 +475,22 @@ def parse_clan_members_from_management(html, clan_id):
         if nick_match:
             if current_member.get('nick'):
                 members.append(current_member)
+
+            raw_nick = nick_match.group(1).strip()
+            # Try to extract nick from userToTag('...') first
+            utag_match = re.search(r"userToTag\('([^']+)'\)", raw_nick)
+            if utag_match:
+                nick = utag_match.group(1)
+            else:
+                # Fallback: strip HTML tags
+                nick = clean_html(raw_nick).strip()
+                # Remove trailing non-breaking spaces and artifacts
+                nick = re.sub(r'[\s\xa0]+$', '', nick)
+                nick = re.sub(r'^[\s\xa0]+', '', nick)
+
             current_member = {
                 'clan_id': clan_id,
-                'nick': nick_match.group(1).strip(),
+                'nick': nick,
                 'level': int(nick_match.group(2)),
                 'game_rank': '',
                 'profession': '',

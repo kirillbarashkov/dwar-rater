@@ -4,11 +4,12 @@ import {
   importTreasuryOperations,
   saveTreasuryCookies,
   getTreasuryCookiesStatus,
+  getTreasuryDateCoverage,
 } from '../../api/clanInfo';
-import type { TreasuryOperationData } from '../../types/clanInfo';
+import type { TreasuryOperationData, DateCoverage } from '../../types/clanInfo';
 import { Button } from '../ui/Button';
 import { BackupPicker } from './BackupPicker';
-import { parseTreasuryOperations, parseDate, TREASURY_CLAN_REPORT_URL } from '../../utils/treasury';
+import { parseTreasuryOperations, parseDate, TREASURY_CLAN_REPORT_URL, MONTHS_RU } from '../../utils/treasury';
 import { MembershipImportTab } from './MembershipImportTab';
 import './TreasuryImport.css';
 
@@ -17,7 +18,7 @@ interface TreasuryImportProps {
   onImportComplete?: () => void;
 }
 
-type SubTab = 'auto' | 'html' | 'export' | 'membership';
+type SubTab = 'cookies' | 'import' | 'export';
 
 interface ParsedRow {
   date: string;
@@ -106,7 +107,7 @@ function CookieField({
   );
 }
 
-function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number; onImportComplete?: () => void; mode?: 'auto' | 'html' }) {
+function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportComplete?: () => void }) {
   const [pastedHtml, setPastedHtml] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
@@ -114,6 +115,10 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
   const [importResult, setImportResult] = useState<{ imported: number; updated: number; skipped: number } | null>(null);
 
   const [dbOperations, setDbOperations] = useState<TreasuryOperationData[]>([]);
+  const [dateCoverage, setDateCoverage] = useState<DateCoverage | null>(null);
+  const [selectedStartDate, setSelectedStartDate] = useState<string | null>(null);
+  const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
 
   const [cookieStatus, setCookieStatus] = useState<{ has_cookies: boolean; is_valid: boolean; updated_at?: string | null }>({ has_cookies: false, is_valid: false });
   const [showCookieEditor, setShowCookieEditor] = useState(false);
@@ -127,6 +132,16 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
 
   useEffect(() => {
     getTreasuryOperations(clanId).then(setDbOperations).catch(() => setDbOperations([]));
+    loadDateCoverage();
+  }, [clanId]);
+
+  const loadDateCoverage = useCallback(() => {
+    getTreasuryDateCoverage(clanId).then((data) => {
+      setDateCoverage(data);
+      if (data.latest_date) {
+        setSelectedStartDate(data.latest_date);
+      }
+    }).catch(() => setDateCoverage(null));
   }, [clanId]);
 
   useEffect(() => {
@@ -214,7 +229,12 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
 
     const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
     const token = localStorage.getItem('auth_token');
-    const url = `${apiBase}/api/clan/${clanId}/treasury/auto-fetch-stream${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    const startDate = selectedStartDate || '01.01.2025';
+    const params = new URLSearchParams({ token: token || '' });
+    if (startDate !== '01.01.2025') {
+      params.set('start_date', startDate);
+    }
+    const url = `${apiBase}/api/clan/${clanId}/treasury/auto-fetch-stream?${params.toString()}`;
 
     const es = new EventSource(url);
 
@@ -322,6 +342,7 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
         const data = await getTreasuryOperations(clanId);
         setDbOperations(data);
         setAutoFetchOps([]);
+        loadDateCoverage();
         onImportComplete?.();
       } else {
         setMessage({ type: 'error', text: result.message || 'Ошибка при импорте' });
@@ -429,6 +450,7 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
         const data = await getTreasuryOperations(clanId);
         setDbOperations(data);
         setPastedHtml('');
+        loadDateCoverage();
         onImportComplete?.();
       } else {
         setMessage({ type: 'error', text: result.message || 'Ошибка при импорте' });
@@ -464,9 +486,7 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
         </div>
       )}
 
-      {mode === 'auto' && (
-        <>
-          <section className="treasury-import-section treasury-cookies-section">
+      <section className="treasury-import-section treasury-cookies-section">
             <h3 className="treasury-import-section-title">Авторизация на dwar.ru</h3>
             <div className="treasury-cookies-status">
               {cookieStatus.has_cookies ? (
@@ -562,16 +582,110 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
           </section>
 
           {cookieStatus.has_cookies && cookieStatus.is_valid && (
-            <section className="treasury-import-section treasury-auto-fetch-section">
-              <h3 className="treasury-import-section-title">Сбор данных</h3>
-              <div className="treasury-auto-fetch-info">
-                <p>Данные будут собраны с <strong>01.01.2025</strong> по текущую дату.</p>
-              </div>
-              {autoFetchOps.length === 0 && !isAutoFetching && fetchProgress.phase !== 'error' && (
-                <Button variant="primary" onClick={handleAutoFetch}>
-                  Начать сбор
-                </Button>
-              )}
+            <>
+              <section className="treasury-import-section treasury-coverage-section">
+                <h3 className="treasury-import-section-title">Покрытие базы данных</h3>
+                {dateCoverage && dateCoverage.total_dates_with_data > 0 ? (
+                  <>
+                    <div className="coverage-summary">
+                      <span>{dateCoverage.total_dates_with_data} дней с данными</span>
+                      <span>{dateCoverage.total_operations} операций</span>
+                      {dateCoverage.earliest_date && dateCoverage.latest_date && (
+                        <span>{dateCoverage.earliest_date} — {dateCoverage.latest_date}</span>
+                      )}
+                    </div>
+                    <div className="coverage-tree">
+                      {Object.entries(dateCoverage.years).map(([year, yearData]) => {
+                        const yearKey = year;
+                        const isYearExpanded = expandedYears.has(yearKey);
+                        return (
+                          <div key={yearKey} className="coverage-year">
+                            <button
+                              className="coverage-year-header"
+                              onClick={() => {
+                                const next = new Set(expandedYears);
+                                if (next.has(yearKey)) next.delete(yearKey); else next.add(yearKey);
+                                setExpandedYears(next);
+                              }}
+                            >
+                              <span className="coverage-toggle">{isYearExpanded ? '▾' : '▸'}</span>
+                              <span className="coverage-year-label">{year}</span>
+                              <span className="coverage-year-count">{yearData.total_ops} операций</span>
+                            </button>
+                            {isYearExpanded && (
+                              <div className="coverage-months">
+                                {Object.entries(yearData.months).map(([month, monthData]) => {
+                                  const monthKey = `${yearKey}-${month}`;
+                                  const isMonthExpanded = expandedMonths.has(monthKey);
+                                  const monthName = MONTHS_RU[parseInt(month, 10)] || month;
+                                  return (
+                                    <div key={monthKey} className="coverage-month">
+                                      <button
+                                        className="coverage-month-header"
+                                        onClick={() => {
+                                          const next = new Set(expandedMonths);
+                                          if (next.has(monthKey)) next.delete(monthKey); else next.add(monthKey);
+                                          setExpandedMonths(next);
+                                        }}
+                                      >
+                                        <span className="coverage-toggle">{isMonthExpanded ? '▾' : '▸'}</span>
+                                        <span>{monthName}</span>
+                                        <span className="coverage-month-count">{monthData.total_ops} операций</span>
+                                      </button>
+                                      {isMonthExpanded && (
+                                        <div className="coverage-days">
+                                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                                            const dayStr = day.toString().padStart(2, '0');
+                                            const hasData = monthData.days.includes(dayStr);
+                                            const dateKey = `${dayStr}.${month}.${year}`;
+                                            const isSelected = selectedStartDate === dateKey;
+                                            return (
+                                              <div
+                                                key={day}
+                                                className={`coverage-day ${hasData ? 'has-data' : ''} ${isSelected ? 'selected' : ''}`}
+                                                onClick={() => hasData && setSelectedStartDate(dateKey)}
+                                              >
+                                                {day}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {selectedStartDate && (
+                      <div className="coverage-selected">
+                        Выбрана дата старта: <strong>{selectedStartDate}</strong>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="coverage-empty">
+                    <p>Нет данных в базе. Запустите первый импорт.</p>
+                    <Button variant="secondary" size="small" onClick={loadDateCoverage}>
+                      Обновить
+                    </Button>
+                  </div>
+                )}
+              </section>
+
+              <section className="treasury-import-section treasury-auto-fetch-section">
+                <h3 className="treasury-import-section-title">Сбор данных</h3>
+                <div className="treasury-auto-fetch-info">
+                  <p>Данные будут собраны {selectedStartDate ? `с <strong>${selectedStartDate}</strong>` : 'с <strong>01.01.2025</strong>'} по текущую дату.</p>
+                </div>
+                {autoFetchOps.length === 0 && !isAutoFetching && fetchProgress.phase !== 'error' && (
+                  <Button variant="primary" onClick={handleAutoFetch} disabled={!selectedStartDate}>
+                    Начать сбор{selectedStartDate ? ` с ${selectedStartDate}` : ''}
+                  </Button>
+                )}
               {isAutoFetching && (
                 <div className="treasury-auto-fetch-progress">
                   <div className="progress-bar-container">
@@ -631,12 +745,10 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
                 </div>
               )}
             </section>
+            </>
           )}
-        </>
-      )}
 
-      {mode === 'html' && (
-        <section className="treasury-import-section">
+      <section className="treasury-import-section">
           <h3 className="treasury-import-section-title">HTML данные</h3>
           <div className="treasury-import-instructions">
             <ol>
@@ -660,9 +772,8 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
             rows={12}
           />
         </section>
-      )}
 
-      {(allParsedRows.length > 0 || (mode === 'html' && pastedHtml.trim())) && (
+      {(allParsedRows.length > 0 || pastedHtml.trim()) && (
         <>
           <div className="treasury-import-summary-row">
             <section className="treasury-import-section treasury-import-summary">
@@ -689,7 +800,7 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
                 </>
               ) : (
                 <div className="treasury-import-placeholder">
-                  {mode === 'html' && pastedHtml.trim() && allParsedRows.length === 0
+                  {pastedHtml.trim() && allParsedRows.length === 0
                     ? 'Не удалось распознать операции. Проверьте формат HTML.'
                     : 'Нет новых операций для импорта'}
                 </div>
@@ -699,8 +810,8 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
               <Button variant="secondary" onClick={handleClear}>
                 Сбросить
               </Button>
-              {(allParsedRows.length > 0 || (mode === 'html' && pastedHtml.trim())) && (
-                <Button variant="primary" onClick={mode === 'auto' ? handleAutoImport : handleHtmlImport} disabled={isImporting}>
+              {(allParsedRows.length > 0 || pastedHtml.trim()) && (
+                <Button variant="primary" onClick={handleHtmlImport} disabled={isImporting}>
                   {isImporting ? 'Запись в БД...' : `Импортировать ${allParsedRows.length > 0 ? allParsedRows.length : 'HTML'}`}
                 </Button>
               )}
@@ -874,27 +985,29 @@ function ExportTab({ clanId }: { clanId: number }) {
   );
 }
 
+type SubTab = 'cookies' | 'import' | 'export';
+
 export function TreasuryImport({ clanId, onImportComplete }: TreasuryImportProps) {
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>('auto');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('import');
 
   return (
     <div className="treasury-import-page">
       <header className="treasury-import-header">
-        <h2 className="treasury-import-title">Импорт / Экспорт</h2>
+        <h2 className="treasury-import-title">Казна</h2>
       </header>
 
       <div className="treasury-import-tabs">
         <button
-          className={`treasury-import-tab-btn ${activeSubTab === 'auto' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('auto')}
+          className={`treasury-import-tab-btn ${activeSubTab === 'import' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('import')}
         >
-          Авто-импорт (cookies)
+          Импорт данных
         </button>
         <button
-          className={`treasury-import-tab-btn ${activeSubTab === 'html' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('html')}
+          className={`treasury-import-tab-btn ${activeSubTab === 'cookies' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('cookies')}
         >
-          HTML импорт
+          Cookies
         </button>
         <button
           className={`treasury-import-tab-btn ${activeSubTab === 'export' ? 'active' : ''}`}
@@ -902,18 +1015,189 @@ export function TreasuryImport({ clanId, onImportComplete }: TreasuryImportProps
         >
           Экспорт
         </button>
-        <button
-          className={`treasury-import-tab-btn ${activeSubTab === 'membership' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('membership')}
-        >
-          Членство
-        </button>
       </div>
 
-      {activeSubTab === 'auto' && <ImportTab clanId={clanId} onImportComplete={onImportComplete} />}
-      {activeSubTab === 'html' && <ImportTab clanId={clanId} onImportComplete={onImportComplete} mode="html" />}
+      {activeSubTab === 'cookies' && <CookiesTab clanId={clanId} />}
+      {activeSubTab === 'import' && <ImportTab clanId={clanId} onImportComplete={onImportComplete} />}
       {activeSubTab === 'export' && <ExportTab clanId={clanId} />}
-      {activeSubTab === 'membership' && <MembershipImportTab clanId={clanId} onImportComplete={onImportComplete} />}
+    </div>
+  );
+}
+
+function CookiesTab({ clanId }: { clanId: number }) {
+  const [cookieStatus, setCookieStatus] = useState<{ has_cookies: boolean; is_valid: boolean; updated_at?: string | null }>({ has_cookies: false, is_valid: false });
+  const [showCookieEditor, setShowCookieEditor] = useState(false);
+  const [cookieValues, setCookieValues] = useState<Record<string, string>>({});
+  const [isSavingCookies, setIsSavingCookies] = useState(false);
+  const [bulkCookieInput, setBulkCookieInput] = useState('');
+  const [showBulkInput, setShowBulkInput] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    getTreasuryCookiesStatus(clanId).then(setCookieStatus).catch(() => setCookieStatus({ has_cookies: false, is_valid: false }));
+  }, [clanId]);
+
+  const refreshCookieStatus = useCallback(() => {
+    getTreasuryCookiesStatus(clanId).then(setCookieStatus).catch(() => setCookieStatus({ has_cookies: false, is_valid: false }));
+  }, [clanId]);
+
+  const openCookieEditor = () => {
+    setShowCookieEditor(true);
+    setShowBulkInput(false);
+    setCookieValues({});
+    setBulkCookieInput('');
+  };
+
+  const handleParseBulkCookies = () => {
+    const parsed: Record<string, string> = {};
+    for (const field of COOKIE_FIELDS) {
+      parsed[field.key] = parseCookieValue(bulkCookieInput, field.key);
+    }
+    setCookieValues(parsed);
+    setShowBulkInput(false);
+  };
+
+  const handleSaveCookies = async () => {
+    const cookieString = buildCookieString(cookieValues);
+    if (!cookieString.trim()) {
+      setMessage({ type: 'error', text: 'Заполните все поля cookies' });
+      return;
+    }
+
+    const missingRequired = COOKIE_FIELDS.filter((f) => f.required && !cookieValues[f.key]?.trim());
+    if (missingRequired.length > 0) {
+      setMessage({ type: 'error', text: `Не заполнены поля: ${missingRequired.map((f) => f.key).join(', ')}` });
+      return;
+    }
+
+    setIsSavingCookies(true);
+    setMessage(null);
+    try {
+      const result = await saveTreasuryCookies(clanId, cookieString);
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message });
+        setShowCookieEditor(false);
+        setCookieValues({});
+        setBulkCookieInput('');
+        refreshCookieStatus();
+      } else {
+        setMessage({ type: 'error', text: result.message || result.error || 'Ошибка сохранения cookies' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: `Ошибка: ${err instanceof Error ? err.message : String(err)}` });
+    } finally {
+      setIsSavingCookies(false);
+    }
+  };
+
+  const formatCookieDate = (iso?: string | null) => {
+    if (!iso) return '?';
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="treasury-import-tab">
+      {message && (
+        <div className={`treasury-import-message treasury-import-message-${message.type}`}>
+          {message.text}
+        </div>
+      )}
+
+      <section className="treasury-import-section treasury-cookies-section">
+        <h3 className="treasury-import-section-title">Авторизация на dwar.ru</h3>
+        <div className="treasury-cookies-status">
+          {cookieStatus.has_cookies ? (
+            <>
+              <span className={`cookie-status-badge ${cookieStatus.is_valid ? 'valid' : 'invalid'}`}>
+                {cookieStatus.is_valid ? 'Cookies активны' : 'Cookies недействительны'}
+              </span>
+              <span className="cookie-status-date">
+                Обновлены: {formatCookieDate(cookieStatus.updated_at)}
+              </span>
+              <Button variant="secondary" size="small" onClick={openCookieEditor}>
+                Обновить cookies
+              </Button>
+            </>
+          ) : (
+            <>
+              <span className="cookie-status-badge none">Cookies не настроены</span>
+              <Button variant="secondary" size="small" onClick={openCookieEditor}>
+                Настроить cookies
+              </Button>
+            </>
+          )}
+        </div>
+
+        {showCookieEditor && (
+          <div className="treasury-cookies-editor">
+            <div className="treasury-cookies-instructions">
+              <p>Как получить cookies:</p>
+              <ol>
+                <li>Откройте <a href={TREASURY_CLAN_REPORT_URL} target="_blank" rel="noopener noreferrer">Операции казны</a> в браузере</li>
+                <li>F12 → Application/Storage → Cookies → w1.dwar.ru</li>
+                <li>Скопируйте значения нужных cookies в поля ниже</li>
+              </ol>
+              <p className="cookie-note">
+                <strong>Все поля обязательны</strong> — без любого из них авторизация не работает.
+                Остальные cookies (Google Analytics <code>__utm*</code>, Яндекс.Метрика <code>_ym*</code>, <code>cid</code>, <code>flash_version</code>) — не нужны.
+              </p>
+            </div>
+
+            <div className="cookie-bulk-toggle">
+              <button
+                type="button"
+                className="cookie-bulk-btn"
+                onClick={() => setShowBulkInput(!showBulkInput)}
+              >
+                {showBulkInput ? 'Показать отдельные поля' : 'Вставить все cookies одной строкой'}
+              </button>
+            </div>
+
+            {showBulkInput ? (
+              <div className="cookie-bulk-area">
+                <textarea
+                  className="treasury-import-textarea cookie-bulk-textarea"
+                  value={bulkCookieInput}
+                  onChange={(e) => setBulkCookieInput(e.target.value)}
+                  placeholder="sess_sid=...; sess_uid=...; sess_crc=...; mycom=...; ..."
+                  rows={4}
+                />
+                <Button variant="secondary" size="small" onClick={handleParseBulkCookies} disabled={!bulkCookieInput.trim()}>
+                  Распознать
+                </Button>
+              </div>
+            ) : (
+              <div className="cookie-fields-grid">
+                {COOKIE_FIELDS.map((field) => (
+                  <CookieField
+                    key={field.key}
+                    field={field}
+                    value={cookieValues[field.key] || ''}
+                    onChange={(val) => setCookieValues((prev) => ({ ...prev, [field.key]: val }))}
+                    validationStatus={
+                      cookieValues[field.key]?.trim()
+                        ? 'ok'
+                        : field.required
+                          ? 'missing'
+                          : 'empty'
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="treasury-cookies-actions">
+              <Button variant="secondary" size="small" onClick={() => { setShowCookieEditor(false); setBulkCookieInput(''); }}>
+                Отмена
+              </Button>
+              <Button variant="primary" size="small" onClick={handleSaveCookies} disabled={isSavingCookies}>
+                {isSavingCookies ? 'Проверка...' : 'Сохранить и проверить'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

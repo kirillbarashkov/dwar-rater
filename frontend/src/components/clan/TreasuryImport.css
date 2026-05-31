@@ -794,3 +794,173 @@
   font-weight: 500;
   white-space: nowrap;
 }
+
+.treasury-coverage-section {
+  border-left: 3px solid #a78bfa;
+}
+
+.coverage-summary {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.coverage-summary span {
+  background: var(--bg-primary);
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+.coverage-tree {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-primary);
+}
+
+.coverage-year {
+  border-bottom: 1px solid var(--border);
+}
+
+.coverage-year:last-child {
+  border-bottom: none;
+}
+
+.coverage-year-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.coverage-year-header:hover {
+  background: var(--bg-secondary);
+}
+
+.coverage-toggle {
+  font-size: 10px;
+  width: 12px;
+  color: var(--text-muted);
+}
+
+.coverage-year-count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.coverage-months {
+  padding-left: 20px;
+}
+
+.coverage-month {
+  border-bottom: 1px solid var(--border);
+}
+
+.coverage-month:last-child {
+  border-bottom: none;
+}
+
+.coverage-month-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.coverage-month-header:hover {
+  background: var(--bg-secondary);
+}
+
+.coverage-month-count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.coverage-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 6px 12px 8px 32px;
+}
+
+.coverage-day {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  cursor: default;
+}
+
+.coverage-day.has-data {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent);
+  cursor: pointer;
+}
+
+.coverage-day.has-data:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.coverage-day.selected {
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-weight: 700;
+}
+
+.coverage-selected {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  padding: 6px 10px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.coverage-selected strong {
+  color: var(--accent);
+}
+
+.coverage-empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.coverage-empty p {
+  margin: 0 0 8px 0;
+}
