@@ -9,6 +9,7 @@ import type { TreasuryOperationData } from '../../types/clanInfo';
 import { Button } from '../ui/Button';
 import { BackupPicker } from './BackupPicker';
 import { parseTreasuryOperations, parseDate, TREASURY_CLAN_REPORT_URL } from '../../utils/treasury';
+import { MembershipImportTab } from './MembershipImportTab';
 import './TreasuryImport.css';
 
 interface TreasuryImportProps {
@@ -16,7 +17,7 @@ interface TreasuryImportProps {
   onImportComplete?: () => void;
 }
 
-type SubTab = 'auto' | 'html' | 'export';
+type SubTab = 'auto' | 'html' | 'export' | 'membership';
 
 interface ParsedRow {
   date: string;
@@ -44,11 +45,11 @@ const COOKIE_FIELDS: CookieFieldDef[] = [
   { key: 'sess_sid', label: 'sess_sid', description: 'Session ID — идентификатор сессии', required: true, placeholder: 'b2838a768068bc4f...' },
   { key: 'sess_uid', label: 'sess_uid', description: 'User ID — идентификатор пользователя', required: true, placeholder: '2219483' },
   { key: 'sess_crc', label: 'sess_crc', description: 'Session CRC — контрольная сумма сессии', required: true, placeholder: '8596427e42ea7516...' },
-  { key: 'sess_nn', label: 'sess_nn', description: 'Session number', required: false, placeholder: '3' },
-  { key: 'sess_area_id', label: 'sess_area_id', description: 'ID зоны/сервера', required: false, placeholder: '302' },
-  { key: 'sess_location', label: 'sess_location', description: 'Позиция в игре', required: false, placeholder: '301|302' },
+  { key: 'sess_nn', label: 'sess_nn', description: 'Session number', required: true, placeholder: '3' },
+  { key: 'sess_area_id', label: 'sess_area_id', description: 'ID зоны/сервера', required: true, placeholder: '302' },
+  { key: 'sess_location', label: 'sess_location', description: 'Позиция в игре', required: true, placeholder: '301|302' },
   { key: 'mycom', label: 'mycom', description: 'Access token + refresh token', required: true, placeholder: 'access_token%3D...%26refresh_token%3D...' },
-  { key: 'sstype', label: 'sstype', description: 'Тип сессии', required: false, placeholder: '18' },
+  { key: 'sstype', label: 'sstype', description: 'Тип сессии', required: true, placeholder: '18' },
 ];
 
 function parseCookieValue(cookieString: string, key: string): string {
@@ -500,8 +501,8 @@ function ImportTab({ clanId, onImportComplete, mode = 'auto' }: { clanId: number
                     <li>Скопируйте значения нужных cookies в поля ниже</li>
                   </ol>
                   <p className="cookie-note">
-                    <strong>Обязательные поля отмечены *</strong> — без них авторизация не работает.
-                    Остальные (Google Analytics <code>__utm*</code>, Яндекс.Метрика <code>_ym*</code>, <code>cid</code>, <code>flash_version</code>) — не нужны.
+                    <strong>Все поля обязательны</strong> — без любого из них авторизация не работает.
+                    Остальные cookies (Google Analytics <code>__utm*</code>, Яндекс.Метрика <code>_ym*</code>, <code>cid</code>, <code>flash_version</code>) — не нужны.
                   </p>
                 </div>
 
@@ -901,11 +902,18 @@ export function TreasuryImport({ clanId, onImportComplete }: TreasuryImportProps
         >
           Экспорт
         </button>
+        <button
+          className={`treasury-import-tab-btn ${activeSubTab === 'membership' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('membership')}
+        >
+          Членство
+        </button>
       </div>
 
       {activeSubTab === 'auto' && <ImportTab clanId={clanId} onImportComplete={onImportComplete} />}
       {activeSubTab === 'html' && <ImportTab clanId={clanId} onImportComplete={onImportComplete} mode="html" />}
       {activeSubTab === 'export' && <ExportTab clanId={clanId} />}
+      {activeSubTab === 'membership' && <MembershipImportTab clanId={clanId} onImportComplete={onImportComplete} />}
     </div>
   );
 }

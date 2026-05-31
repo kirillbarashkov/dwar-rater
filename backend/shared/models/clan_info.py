@@ -89,6 +89,24 @@ class TreasuryOperation(db.Model):
         return f'<TreasuryOperation {self.date} {self.nick}>'
 
 
+class ClanMembershipEvent(db.Model):
+    __tablename__ = 'clan_membership_events'
+    id = db.Column(db.Integer, primary_key=True)
+    clan_id = db.Column(db.Integer, db.ForeignKey('clan_info.clan_id'), nullable=False, index=True)
+    nick = db.Column(db.String(100), nullable=False)
+    event_type = db.Column(db.String(10), nullable=False)
+    event_date = db.Column(db.String(20), default='')
+    source = db.Column(db.String(10), default='diff')
+    leave_reason = db.Column(db.String(200), default='')
+    synced = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    clan = db.relationship('ClanInfo', foreign_keys=[clan_id], primaryjoin='ClanMembershipEvent.clan_id == ClanInfo.clan_id')
+
+    def __repr__(self):
+        return f'<ClanMembershipEvent {self.event_type} {self.nick} {self.event_date}>'
+
+
 class ClanCookie(db.Model):
     __tablename__ = 'clan_cookies'
     id = db.Column(db.Integer, primary_key=True)

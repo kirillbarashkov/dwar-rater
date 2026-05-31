@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { ClanInfoData, ClanMemberData, TreasuryOperationData, LeftMemberData } from '../types/clanInfo';
+import type { ClanInfoData, ClanMemberData, TreasuryOperationData, LeftMemberData, MembershipEvent } from '../types/clanInfo';
 
 export async function getClanInfo(clanId: number): Promise<ClanInfoData> {
   const response = await apiClient.get(`/api/clan/${clanId}/info`);
@@ -209,5 +209,36 @@ export async function createTreasuryCompensation(
     months,
     year,
   });
+  return response.data;
+}
+
+export async function getMembershipEvents(
+  clanId: number,
+  filters?: { source?: string; event_type?: string }
+): Promise<MembershipEvent[]> {
+  const params = new URLSearchParams();
+  if (filters?.source) params.set('source', filters.source);
+  if (filters?.event_type) params.set('event_type', filters.event_type);
+  const qs = params.toString();
+  const response = await apiClient.get(`/api/clan/${clanId}/members/events${qs ? `?${qs}` : ''}`);
+  return response.data;
+}
+
+export async function importMemberDiff(
+  clanId: number,
+  diff: {
+    joined: Partial<ClanMemberData>[];
+    left: { nick: string; leave_reason: string; left_date?: string }[];
+  }
+): Promise<{ success: boolean; joined_count: number; left_count: number; errors: string[]; message: string }> {
+  const response = await apiClient.post(`/api/clan/${clanId}/members/diff-import`, diff);
+  return response.data;
+}
+
+export async function importHistoryEvents(
+  clanId: number,
+  events: { nick: string; event_type: string; event_date: string; leave_reason?: string }[]
+): Promise<{ success: boolean; processed_count: number; skipped_count: number; errors: string[]; message: string }> {
+  const response = await apiClient.post(`/api/clan/${clanId}/members/history-import`, { events });
   return response.data;
 }

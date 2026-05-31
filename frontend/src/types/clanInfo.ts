@@ -80,3 +80,23 @@ export interface TreasuryOperationData {
   compensation_flag: boolean;
   compensation_comment: string;
 }
+
+export interface MembershipEvent {
+  id: number;
+  nick: string;
+  event_type: 'joined' | 'left';
+  event_date: string;
+  source: 'diff' | 'history';
+  leave_reason?: string;
+  synced: boolean;
+  created_at: string;
+}
+
+export interface MemberDiffResult {
+  joined: Partial<ClanMemberData>[];
+  left: {
+    nick: string;
+    last_seen_level?: number;
+    last_seen_role?: string;
+  }[];
+}

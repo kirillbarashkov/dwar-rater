@@ -431,3 +431,261 @@ def fetch_all_pages_until_date(session, cutoff_date_str='01.01.2025', max_pages=
         'stopped_reason': stopped_reason,
         'error': None,
     }
+
+
+# =============================================================================
+# Clan membership parsing — management page and history
+# =============================================================================
+
+def fetch_clan_management_page(session, clan_id):
+    """Fetch clan management page with current member list."""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
+    }
+    url = f'https://w1.dwar.ru/clan_management.php?f=1&mode=management'
+    data_logger.info(f'[PARSER] Fetching management page, url={url}')
+    resp = session.get(url, headers=headers, timeout=15)
+    resp.encoding = 'utf-8'
+    data_logger.info(f'[PARSER] Management response: status={resp.status_code}, length={len(resp.text)}')
+    return resp.text
+
+
+def parse_clan_members_from_management(html, clan_id):
+    """Parse current clan members from management page HTML.
+
+    Returns: list[dict] with keys: nick, level, game_rank, profession,
+             profession_level, clan_role, join_date, trial_until
+    """
+    members = []
+    current_member = {}
+    lines = html.split('\n')
+
+    for i, line in enumerate(lines):
+        line = line.strip()
+        if not line:
+            continue
+
+        nick_match = re.search(
+            r'(?:Герой|Властелин боя|Вершитель|Магистр войны|Повелитель|Полководец|Легендарный завоеватель|Военный эксперт|Мастер войны|Элитный воин|Гладиатор|Чемпион|Избранник богов|Триумфатор|Высший магистр)\s+([^\[]+)\[(\d+)\](?:([^<\n]*))?',
+            line
+        )
+
+        if nick_match:
+            if current_member.get('nick'):
+                members.append(current_member)
+            current_member = {
+                'clan_id': clan_id,
+                'nick': nick_match.group(1).strip(),
+                'level': int(nick_match.group(2)),
+                'game_rank': '',
+                'profession': '',
+                'profession_level': 0,
+                'clan_role': '',
+                'join_date': '',
+                'trial_until': '',
+            }
+            prof_part = nick_match.group(3) or ''
+            prof_match = re.search(r'([А-Яа-яЁё]+):\s*(\d+)', prof_part)
+            if prof_match:
+                current_member['profession'] = prof_match.group(1).strip()
+                current_member['profession_level'] = int(prof_match.group(2))
+
+            rank_match = re.search(
+                r'(Герой|Властелин боя|Вершитель|Магистр войны|Повелитель|Полководец|Легендарный завоеватель|Военный эксперт|Мастер войны|Элитный воин|Гладиатор|Чемпион|Избранник богов|Триумфатор|Высший магистр)',
+                line
+            )
+            if rank_match:
+                current_member['game_rank'] = rank_match.group(1)
+
+            continue
+
+        role_match = re.search(
+            r'(Глава Ордена|Зам\. Главы|Совесть|Рыцарь Ордена|Леди Ордена|ГардеМаринкА|Фея на метле|Лентяй|Пельмешка|Dead\'ok|Воевода|9-ть жЫзней\)|УлитЫчка\)|РудольФ|Сосиска)',
+            line
+        )
+        if role_match and current_member.get('nick'):
+            current_member['clan_role'] = role_match.group(1)
+            continue
+
+        if current_member.get('nick'):
+            join_match = re.search(r'принят в клан\s+(\d{2}\.\d{2}\.\d{4})', line)
+            if join_match:
+                current_member['join_date'] = join_match.group(1)
+                continue
+
+            trial_match = re.search(r'Исп\. срок до\s+(\d{2}\.\d{2}\.\d{4})', line)
+            if trial_match:
+                current_member['trial_until'] = trial_match.group(1)
+                continue
+
+    if current_member.get('nick'):
+        members.append(current_member)
+
+    data_logger.info(f'[PARSER] Parsed {len(members)} members from management page')
+    return members
+
+
+def fetch_clan_history_page(session, clan_id, page=0):
+    """Fetch clan history page (join/leave events)."""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
+    }
+    url = f'https://w1.dwar.ru/clan_info.php?clan_id={clan_id}&mode=history&page={page}'
+    data_logger.info(f'[PARSER] Fetching history page={page}, url={url}')
+    resp = session.get(url, headers=headers, timeout=15)
+    resp.encoding = 'utf-8'
+    data_logger.info(f'[PARSER] History response: status={resp.status_code}, length={len(resp.text)}')
+    return resp.text
+
+
+def parse_clan_history_events(html, clan_id):
+    """Parse join/leave events from clan history page.
+
+    Returns: list[dict] with keys: nick, event_type, event_date, leave_reason
+    """
+    events = []
+
+    rows = re.findall(r'<tr(?:\s+class="[^"]*")?\s*>(.*?)</tr>', html, re.DOTALL)
+    data_logger.info(f'[PARSER] Found {len(rows)} rows in history page')
+
+    for row_html in rows:
+        cells = re.findall(r'<td[^>]*>(.*?)</td>', row_html, re.DOTALL)
+        if len(cells) < 2:
+            continue
+
+        row_text = ' '.join(clean_html(cell) for cell in cells)
+
+        nick_match = re.search(r'userToTag\(\'([^\']+)\'\)', row_html)
+        if not nick_match:
+            nick_match = re.search(r'>\s*([A-Za-zА-Яа-яЁё0-9_\-\'\.]+?)\s*\[\d+\]\s*<', row_html)
+        if not nick_match:
+            nick_match = re.search(r'(?:принят|покинул|исключен)[\s\w]*?([A-Za-zА-Яа-яЁё0-9_\-\'\.]+)', row_text)
+        if not nick_match:
+            continue
+
+        nick = nick_match.group(1).strip()
+        if not nick:
+            continue
+
+        date_match = re.search(r'(\d{2}\.\d{2}\.\d{4})', row_text)
+        if not date_match:
+            continue
+        event_date = date_match.group(1)
+
+        if 'принят в клан' in row_text or 'принят' in row_text:
+            event_type = 'joined'
+            leave_reason = ''
+        elif 'исключен' in row_text or 'исключён' in row_text:
+            event_type = 'left'
+            leave_reason = 'Исключен'
+        elif 'покинул' in row_text:
+            event_type = 'left'
+            leave_reason = 'Вышел сам'
+        else:
+            continue
+
+        events.append({
+            'nick': nick,
+            'event_type': event_type,
+            'event_date': event_date,
+            'leave_reason': leave_reason,
+        })
+
+    data_logger.info(f'[PARSER] Parsed {len(events)} events from history page')
+    return events
+
+
+def fetch_all_history_pages_streaming(session, clan_id, cutoff_date_str='01.01.2025', max_pages=100):
+    """
+    Generator that yields SSE-compatible progress events while fetching history pages.
+
+    Yields tuples: (event_type, data_dict)
+    event_type: 'counting' | 'progress' | 'done' | 'error'
+    """
+    import time
+
+    cutoff_comparable = _date_str_to_comparable(cutoff_date_str)
+    all_events = []
+    start_time = time.time()
+    total_pages = None
+
+    try:
+        html = fetch_clan_history_page(session, clan_id, page=0)
+    except Exception as e:
+        yield ('error', {'reason': 'fetch_error', 'message': f'Ошибка загрузки: {str(e)}'})
+        return
+
+    if is_login_redirect(html):
+        yield ('error', {'reason': 'session_expired', 'message': 'Сессия истекла, обновите cookies'})
+        return
+
+    total_pages = parse_total_pages(html)
+    if total_pages is None or total_pages > max_pages:
+        total_pages = max_pages
+
+    yield ('counting', {'total_pages': total_pages, 'cutoff_date': cutoff_date_str})
+
+    page_events = parse_clan_history_events(html, clan_id)
+    all_events.extend(page_events)
+
+    yield ('progress', {
+        'page': 0,
+        'total_pages': total_pages,
+        'events_on_page': len(page_events),
+        'total_events': len(all_events),
+        'elapsed': round(time.time() - start_time, 1),
+    })
+
+    for page in range(1, total_pages):
+        try:
+            html = fetch_clan_history_page(session, clan_id, page=page)
+        except Exception as e:
+            yield ('error', {'reason': 'fetch_error', 'message': f'Ошибка на странице {page}: {str(e)}'})
+            return
+
+        if is_login_redirect(html):
+            yield ('error', {'reason': 'session_expired', 'message': 'Сессия истекла, обновите cookies'})
+            return
+
+        page_events = parse_clan_history_events(html, clan_id)
+
+        earliest_on_page = min(
+            (_date_str_to_comparable(ev['event_date']) for ev in page_events),
+            default=''
+        )
+        if earliest_on_page and earliest_on_page < cutoff_comparable:
+            filtered = [
+                ev for ev in page_events
+                if _date_str_to_comparable(ev['event_date']) >= cutoff_comparable
+            ]
+            all_events.extend(filtered)
+            yield ('progress', {
+                'page': page,
+                'total_pages': total_pages,
+                'events_on_page': len(filtered),
+                'total_events': len(all_events),
+                'elapsed': round(time.time() - start_time, 1),
+                'cutoff_reached': True,
+            })
+            break
+
+        all_events.extend(page_events)
+        yield ('progress', {
+            'page': page,
+            'total_pages': total_pages,
+            'events_on_page': len(page_events),
+            'total_events': len(all_events),
+            'elapsed': round(time.time() - start_time, 1),
+        })
+
+    elapsed = round(time.time() - start_time, 1)
+    yield ('done', {
+        'total_events': len(all_events),
+        'pages_fetched': min(total_pages, max_pages),
+        'elapsed': elapsed,
+        'events': all_events,
+    })

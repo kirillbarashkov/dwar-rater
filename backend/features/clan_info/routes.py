@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 import requests
-from shared.services.clan_parser import fetch_clan_page, parse_clan_info, fetch_clan_treasury_report, parse_clan_treasury_operations, fetch_all_pages_until_date, fetch_all_pages_streaming, is_login_redirect
+from shared.services.clan_parser import fetch_clan_page, parse_clan_info, fetch_clan_treasury_report, parse_clan_treasury_operations, fetch_all_pages_until_date, fetch_all_pages_streaming, is_login_redirect, fetch_clan_management_page, parse_clan_members_from_management, fetch_clan_history_page, parse_clan_history_events, fetch_all_history_pages_streaming
 from shared.services.data_logger import data_logger
 from shared.models import db
-from shared.models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation, ClanCookie
+from shared.models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation, ClanCookie, ClanMembershipEvent
 from shared.rbac import require_permission, feature, Permission as PermDef
 
 
@@ -1156,3 +1156,309 @@ def auto_fetch_treasury_stream(clan_id):
             'Connection': 'keep-alive',
         }
     )
+
+
+# =============================================================================
+# Membership import endpoints
+# =============================================================================
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/members/auto-fetch-stream', methods=['GET'])
+def auto_fetch_members_stream(clan_id):
+    from flask import Response, request
+    from urllib.parse import unquote
+    import json
+    from shared.rbac.models import SessionToken
+    from shared.models.user import User
+    from datetime import datetime, timezone
+
+    token = request.args.get('token') or request.headers.get('Authorization', '').replace('Bearer ', '')
+    current_user = None
+    if token:
+        session_token = SessionToken.query.filter_by(token=token).first()
+        if session_token:
+            expires = session_token.expires_at
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if expires > datetime.now(timezone.utc):
+                current_user = User.query.get(session_token.user_id)
+
+    if not current_user or current_user.role != 'admin':
+        def error_gen():
+            yield 'data: ' + json.dumps({'type': 'error', 'reason': 'forbidden', 'message': 'Только администратор'}) + '\n\n'
+        return Response(error_gen(), mimetype='text/event-stream')
+
+    cookie = ClanCookie.query.filter_by(clan_id=clan_id).first()
+    if not cookie or not cookie.is_valid:
+        def error_gen():
+            yield 'data: ' + json.dumps({'type': 'error', 'reason': 'no_valid_cookies', 'message': 'Нет валидных cookies'}) + '\n\n'
+        return Response(error_gen(), mimetype='text/event-stream')
+
+    data_logger.info(f'[MEMBERSHIP] SSE auto-fetch starting for clan {clan_id}')
+
+    def generate():
+        session = requests.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        })
+        for part in cookie.cookie_string.split(';'):
+            part = part.strip()
+            if '=' in part:
+                key, value = part.split('=', 1)
+                session.cookies.set(key.strip(), unquote(value.strip()))
+
+        # Phase 1: Diff
+        try:
+            html = fetch_clan_management_page(session, clan_id)
+        except Exception as e:
+            yield 'data: ' + json.dumps({'type': 'error', 'reason': 'fetch_error', 'message': f'Ошибка: {str(e)}'}) + '\n\n'
+            return
+
+        if is_login_redirect(html):
+            yield 'data: ' + json.dumps({'type': 'error', 'reason': 'session_expired', 'message': 'Сессия истекла, обновите cookies'}) + '\n\n'
+            return
+
+        fetched_members = parse_clan_members_from_management(html, clan_id)
+        fetched_nicks = {m['nick'].lower() for m in fetched_members}
+
+        db_members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).all()
+        db_nicks = {m.nick.lower() for m in db_members}
+
+        joined = [m for m in fetched_members if m['nick'].lower() not in db_nicks]
+        left = [m for m in db_members if m.nick.lower() not in fetched_nicks]
+
+        yield 'data: ' + json.dumps({
+            'type': 'diff',
+            'joined': joined,
+            'left': [{'nick': m.nick, 'last_seen_level': m.level, 'last_seen_role': m.clan_role} for m in left],
+        }, ensure_ascii=False) + '\n\n'
+
+        # Phase 2: History
+        for event_type, data in fetch_all_history_pages_streaming(session, clan_id, cutoff_date_str='01.01.2025', max_pages=100):
+            payload = {'type': event_type}
+            payload.update(data)
+            yield f'data: {json.dumps(payload, ensure_ascii=False)}\n\n'
+
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive',
+        }
+    )
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/members/diff-import', methods=['POST'])
+@require_permission('clan_info', 'admin')
+def import_member_diff(clan_id):
+    from flask import g
+
+    if not g.current_user or g.current_user.role != 'admin':
+        return jsonify({'error': 'Только администратор может импортировать изменения'}), 403
+
+    data = request.json
+    joined_list = data.get('joined', [])
+    left_list = data.get('left', [])
+
+    data_logger.info(f'[MEMBERSHIP] Diff import for clan {clan_id}: joined={len(joined_list)}, left={len(left_list)}')
+
+    joined_count = 0
+    left_count = 0
+    errors = []
+    today = datetime.now().strftime('%d.%m.%Y')
+
+    for member_data in joined_list:
+        try:
+            nick = member_data.get('nick', '').strip()
+            if not nick:
+                errors.append('Пустой ник в joined')
+                continue
+
+            existing = ClanMemberInfo.query.filter_by(clan_id=clan_id, nick=nick, is_deleted=False).first()
+            if existing:
+                data_logger.debug(f'[MEMBERSHIP] Joined member {nick} already exists, skipping')
+                continue
+
+            member = ClanMemberInfo(
+                clan_id=clan_id,
+                nick=nick,
+                icon=member_data.get('icon', ''),
+                game_rank=member_data.get('game_rank', ''),
+                level=member_data.get('level', 1),
+                profession=member_data.get('profession', ''),
+                profession_level=member_data.get('profession_level', 0),
+                clan_role=member_data.get('clan_role', 'Рыцарь Ордена'),
+                join_date=member_data.get('join_date', today),
+                trial_until=member_data.get('trial_until', ''),
+            )
+            db.session.add(member)
+
+            event = ClanMembershipEvent(
+                clan_id=clan_id,
+                nick=nick,
+                event_type='joined',
+                event_date=member_data.get('join_date', today),
+                source='diff',
+            )
+            db.session.add(event)
+            joined_count += 1
+        except Exception as e:
+            errors.append(f'Ошибка добавления {member_data.get("nick", "?")}: {str(e)}')
+
+    for left_data in left_list:
+        try:
+            nick = left_data.get('nick', '').strip()
+            if not nick:
+                errors.append('Пустой ник в left')
+                continue
+
+            member = ClanMemberInfo.query.filter_by(clan_id=clan_id, nick=nick, is_deleted=False).first()
+            if not member:
+                data_logger.debug(f'[MEMBERSHIP] Left member {nick} not found in DB, skipping')
+                continue
+
+            member.is_deleted = True
+            member.left_date = left_data.get('left_date', today)
+            member.leave_reason = left_data.get('leave_reason', '')
+
+            event = ClanMembershipEvent(
+                clan_id=clan_id,
+                nick=nick,
+                event_type='left',
+                event_date=left_data.get('left_date', today),
+                source='diff',
+                leave_reason=left_data.get('leave_reason', ''),
+            )
+            db.session.add(event)
+            left_count += 1
+        except Exception as e:
+            errors.append(f'Ошибка удаления {left_data.get("nick", "?")}: {str(e)}')
+
+    db.session.commit()
+
+    data_logger.info(f'[MEMBERSHIP] Diff import completed: joined={joined_count}, left={left_count}, errors={len(errors)}')
+
+    return jsonify({
+        'success': True,
+        'joined_count': joined_count,
+        'left_count': left_count,
+        'errors': errors,
+        'message': f'Обработано {joined_count + left_count} изменений: {joined_count} вступил, {left_count} вышел',
+    })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/members/history-import', methods=['POST'])
+@require_permission('clan_info', 'admin')
+def import_history_events(clan_id):
+    from flask import g
+
+    if not g.current_user or g.current_user.role != 'admin':
+        return jsonify({'error': 'Только администратор может импортировать историю'}), 403
+
+    data = request.json
+    events_list = data.get('events', [])
+
+    data_logger.info(f'[MEMBERSHIP] History import for clan {clan_id}: {len(events_list)} events')
+
+    processed = 0
+    skipped = 0
+    errors = []
+
+    for event_data in events_list:
+        try:
+            nick = event_data.get('nick', '').strip()
+            event_type = event_data.get('event_type', '')
+            event_date = event_data.get('event_date', '')
+
+            if not nick or not event_type or not event_date:
+                errors.append(f'Пропущено: nick={nick}, type={event_type}, date={event_date}')
+                skipped += 1
+                continue
+
+            existing_event = ClanMembershipEvent.query.filter_by(
+                clan_id=clan_id,
+                nick=nick,
+                event_type=event_type,
+                event_date=event_date,
+            ).first()
+            if existing_event:
+                skipped += 1
+                continue
+
+            event = ClanMembershipEvent(
+                clan_id=clan_id,
+                nick=nick,
+                event_type=event_type,
+                event_date=event_date,
+                source='history',
+                leave_reason=event_data.get('leave_reason', ''),
+            )
+            db.session.add(event)
+
+            if event_type == 'joined':
+                member = ClanMemberInfo.query.filter_by(clan_id=clan_id, nick=nick).first()
+                if member:
+                    if not member.join_date:
+                        member.join_date = event_date
+                    member.is_deleted = False
+                    member.left_date = ''
+                    member.leave_reason = ''
+                else:
+                    member = ClanMemberInfo(
+                        clan_id=clan_id,
+                        nick=nick,
+                        level=event_data.get('level', 1),
+                        clan_role='Рыцарь Ордена',
+                        join_date=event_date,
+                    )
+                    db.session.add(member)
+
+            elif event_type == 'left':
+                member = ClanMemberInfo.query.filter_by(clan_id=clan_id, nick=nick, is_deleted=False).first()
+                if member:
+                    member.is_deleted = True
+                    member.left_date = event_date
+                    member.leave_reason = event_data.get('leave_reason', '')
+
+            processed += 1
+        except Exception as e:
+            errors.append(f'Ошибка обработки {event_data.get("nick", "?")}: {str(e)}')
+
+    db.session.commit()
+
+    data_logger.info(f'[MEMBERSHIP] History import completed: processed={processed}, skipped={skipped}, errors={len(errors)}')
+
+    return jsonify({
+        'success': True,
+        'processed_count': processed,
+        'skipped_count': skipped,
+        'errors': errors,
+        'message': f'Обработано {processed} событий из истории',
+    })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/members/events', methods=['GET'])
+@require_permission('clan_info', 'read')
+def get_membership_events(clan_id):
+    source = request.args.get('source')
+    event_type = request.args.get('event_type')
+
+    query = ClanMembershipEvent.query.filter_by(clan_id=clan_id)
+    if source:
+        query = query.filter_by(source=source)
+    if event_type:
+        query = query.filter_by(event_type=event_type)
+
+    events = query.order_by(ClanMembershipEvent.id.desc()).all()
+
+    return jsonify([{
+        'id': e.id,
+        'nick': e.nick,
+        'event_type': e.event_type,
+        'event_date': e.event_date,
+        'source': e.source,
+        'leave_reason': e.leave_reason,
+        'synced': e.synced,
+        'created_at': e.created_at.isoformat() if e.created_at else '',
+    } for e in events])
