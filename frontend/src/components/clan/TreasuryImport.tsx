@@ -807,31 +807,6 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
             </>
           )}
 
-      <section className="treasury-import-section">
-          <h3 className="treasury-import-section-title">HTML данные</h3>
-          <div className="treasury-import-instructions">
-            <ol>
-              <li>
-                Откройте{' '}
-                <a href={TREASURY_CLAN_REPORT_URL} target="_blank" rel="noopener noreferrer">
-                  Операции казны
-                </a>{' '}
-                в браузере
-              </li>
-              <li>Нажмите Ctrl+U для просмотра кода страницы</li>
-              <li>Ctrl+A → Ctrl+C для копирования всего кода</li>
-              <li>Вставьте в поле ниже (Ctrl+V)</li>
-            </ol>
-          </div>
-          <textarea
-            className="treasury-import-textarea"
-            value={pastedHtml}
-            onChange={(e) => setPastedHtml(e.target.value)}
-            placeholder="Вставьте HTML код страницы..."
-            rows={12}
-          />
-        </section>
-
       {(allParsedRows.length > 0 || pastedHtml.trim()) && (
         <>
           <div className="treasury-import-summary-row">
@@ -870,7 +845,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                 Сбросить
               </Button>
               {(allParsedRows.length > 0 || pastedHtml.trim()) && (
-                <Button variant="primary" onClick={handleHtmlImport} disabled={isImporting}>
+                <Button variant="primary" onClick={autoFetchOps.length > 0 ? handleAutoImport : handleHtmlImport} disabled={isImporting}>
                   {isImporting ? 'Запись в БД...' : `Импортировать ${allParsedRows.length > 0 ? allParsedRows.length : 'HTML'}`}
                 </Button>
               )}
