@@ -273,6 +273,8 @@ def parse_total_pages(html):
 def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=500):
     """
     Generator that yields SSE-compatible progress events while fetching pages.
+    Downloads pages starting from newest (page=0) and stops when all operations
+    on a page are older than cutoff_date_str.
 
     Yields tuples: (event_type, data_dict)
     event_type: 'counting' | 'progress' | 'done' | 'error'
@@ -301,19 +303,34 @@ def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=5
 
     yield ('counting', {'total_pages': total_pages, 'cutoff_date': cutoff_date_str})
 
-    # Step 2: Parse page 0 operations
+    # Step 2: Parse page 0 operations, filter by cutoff
     page_ops = parse_clan_treasury_operations(html)
-    all_operations.extend(page_ops)
+    filtered_ops = [op for op in page_ops if _parse_date_to_comparable(op['date']) >= cutoff_comparable]
+    all_operations.extend(filtered_ops)
 
     yield ('progress', {
         'page': 0,
         'total_pages': total_pages,
-        'ops_on_page': len(page_ops),
+        'ops_on_page': len(filtered_ops),
         'total_ops': len(all_operations),
         'elapsed': round(time.time() - start_time, 1),
     })
 
-    # Step 3: Fetch remaining pages
+    # Check if page 0 already has all operations older than cutoff
+    earliest_on_page_0 = min((_parse_date_to_comparable(op['date']) for op in page_ops), default='')
+    if earliest_on_page_0 and earliest_on_page_0 < cutoff_comparable and not filtered_ops:
+        data_logger.info(f'[PARSER] Page 0 already older than cutoff {cutoff_date_str}, stopping')
+        elapsed = round(time.time() - start_time, 1)
+        yield ('done', {
+            'total_ops': len(all_operations),
+            'pages_fetched': 1,
+            'elapsed': elapsed,
+            'operations': all_operations,
+        })
+        return
+
+    # Step 3: Fetch remaining pages, stop when all ops are older than cutoff
+    pages_fetched = 1
     for page in range(1, total_pages):
         try:
             html, session = fetch_clan_treasury_report(session=session, page=page)
@@ -326,11 +343,14 @@ def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=5
             return
 
         page_ops = parse_clan_treasury_operations(html)
+        if not page_ops:
+            break
 
         earliest_on_page = min((_parse_date_to_comparable(op['date']) for op in page_ops), default='')
         if earliest_on_page and earliest_on_page < cutoff_comparable:
             filtered = [op for op in page_ops if _parse_date_to_comparable(op['date']) >= cutoff_comparable]
             all_operations.extend(filtered)
+            pages_fetched += 1
             yield ('progress', {
                 'page': page,
                 'total_pages': total_pages,
@@ -342,6 +362,7 @@ def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=5
             break
 
         all_operations.extend(page_ops)
+        pages_fetched += 1
         yield ('progress', {
             'page': page,
             'total_pages': total_pages,
@@ -353,7 +374,7 @@ def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=5
     elapsed = round(time.time() - start_time, 1)
     yield ('done', {
         'total_ops': len(all_operations),
-        'pages_fetched': min(total_pages, max_pages),
+        'pages_fetched': pages_fetched,
         'elapsed': elapsed,
         'operations': all_operations,
     })

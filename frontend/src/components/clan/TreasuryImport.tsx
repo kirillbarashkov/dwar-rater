@@ -738,7 +738,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
               <section className="treasury-import-section treasury-auto-fetch-section">
                 <h3 className="treasury-import-section-title">Сбор данных</h3>
                 <div className="treasury-auto-fetch-info">
-                  <p>Данные будут собраны {selectedStartDate ? `с <strong>${selectedStartDate}</strong>` : 'с <strong>01.01.2025</strong>'} по текущую дату.</p>
+                  <p>Данные будут собраны {selectedStartDate ? <>с <strong>{selectedStartDate}</strong></> : <>с <strong>01.01.2025</strong></>} по текущую дату.</p>
                 </div>
                 {autoFetchOps.length === 0 && !isAutoFetching && fetchProgress.phase !== 'error' && (
                   <Button variant="primary" onClick={handleAutoFetch} disabled={!selectedStartDate}>
