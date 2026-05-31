@@ -384,7 +384,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     };
 
     setEventSource(es);
-  }, [clanId, refreshCookieStatus]);
+  }, [clanId, refreshCookieStatus, selectedStartDate]);
 
   const handleAutoImport = async () => {
     if (autoFetchOps.length === 0) return;
