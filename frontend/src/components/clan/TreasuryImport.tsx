@@ -1317,3 +1317,180 @@ function ExportTab({ clanId }: { clanId: number }) {
     </div>
   );
 }
+function CookiesTab({ clanId }: { clanId: number }) {
+  const [cookieStatus, setCookieStatus] = useState<{ has_cookies: boolean; is_valid: boolean; updated_at?: string | null }>({ has_cookies: false, is_valid: false });
+  const [showCookieEditor, setShowCookieEditor] = useState(false);
+  const [cookieValues, setCookieValues] = useState<Record<string, string>>({});
+  const [isSavingCookies, setIsSavingCookies] = useState(false);
+  const [bulkCookieInput, setBulkCookieInput] = useState('');
+  const [showBulkInput, setShowBulkInput] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    getTreasuryCookiesStatus(clanId).then(setCookieStatus).catch(() => setCookieStatus({ has_cookies: false, is_valid: false }));
+  }, [clanId]);
+
+  const refreshCookieStatus = useCallback(() => {
+    getTreasuryCookiesStatus(clanId).then(setCookieStatus).catch(() => setCookieStatus({ has_cookies: false, is_valid: false }));
+  }, [clanId]);
+
+  const openCookieEditor = () => {
+    setShowCookieEditor(true);
+    setShowBulkInput(false);
+    setCookieValues({});
+    setBulkCookieInput('');
+  };
+
+  const handleParseBulkCookies = () => {
+    const parsed: Record<string, string> = {};
+    for (const field of COOKIE_FIELDS) {
+      parsed[field.key] = parseCookieValue(bulkCookieInput, field.key);
+    }
+    setCookieValues(parsed);
+    setShowBulkInput(false);
+  };
+
+  const handleSaveCookies = async () => {
+    const cookieString = buildCookieString(cookieValues);
+    if (!cookieString.trim()) {
+      setMessage({ type: 'error', text: 'Заполните все поля cookies' });
+      return;
+    }
+
+    const missingRequired = COOKIE_FIELDS.filter((f) => f.required && !cookieValues[f.key]?.trim());
+    if (missingRequired.length > 0) {
+      setMessage({ type: 'error', text: `Не заполнены поля: ${missingRequired.map((f) => f.key).join(', ')}` });
+      return;
+    }
+
+    setIsSavingCookies(true);
+    setMessage(null);
+    try {
+      const result = await saveTreasuryCookies(clanId, cookieString);
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message });
+        setShowCookieEditor(false);
+        setCookieValues({});
+        setBulkCookieInput('');
+        refreshCookieStatus();
+      } else {
+        setMessage({ type: 'error', text: result.message || result.error || 'Ошибка сохранения cookies' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: `Ошибка: ${err instanceof Error ? err.message : String(err)}` });
+    } finally {
+      setIsSavingCookies(false);
+    }
+  };
+
+  const formatCookieDate = (iso?: string | null) => {
+    if (!iso) return '?';
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="treasury-import-tab">
+      {message && (
+        <div className={`treasury-import-message treasury-import-message-${message.type}`}>
+          {message.text}
+        </div>
+      )}
+
+      <section className="treasury-import-section treasury-cookies-section">
+        <h3 className="treasury-import-section-title">Авторизация на dwar.ru</h3>
+        <div className="treasury-cookies-status">
+          {cookieStatus.has_cookies ? (
+            <>
+              <span className={`cookie-status-badge ${cookieStatus.is_valid ? 'valid' : 'invalid'}`}>
+                {cookieStatus.is_valid ? 'Cookies активны' : 'Cookies недействительны'}
+              </span>
+              <span className="cookie-status-date">
+                Обновлены: {formatCookieDate(cookieStatus.updated_at)}
+              </span>
+              <Button variant="secondary" size="small" onClick={openCookieEditor}>
+                Обновить cookies
+              </Button>
+            </>
+          ) : (
+            <>
+              <span className="cookie-status-badge none">Cookies не настроены</span>
+              <Button variant="secondary" size="small" onClick={openCookieEditor}>
+                Настроить cookies
+              </Button>
+            </>
+          )}
+        </div>
+
+        {showCookieEditor && (
+          <div className="treasury-cookies-editor">
+            <div className="treasury-cookies-instructions">
+              <p>Как получить cookies:</p>
+              <ol>
+                <li>Откройте <a href={TREASURY_CLAN_REPORT_URL} target="_blank" rel="noopener noreferrer">Операции казны</a> в браузере</li>
+                <li>F12 → Application/Storage → Cookies → w1.dwar.ru</li>
+                <li>Скопируйте значения нужных cookies в поля ниже</li>
+              </ol>
+              <p className="cookie-note">
+                <strong>Все поля обязательны</strong> — без любого из них авторизация не работает.
+                Остальные cookies (Google Analytics <code>__utm*</code>, Яндекс.Метрика <code>_ym*</code>, <code>cid</code>, <code>flash_version</code>) — не нужны.
+              </p>
+            </div>
+
+            <div className="cookie-bulk-toggle">
+              <button
+                type="button"
+                className="cookie-bulk-btn"
+                onClick={() => setShowBulkInput(!showBulkInput)}
+              >
+                {showBulkInput ? 'Показать отдельные поля' : 'Вставить все cookies одной строкой'}
+              </button>
+            </div>
+
+            {showBulkInput ? (
+              <div className="cookie-bulk-area">
+                <textarea
+                  className="treasury-import-textarea cookie-bulk-textarea"
+                  value={bulkCookieInput}
+                  onChange={(e) => setBulkCookieInput(e.target.value)}
+                  placeholder="sess_sid=...; sess_uid=...; sess_crc=...; mycom=...; ..."
+                  rows={4}
+                />
+                <Button variant="secondary" size="small" onClick={handleParseBulkCookies} disabled={!bulkCookieInput.trim()}>
+                  Распознать
+                </Button>
+              </div>
+            ) : (
+              <div className="cookie-fields-grid">
+                {COOKIE_FIELDS.map((field) => (
+                  <CookieField
+                    key={field.key}
+                    field={field}
+                    value={cookieValues[field.key] || ''}
+                    onChange={(val) => setCookieValues((prev) => ({ ...prev, [field.key]: val }))}
+                    validationStatus={
+                      cookieValues[field.key]?.trim()
+                        ? 'ok'
+                        : field.required
+                          ? 'missing'
+                          : 'empty'
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="treasury-cookies-actions">
+              <Button variant="secondary" size="small" onClick={() => { setShowCookieEditor(false); setBulkCookieInput(''); }}>
+                Отмена
+              </Button>
+              <Button variant="primary" size="small" onClick={handleSaveCookies} disabled={isSavingCookies}>
+                {isSavingCookies ? 'Проверка...' : 'Сохранить и проверить'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
