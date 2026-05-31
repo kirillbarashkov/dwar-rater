@@ -964,3 +964,40 @@
 .coverage-empty p {
   margin: 0 0 8px 0;
 }
+
+.treasury-import-subtabs {
+  margin-top: 16px;
+}
+
+.treasury-import-subtabs-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.treasury-import-subtab-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.treasury-import-subtab-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.treasury-import-subtab-btn.active {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
