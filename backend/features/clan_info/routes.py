@@ -1285,12 +1285,27 @@ def auto_fetch_members_stream(clan_id):
         fetched_members = parse_clan_members_from_management(html, clan_id)
         fetched_nicks = {m['nick'].lower() for m in fetched_members}
 
-        joined = [m for m in fetched_members if m['nick'].lower() not in db_nicks]
+        # Build a lookup of existing members for join_date check
+        db_member_map = {m.nick.lower(): m for m in db_members}
+
+        joined = []
+        needs_update = []
+        for m in fetched_members:
+            nick_lower = m['nick'].lower()
+            if nick_lower not in db_nicks:
+                joined.append(m)
+            else:
+                # Existing member — check if join_date is missing
+                db_m = db_member_map.get(nick_lower)
+                if db_m and not db_m.join_date and m.get('join_date'):
+                    needs_update.append(m)
+
         left = [m for m in db_members if m.nick.lower() not in fetched_nicks]
 
         yield 'data: ' + json.dumps({
             'type': 'diff',
             'joined': joined,
+            'needs_update': needs_update,
             'left': [{'nick': m.nick, 'last_seen_level': m.level, 'last_seen_role': m.clan_role} for m in left],
         }, ensure_ascii=False) + '\n\n'
 
@@ -1342,7 +1357,12 @@ def import_member_diff(clan_id):
 
             existing = ClanMemberInfo.query.filter_by(clan_id=clan_id, nick=nick, is_deleted=False).first()
             if existing:
-                data_logger.debug(f'[MEMBERSHIP] Joined member {nick} already exists, skipping')
+                # Update join_date if missing
+                if not existing.join_date and member_data.get('join_date'):
+                    existing.join_date = member_data['join_date']
+                if not existing.trial_until and member_data.get('trial_until'):
+                    existing.trial_until = member_data['trial_until']
+                data_logger.debug(f'[MEMBERSHIP] Joined member {nick} already exists, updated join_date={existing.join_date}')
                 continue
 
             member = ClanMemberInfo(

@@ -220,13 +220,16 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
       const totalPaid = data.onTime + data.delayed;
 
       let status: PlayerTaxSummary['status'] = 'not_paid';
-      if (data.flag) {
+      if (!isPaymentDue(nickLower)) {
+        status = 'future_member';
+      } else if (data.flag) {
         status = 'compensated';
       } else if (totalPaid >= normAmount) {
         status = data.delayed > 0 ? 'paid_delayed' : 'paid';
       }
 
       const isOver = totalPaid > normAmount || data.compensation >= normAmount;
+      const paymentStart = getPaymentStartMonth(nickLower);
 
       playerSummaries.push({
         nick: data.originalNick,
@@ -240,6 +243,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
         status,
         isOver,
         operationId: data.opId || undefined,
+        paymentStartMonth: paymentStart,
       });
       addedNicks.add(nickLower);
     }

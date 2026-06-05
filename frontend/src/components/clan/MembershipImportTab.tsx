@@ -42,6 +42,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
   const [isImporting, setIsImporting] = useState(false);
 
   const [joinedMembers, setJoinedMembers] = useState<FetchedMember[]>([]);
+  const [needsUpdateMembers, setNeedsUpdateMembers] = useState<FetchedMember[]>([]);
   const [leftMembers, setLeftMembers] = useState<LeftMemberInfo[]>([]);
   const [historyEvents, setHistoryEvents] = useState<HistoryEvent[]>([]);
   const [leaveReasons, setLeaveReasons] = useState<Record<string, string>>({});
@@ -103,6 +104,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
         switch (data.type) {
           case 'diff':
             setJoinedMembers(data.joined || []);
+            setNeedsUpdateMembers(data.needs_update || []);
             setLeftMembers(data.left || []);
             setFetchProgress((prev) => ({
               ...prev,
@@ -192,7 +194,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
       }));
 
       const diffResult = await importMemberDiff(clanId, {
-        joined: joinedMembers,
+        joined: [...joinedMembers, ...needsUpdateMembers],
         left: leftWithReasons,
       });
 
@@ -207,6 +209,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
       });
 
       setJoinedMembers([]);
+      setNeedsUpdateMembers([]);
       setLeftMembers([]);
       setHistoryEvents([]);
       setLeaveReasons({});
@@ -221,6 +224,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
 
   const handleClear = () => {
     setJoinedMembers([]);
+    setNeedsUpdateMembers([]);
     setLeftMembers([]);
     setHistoryEvents([]);
     setLeaveReasons({});
@@ -234,7 +238,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
     return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
-  const hasResults = joinedMembers.length > 0 || leftMembers.length > 0 || historyEvents.length > 0;
+  const hasResults = joinedMembers.length > 0 || needsUpdateMembers.length > 0 || leftMembers.length > 0 || historyEvents.length > 0;
 
   return (
     <div className="membership-import-tab">
@@ -329,6 +333,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
                             <th>Уровень</th>
                             <th>Ранг</th>
                             <th>Роль</th>
+                            <th>Дата вступления</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -338,6 +343,35 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
                               <td>{m.level || '?'}</td>
                               <td>{m.game_rank || '—'}</td>
                               <td>{m.clan_role || '—'}</td>
+                              <td>{m.join_date || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {needsUpdateMembers.length > 0 && (
+                    <div className="membership-diff-group">
+                      <h4 className="diff-group-title diff-group-update">
+                        Обновить даты вступления ({needsUpdateMembers.length})
+                      </h4>
+                      <table className="membership-table">
+                        <thead>
+                          <tr>
+                            <th>Ник</th>
+                            <th>Уровень</th>
+                            <th>Ранг</th>
+                            <th>Дата вступления</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {needsUpdateMembers.map((m, i) => (
+                            <tr key={i} className="row-update">
+                              <td><span className="status-badge status-update">~</span> {m.nick}</td>
+                              <td>{m.level || '?'}</td>
+                              <td>{m.game_rank || '—'}</td>
+                              <td>{m.join_date || '—'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -426,7 +460,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
                 <Button variant="primary" onClick={handleImport} disabled={isImporting}>
                   {isImporting
                     ? 'Импорт...'
-                    : `Импортировать (${joinedMembers.length} вступлений, ${leftMembers.length} выходов, ${historyEvents.length} событий)`}
+                    : `Импортировать (${joinedMembers.length} вступлений, ${needsUpdateMembers.length} обновлений дат, ${leftMembers.length} выходов, ${historyEvents.length} событий)`}
                 </Button>
               </div>
             </>

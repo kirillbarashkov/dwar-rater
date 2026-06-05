@@ -476,86 +476,77 @@ def fetch_clan_management_page(session, clan_id):
 def parse_clan_members_from_management(html, clan_id):
     """Parse current clan members from management page HTML.
 
+    Management page has a different structure than clan_info.php:
+    Each member is in a <tr> with cells:
+      Cell 0: nick [level] + rank img (title="Rank Name")
+      Cell 1: clan role
+      Cell 4: join date or trial period
+
     Returns: list[dict] with keys: nick, level, game_rank, profession,
              profession_level, clan_role, join_date, trial_until
     """
     members = []
-    current_member = {}
-    lines = html.split('\n')
 
-    for i, line in enumerate(lines):
-        line = line.strip()
-        if not line:
+    rows = re.findall(r'<tr[^>]*>(.*?)</tr>', html, re.DOTALL)
+
+    for row_html in rows:
+        if 'userToTag' not in row_html:
             continue
 
-        nick_match = re.search(
-            r'(?:Герой|Властелин боя|Вершитель|Магистр войны|Повелитель|Полководец|Легендарный завоеватель|Военный эксперт|Мастер войны|Элитный воин|Гладиатор|Чемпион|Избранник богов|Триумфатор|Высший магистр)\s+([^\[]+)\[(\d+)\](?:([^<\n]*))?',
-            line
-        )
-
-        if nick_match:
-            if current_member.get('nick'):
-                members.append(current_member)
-
-            raw_nick = nick_match.group(1).strip()
-            # Try to extract nick from userToTag('...') first
-            utag_match = re.search(r"userToTag\('([^']+)'\)", raw_nick)
-            if utag_match:
-                nick = utag_match.group(1)
-            else:
-                # Fallback: strip HTML tags
-                nick = clean_html(raw_nick).strip()
-                # Remove trailing non-breaking spaces and artifacts
-                nick = re.sub(r'[\s\xa0]+$', '', nick)
-                nick = re.sub(r'^[\s\xa0]+', '', nick)
-
-            current_member = {
-                'clan_id': clan_id,
-                'nick': nick,
-                'level': int(nick_match.group(2)),
-                'game_rank': '',
-                'profession': '',
-                'profession_level': 0,
-                'clan_role': '',
-                'join_date': '',
-                'trial_until': '',
-            }
-            prof_part = nick_match.group(3) or ''
-            prof_match = re.search(r'([А-Яа-яЁё]+):\s*(\d+)', prof_part)
-            if prof_match:
-                current_member['profession'] = prof_match.group(1).strip()
-                current_member['profession_level'] = int(prof_match.group(2))
-
-            rank_match = re.search(
-                r'(Герой|Властелин боя|Вершитель|Магистр войны|Повелитель|Полководец|Легендарный завоеватель|Военный эксперт|Мастер войны|Элитный воин|Гладиатор|Чемпион|Избранник богов|Триумфатор|Высший магистр)',
-                line
-            )
-            if rank_match:
-                current_member['game_rank'] = rank_match.group(1)
-
+        cells = re.findall(r'<td[^>]*>(.*?)</td>', row_html, re.DOTALL)
+        if len(cells) < 5:
             continue
 
-        role_match = re.search(
-            r'(Глава Ордена|Зам\. Главы|Совесть|Рыцарь Ордена|Леди Ордена|ГардеМаринкА|Фея на метле|Лентяй|Пельмешка|Dead\'ok|Воевода|9-ть жЫзней\)|УлитЫчка\)|РудольФ|Сосиска)',
-            line
-        )
-        if role_match and current_member.get('nick'):
-            current_member['clan_role'] = role_match.group(1)
+        cell0 = cells[0]
+
+        # Extract nick from userToTag('nick')
+        nick_match = re.search(r"userToTag\('([^']+)'\)", cell0)
+        if not nick_match:
+            continue
+        nick = nick_match.group(1).strip()
+        if not nick:
             continue
 
-        if current_member.get('nick'):
-            join_match = re.search(r'принят в клан\s+(\d{2}\.\d{2}\.\d{4})', line)
-            if join_match:
-                current_member['join_date'] = join_match.group(1)
-                continue
+        # Extract level from nick&nbsp;[level]
+        level_match = re.search(r'\[(\d+)\]', cell0)
+        level = int(level_match.group(1)) if level_match else 1
 
-            trial_match = re.search(r'Исп\. срок до\s+(\d{2}\.\d{2}\.\d{4})', line)
-            if trial_match:
-                current_member['trial_until'] = trial_match.group(1)
-                continue
+        # Extract game_rank from rank img title
+        rank_match = re.search(r'/images/ranks/[^"]*"[^>]*title="([^"]+)"', cell0)
+        if not rank_match:
+            rank_match = re.search(r'title="([^"]+)"[^>]*align="absmiddle"', cell0)
+        game_rank = rank_match.group(1) if rank_match else ''
 
-    if current_member.get('nick'):
-        members.append(current_member)
+        # Extract clan role from cell 1
+        clan_role = clean_html(cells[1]).strip() if len(cells) > 1 else ''
+
+        # Extract join_date / trial_until from cell 4
+        # Replace <br/> with space before stripping HTML — dwar.ru splits text across <br/>
+        cell4_raw = cells[4] if len(cells) > 4 else ''
+        cell4_raw = re.sub(r'<br\s*/?>', ' ', cell4_raw)
+        cell4 = clean_html(cell4_raw)
+        join_date = ''
+        trial_until = ''
+
+        join_match = re.search(r'принят в клан\s+(\d{2}\.\d{2}\.\d{4})', cell4)
+        if join_match:
+            join_date = join_match.group(1)
+
+        trial_match = re.search(r'Исп\. срок до\s+(\d{2}\.\d{2}\.\d{4})', cell4)
+        if trial_match:
+            trial_until = trial_match.group(1)
+
+        members.append({
+            'clan_id': clan_id,
+            'nick': nick,
+            'level': level,
+            'game_rank': game_rank,
+            'profession': '',
+            'profession_level': 0,
+            'clan_role': clan_role,
+            'join_date': join_date,
+            'trial_until': trial_until,
+        })
 
     data_logger.info(f'[PARSER] Parsed {len(members)} members from management page')
     return members

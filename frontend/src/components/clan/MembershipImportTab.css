@@ -143,6 +143,11 @@
   color: #ef4444;
 }
 
+.diff-group-update {
+  background: rgba(234, 179, 8, 0.1);
+  color: #eab308;
+}
+
 .membership-table {
   width: 100%;
   border-collapse: collapse;
@@ -173,6 +178,10 @@
   background: rgba(239, 68, 68, 0.05);
 }
 
+.row-update {
+  background: rgba(234, 179, 8, 0.05);
+}
+
 .status-badge {
   display: inline-block;
   width: 20px;
@@ -192,6 +201,11 @@
 .status-left {
   background: rgba(239, 68, 68, 0.2);
   color: #ef4444;
+}
+
+.status-update {
+  background: rgba(234, 179, 8, 0.2);
+  color: #eab308;
 }
 
 .leave-reason-select {
