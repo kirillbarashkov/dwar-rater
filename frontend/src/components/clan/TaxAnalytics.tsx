@@ -113,6 +113,14 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
             year: parseInt(match[3], 10),
           };
         }
+      } else if (m.trial_until) {
+        const match = m.trial_until.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+        if (match) {
+          map[m.nick.toLowerCase()] = {
+            month: parseInt(match[2], 10),
+            year: parseInt(match[3], 10),
+          };
+        }
       } else {
         map[m.nick.toLowerCase()] = null;
       }
