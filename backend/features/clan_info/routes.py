@@ -1666,3 +1666,24 @@ def get_level_events(clan_id):
         'event_date': e.event_date,
         'created_at': e.created_at.isoformat() if e.created_at else '',
     } for e in events])
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/level-history', methods=['GET'])
+@require_permission('clan_info', 'read')
+def get_level_history(clan_id):
+    """Return level history organized by player for tax norm calculation."""
+    events = ClanLevelChangeEvent.query.filter_by(clan_id=clan_id).order_by(ClanLevelChangeEvent.event_date.asc()).all()
+
+    # Group by player
+    history = {}
+    for e in events:
+        nick_lower = e.nick.lower()
+        if nick_lower not in history:
+            history[nick_lower] = []
+        history[nick_lower].append({
+            'date': e.event_date,
+            'old_level': e.old_level,
+            'new_level': e.new_level,
+        })
+
+    return jsonify(history)

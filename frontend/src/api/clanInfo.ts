@@ -283,3 +283,10 @@ export async function saveLevelEvents(
   const response = await apiClient.post(`/api/clan/${clanId}/level-events/save`, { events });
   return response.data;
 }
+
+export async function getLevelHistory(
+  clanId: number
+): Promise<Record<string, Array<{ date: string; old_level: number; new_level: number }>>> {
+  const response = await apiClient.get(`/api/clan/${clanId}/level-history`);
+  return response.data;
+}

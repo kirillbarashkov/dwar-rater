@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { TreasuryOperationData } from '../../types/clanInfo';
 import type { ClanMemberData } from '../../types/clanInfo';
 import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU } from '../../utils/treasury';
-import { createTreasuryCompensation, updateTreasuryOperation } from '../../api/clanInfo';
+import { createTreasuryCompensation, updateTreasuryOperation, getLevelHistory } from '../../api/clanInfo';
 import './TaxAnalytics.css';
 
 interface TaxAnalyticsProps {
@@ -85,6 +85,36 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<{ quantity: number; compensationFlag: boolean; compensationComment: string } | null>(null);
+  const [levelHistory, setLevelHistory] = useState<Record<string, Array<{ date: string; old_level: number; new_level: number }>>>({});
+
+  useEffect(() => {
+    if (clanId) {
+      getLevelHistory(clanId).then(setLevelHistory).catch(() => setLevelHistory({}));
+    }
+  }, [clanId]);
+
+  const getLevelAtDate = useCallback((nick: string, dateStr: string): number | null => {
+    const nickLower = nick.toLowerCase();
+    const history = levelHistory[nickLower];
+    if (!history || history.length === 0) return null;
+
+    const parsed = parseDate(dateStr);
+    if (!parsed) return null;
+    const targetTime = new Date(parsed.year, parsed.month - 1, parsed.day, parsed.hour || 0, parsed.minute || 0).getTime();
+
+    let level: number | null = null;
+    for (const event of history) {
+      const eventParsed = parseDate(event.date);
+      if (!eventParsed) continue;
+      const eventTime = new Date(eventParsed.year, eventParsed.month - 1, eventParsed.day).getTime();
+      if (eventTime <= targetTime) {
+        level = event.new_level;
+      } else {
+        break;
+      }
+    }
+    return level;
+  }, [levelHistory]);
 
   const memberLevels = useMemo(() => {
     const map: Record<string, number> = {};
@@ -223,8 +253,13 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
     const addedNicks = new Set<string>();
 
     for (const [nickLower, data] of Object.entries(paymentsByPlayer)) {
-      const level = memberLevels[nickLower];
-      const normAmount = memberNorms[nickLower] || DEFAULT_NORM;
+      const currentLevel = memberLevels[nickLower];
+      const levelAtPayment = data.opId ? getLevelAtDate(data.originalNick, (() => {
+        const op = operations.find(o => o.id === data.opId);
+        return op?.date || '';
+      })()) : null;
+      const effectiveLevel = levelAtPayment ?? currentLevel;
+      const normAmount = effectiveLevel ? (CLAN_TAX_NORM[effectiveLevel] ?? DEFAULT_NORM) : (memberNorms[nickLower] || DEFAULT_NORM);
       const totalPaid = data.onTime + data.delayed;
 
       let status: PlayerTaxSummary['status'] = 'not_paid';
@@ -241,7 +276,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
 
       playerSummaries.push({
         nick: data.originalNick,
-        playerLevel: level,
+        playerLevel: effectiveLevel,
         normAmount,
         totalPaid,
         onTimePaid: data.onTime,
@@ -299,7 +334,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
       delayedTotal,
       expectedTotal,
     };
-  }, [taxPayments, members, selectedMonth, selectedYear, memberLevels, memberNorms]);
+  }, [taxPayments, members, selectedMonth, selectedYear, memberLevels, memberNorms, getLevelAtDate, operations]);
 
   const filteredPlayers = useMemo(() => {
     if (!monthSummary) return [];
