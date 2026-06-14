@@ -714,3 +714,136 @@ def fetch_all_history_pages_streaming(session, clan_id, cutoff_date_str='01.01.2
         'elapsed': elapsed,
         'events': all_events,
     })
+
+
+def parse_level_change_events(html):
+    """
+    Parse level change events from clan_info.php history page.
+    Pattern: "Nick [level] достиг N-го уровня."
+    Returns list of dicts: {nick, new_level, event_date}
+    """
+    events = []
+    rows = re.findall(r'<tr[^>]*>(.*?)</tr>', html, re.DOTALL)
+
+    for row in rows:
+        cells = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL)
+        if len(cells) < 2:
+            continue
+
+        # Strip HTML and &nbsp;
+        clean_cells = []
+        for c in cells:
+            text = re.sub(r'<[^>]+>', '', c)
+            text = text.replace('&nbsp;', ' ')
+            text = text.strip()
+            clean_cells.append(text)
+
+        if not clean_cells[0]:
+            continue
+
+        date_match = re.match(r'(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})', clean_cells[0])
+        if not date_match:
+            continue
+
+        event_date = date_match.group(1)
+        full_text = ' '.join(clean_cells)
+
+        # Pattern: "Nick [current_level] достиг N-го уровня."
+        level_match = re.search(r'(.+?)\s*\[(\d+)\]\s*достиг\s+(\d+)-го\s+уровня', full_text)
+        if not level_match:
+            level_match = re.search(r'(.+?)\s*\[(\d+)\]\s*достиг\s+(\d+)-й\s+уровень', full_text)
+        if not level_match:
+            level_match = re.search(r'(.+?)\s*\[(\d+)\]\s*достиг\s+(\d+)\s+уровень', full_text)
+
+        if level_match:
+            nick = level_match.group(1).strip()
+            current_level = int(level_match.group(2))
+            new_level = int(level_match.group(3))
+            old_level = new_level - 1
+
+            events.append({
+                'nick': nick,
+                'old_level': old_level,
+                'new_level': new_level,
+                'event_date': event_date,
+            })
+
+    data_logger.info(f'[PARSER] Parsed {len(events)} level change events')
+    return events
+
+
+def fetch_level_history_page(session, clan_id=2315, filter_type=5, page=0):
+    """Fetch clan history page with event type filter via GET URL."""
+    url = f'https://w1.dwar.ru/clan_info.php?clan_id={clan_id}&mode=history&filter%5Btype%5D={filter_type}&filter%5Bmember%5D=&filter%5Bstart_date%5D=&filter%5Bend_date%5D=&page={page}'
+    resp = session.get(url, timeout=15)
+    return resp.text
+
+
+def fetch_level_events_streaming(session, clan_id=2315, max_pages=500):
+    """
+    Generator that yields SSE-compatible progress events while fetching level change events.
+    """
+    import time
+    all_events = []
+    start_time = time.time()
+    total_pages = None
+
+    # Step 1: Fetch page 0 to count total pages
+    try:
+        html = fetch_level_history_page(session, clan_id=clan_id, filter_type=5, page=0)
+    except Exception as e:
+        yield ('error', {'reason': 'fetch_error', 'message': f'Ошибка загрузки: {str(e)}'})
+        return
+
+    if is_login_redirect(html):
+        yield ('error', {'reason': 'session_expired', 'message': 'Сессия истекла, обновите cookies'})
+        return
+
+    total_pages = parse_total_pages(html)
+    if total_pages is None or total_pages > max_pages:
+        total_pages = max_pages
+
+    yield ('counting', {'total_pages': total_pages})
+
+    # Step 2: Parse page 0 events
+    page_events = parse_level_change_events(html)
+    all_events.extend(page_events)
+
+    yield ('progress', {
+        'page': 0,
+        'total_pages': total_pages,
+        'events_on_page': len(page_events),
+        'total_events': len(all_events),
+        'elapsed': round(time.time() - start_time, 1),
+    })
+
+    # Step 3: Fetch remaining pages
+    for page in range(1, total_pages):
+        try:
+            html = fetch_level_history_page(session, clan_id=clan_id, filter_type=5, page=page)
+        except Exception as e:
+            yield ('error', {'reason': 'fetch_error', 'message': f'Ошибка на странице {page}: {str(e)}'})
+            return
+
+        if is_login_redirect(html):
+            yield ('error', {'reason': 'session_expired', 'message': 'Сессия истекла, обновите cookies'})
+            return
+
+        page_events = parse_level_change_events(html)
+        all_events.extend(page_events)
+
+        yield ('progress', {
+            'page': page,
+            'total_pages': total_pages,
+            'events_on_page': len(page_events),
+            'total_events': len(all_events),
+            'elapsed': round(time.time() - start_time, 1),
+        })
+
+    elapsed = round(time.time() - start_time, 1)
+    yield ('done', {
+        'total_events': len(all_events),
+        'pages_fetched': min(total_pages, max_pages),
+        'elapsed': elapsed,
+        'events': all_events,
+    })

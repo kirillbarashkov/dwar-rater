@@ -118,3 +118,19 @@ class ClanCookie(db.Model):
 
     def __repr__(self):
         return f'<ClanCookie clan_id={self.clan_id} valid={self.is_valid}>'
+
+
+class ClanLevelChangeEvent(db.Model):
+    __tablename__ = 'clan_level_change_events'
+    id = db.Column(db.Integer, primary_key=True)
+    clan_id = db.Column(db.Integer, db.ForeignKey('clan_info.clan_id'), nullable=False, index=True)
+    nick = db.Column(db.String(100), nullable=False)
+    old_level = db.Column(db.Integer, default=0)
+    new_level = db.Column(db.Integer, nullable=False)
+    event_date = db.Column(db.String(20), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    clan = db.relationship('ClanInfo', foreign_keys=[clan_id], primaryjoin='ClanLevelChangeEvent.clan_id == ClanInfo.clan_id')
+
+    def __repr__(self):
+        return f'<ClanLevelChangeEvent {self.nick} {self.old_level}->{self.new_level} {self.event_date}>'

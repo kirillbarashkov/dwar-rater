@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 import requests
-from shared.services.clan_parser import fetch_clan_page, parse_clan_info, fetch_clan_treasury_report, parse_clan_treasury_operations, fetch_all_pages_until_date, fetch_all_pages_streaming, is_login_redirect, fetch_clan_management_page, parse_clan_members_from_management, fetch_clan_history_page, parse_clan_history_events, fetch_all_history_pages_streaming
+from shared.services.clan_parser import fetch_clan_page, parse_clan_info, fetch_clan_treasury_report, parse_clan_treasury_operations, fetch_all_pages_until_date, fetch_all_pages_streaming, is_login_redirect, fetch_clan_management_page, parse_clan_members_from_management, fetch_clan_history_page, parse_clan_history_events, fetch_all_history_pages_streaming, parse_level_change_events, fetch_level_events_streaming
 from shared.services.data_logger import data_logger
 from shared.models import db
-from shared.models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation, ClanCookie, ClanMembershipEvent
+from shared.models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation, ClanCookie, ClanMembershipEvent, ClanLevelChangeEvent
 from shared.rbac import require_permission, feature, Permission as PermDef
 
 
@@ -1545,5 +1545,124 @@ def get_membership_events(clan_id):
         'source': e.source,
         'leave_reason': e.leave_reason,
         'synced': e.synced,
+        'created_at': e.created_at.isoformat() if e.created_at else '',
+    } for e in events])
+
+
+# =============================================================================
+# Level change events endpoints
+# =============================================================================
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/level-events/import-stream', methods=['GET'])
+def import_level_events_stream(clan_id):
+    from flask import Response, request
+    from urllib.parse import unquote
+    import json
+
+    token = request.args.get('token') or request.headers.get('Authorization', '').replace('Bearer ', '')
+    current_user = None
+    if token:
+        from shared.rbac.models import SessionToken
+        from shared.models.user import User
+        from datetime import datetime, timezone
+        session_token = SessionToken.query.filter_by(token=token).first()
+        if session_token:
+            expires = session_token.expires_at
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if expires > datetime.now(timezone.utc):
+                current_user = User.query.get(session_token.user_id)
+
+    if not current_user or current_user.role != 'admin':
+        def error_gen():
+            yield 'data: ' + json.dumps({'type': 'error', 'reason': 'forbidden', 'message': 'Только администратор'}) + '\n\n'
+        return Response(error_gen(), mimetype='text/event-stream')
+
+    cookie = ClanCookie.query.filter_by(clan_id=clan_id).first()
+    if not cookie or not cookie.is_valid:
+        def error_gen():
+            yield 'data: ' + json.dumps({'type': 'error', 'reason': 'no_valid_cookies', 'message': 'Нет валидных cookies'}) + '\n\n'
+        return Response(error_gen(), mimetype='text/event-stream')
+
+    data_logger.info(f'[LEVEL] SSE level events import starting for clan {clan_id}')
+
+    def generate():
+        session = requests.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        })
+        for part in cookie.cookie_string.split(';'):
+            part = part.strip()
+            if '=' in part:
+                key, value = part.split('=', 1)
+                session.cookies.set(key.strip(), unquote(value.strip()))
+
+        for event_type, data in fetch_level_events_streaming(session, clan_id=clan_id, max_pages=500):
+            payload = {'type': event_type}
+            payload.update(data)
+            yield f'data: {json.dumps(payload, ensure_ascii=False)}\n\n'
+
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive',
+        }
+    )
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/level-events/save', methods=['POST'])
+@require_permission('clan_info', 'admin')
+def save_level_events(clan_id):
+    data = request.json
+    events = data.get('events', [])
+
+    imported = 0
+    skipped = 0
+
+    for ev in events:
+        existing = ClanLevelChangeEvent.query.filter_by(
+            clan_id=clan_id,
+            nick=ev['nick'],
+            event_date=ev['event_date'],
+        ).first()
+
+        if existing:
+            skipped += 1
+            continue
+
+        new_event = ClanLevelChangeEvent(
+            clan_id=clan_id,
+            nick=ev['nick'],
+            old_level=ev.get('old_level', 0),
+            new_level=ev['new_level'],
+            event_date=ev['event_date'],
+        )
+        db.session.add(new_event)
+        imported += 1
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'imported': imported,
+        'skipped': skipped,
+        'message': f'Импортировано {imported}, пропущено {skipped}',
+    })
+
+
+@clan_info_bp.route('/api/clan/<int:clan_id>/level-events', methods=['GET'])
+@require_permission('clan_info', 'read')
+def get_level_events(clan_id):
+    events = ClanLevelChangeEvent.query.filter_by(clan_id=clan_id).order_by(ClanLevelChangeEvent.event_date.desc()).all()
+
+    return jsonify([{
+        'id': e.id,
+        'nick': e.nick,
+        'old_level': e.old_level,
+        'new_level': e.new_level,
+        'event_date': e.event_date,
         'created_at': e.created_at.isoformat() if e.created_at else '',
     } for e in events])
