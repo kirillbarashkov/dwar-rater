@@ -261,3 +261,25 @@ export async function importHistoryEvents(
   const response = await apiClient.post(`/api/clan/${clanId}/members/history-import`, { events });
   return response.data;
 }
+
+export interface LevelChangeEvent {
+  id?: number;
+  nick: string;
+  old_level: number;
+  new_level: number;
+  event_date: string;
+  created_at?: string;
+}
+
+export async function getLevelEvents(clanId: number): Promise<LevelChangeEvent[]> {
+  const response = await apiClient.get(`/api/clan/${clanId}/level-events`);
+  return response.data;
+}
+
+export async function saveLevelEvents(
+  clanId: number,
+  events: LevelChangeEvent[]
+): Promise<{ success: boolean; imported: number; skipped: number; message: string }> {
+  const response = await apiClient.post(`/api/clan/${clanId}/level-events/save`, { events });
+  return response.data;
+}

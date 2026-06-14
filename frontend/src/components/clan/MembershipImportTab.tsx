@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getTreasuryCookiesStatus, importMemberDiff, importHistoryEvents, getMembershipEvents } from '../../api/clanInfo';
-import type { ClanMemberData, MembershipEvent } from '../../types/clanInfo';
+import { getTreasuryCookiesStatus, importMemberDiff, importHistoryEvents, getMembershipEvents, saveLevelEvents, getLevelEvents } from '../../api/clanInfo';
+import type { ClanMemberData, MembershipEvent, LevelChangeEvent } from '../../types/clanInfo';
 import { Button } from '../ui/Button';
 import './MembershipImportTab.css';
 
@@ -469,6 +469,11 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
       )}
 
       <section className="membership-section">
+        <h3 className="membership-section-title">Импорт уровней</h3>
+        <LevelEventsImport clanId={clanId} />
+      </section>
+
+      <section className="membership-section">
         <button
           className="toggle-events-btn"
           onClick={() => setShowEvents(!showEvents)}
@@ -504,6 +509,200 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
           <p className="no-events">Нет сохранённых событий</p>
         )}
       </section>
+    </div>
+  );
+}
+
+function LevelEventsImport({ clanId }: { clanId: number }) {
+  const [cookieStatus, setCookieStatus] = useState<{ has_cookies: boolean; is_valid: boolean }>({ has_cookies: false, is_valid: false });
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchProgress, setFetchProgress] = useState({ totalPages: 0, currentPage: 0, totalEvents: 0, message: '' });
+  const [levelEvents, setLevelEvents] = useState<LevelChangeEvent[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [savedEvents, setSavedEvents] = useState<LevelChangeEvent[]>([]);
+
+  useEffect(() => {
+    getTreasuryCookiesStatus(clanId).then(setCookieStatus).catch(() => setCookieStatus({ has_cookies: false, is_valid: false }));
+    loadSavedEvents();
+  }, [clanId]);
+
+  const loadSavedEvents = async () => {
+    try {
+      const events = await getLevelEvents(clanId);
+      setSavedEvents(events);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleFetchLevelEvents = () => {
+    setIsFetching(true);
+    setMessage(null);
+    setLevelEvents([]);
+    setFetchProgress({ totalPages: 0, currentPage: 0, totalEvents: 0, message: 'Загрузка...' });
+
+    const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
+    const token = localStorage.getItem('auth_token');
+    const url = `${apiBase}/api/clan/${clanId}/level-events/import-stream?token=${encodeURIComponent(token || '')}`;
+
+    const es = new EventSource(url);
+
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        switch (data.type) {
+          case 'counting':
+            setFetchProgress({ totalPages: data.total_pages, currentPage: 0, totalEvents: 0, message: `Найдено ${data.total_pages} страниц` });
+            break;
+          case 'progress':
+            const pct = data.total_pages > 0 ? Math.round(((data.page + 1) / data.total_pages) * 100) : 0;
+            setFetchProgress({
+              totalPages: data.total_pages,
+              currentPage: data.page + 1,
+              totalEvents: data.total_events,
+              message: `Страница ${data.page + 1} из ${data.total_pages} (${pct}%) · ${data.total_events} событий`,
+            });
+            break;
+          case 'done':
+            setLevelEvents(data.events as LevelChangeEvent[]);
+            setFetchProgress({
+              totalPages: data.pages_fetched,
+              currentPage: data.pages_fetched,
+              totalEvents: data.total_events,
+              message: `Собрано ${data.total_events} событий со ${data.pages_fetched} страниц`,
+            });
+            es.close();
+            setIsFetching(false);
+            break;
+          case 'error':
+            setMessage({ type: 'error', text: data.message || 'Ошибка при сборе данных' });
+            es.close();
+            setIsFetching(false);
+            break;
+        }
+      } catch (err) {
+        console.error('SSE parse error:', err);
+      }
+    };
+
+    es.onerror = () => {
+      setMessage({ type: 'error', text: 'Соединение потеряно' });
+      es.close();
+      setIsFetching(false);
+    };
+  };
+
+  const handleSaveLevelEvents = async () => {
+    if (levelEvents.length === 0) return;
+    setIsSaving(true);
+    setMessage(null);
+    try {
+      const result = await saveLevelEvents(clanId, levelEvents);
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message });
+        setLevelEvents([]);
+        loadSavedEvents();
+      } else {
+        setMessage({ type: 'error', text: result.message || 'Ошибка при сохранении' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: `Ошибка: ${err instanceof Error ? err.message : String(err)}` });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!cookieStatus.has_cookies || !cookieStatus.is_valid) {
+    return <p className="no-cookies-hint">Для импорта уровней необходимо настроить cookies во вкладке "Cookies".</p>;
+  }
+
+  return (
+    <div className="level-events-import">
+      {message && (
+        <div className={`treasury-import-message treasury-import-message-${message.type}`}>
+          {message.text}
+        </div>
+      )}
+
+      {levelEvents.length === 0 && !isFetching && (
+        <Button variant="primary" onClick={handleFetchLevelEvents}>
+          Загрузить события смены уровня
+        </Button>
+      )}
+
+      {isFetching && (
+        <div className="treasury-auto-fetch-progress">
+          <div className="progress-bar-container">
+            <div className="progress-bar">
+              <div
+                className="progress-bar-fill"
+                style={{ width: `${fetchProgress.totalPages > 0 ? (fetchProgress.currentPage / fetchProgress.totalPages) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="progress-percentage">
+              {fetchProgress.totalPages > 0 ? Math.round((fetchProgress.currentPage / fetchProgress.totalPages) * 100) : 0}%
+            </span>
+          </div>
+          <span className="progress-text">{fetchProgress.message}</span>
+        </div>
+      )}
+
+      {levelEvents.length > 0 && !isFetching && (
+        <>
+          <p className="level-events-summary">
+            Найдено <strong>{levelEvents.length}</strong> событий смены уровня.
+          </p>
+          <div className="level-events-actions">
+            <Button variant="secondary" onClick={() => setLevelEvents([])}>Отменить</Button>
+            <Button variant="primary" onClick={handleSaveLevelEvents} disabled={isSaving}>
+              {isSaving ? 'Сохранение...' : `Сохранить ${levelEvents.length}`}
+            </Button>
+          </div>
+          <table className="membership-table level-events-table">
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Игрок</th>
+                <th>Уровень</th>
+              </tr>
+            </thead>
+            <tbody>
+              {levelEvents.map((ev, i) => (
+                <tr key={i}>
+                  <td>{ev.event_date}</td>
+                  <td>{ev.nick}</td>
+                  <td>{ev.old_level} → {ev.new_level}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {savedEvents.length > 0 && (
+        <details className="saved-level-events">
+          <summary>Сохранённые события ({savedEvents.length})</summary>
+          <table className="membership-table">
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Игрок</th>
+                <th>Уровень</th>
+              </tr>
+            </thead>
+            <tbody>
+              {savedEvents.slice(0, 50).map((ev) => (
+                <tr key={ev.id}>
+                  <td>{ev.event_date}</td>
+                  <td>{ev.nick}</td>
+                  <td>{ev.old_level} → {ev.new_level}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )}
     </div>
   );
 }

@@ -266,3 +266,55 @@
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #ef4444;
 }
+
+.level-events-import {
+  margin-top: 12px;
+}
+
+.level-events-summary {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.level-events-summary strong {
+  color: var(--accent);
+}
+
+.level-events-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.level-events-table td:nth-child(3) {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.saved-level-events {
+  margin-top: 12px;
+  padding: 8px;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.saved-level-events summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.no-cookies-hint {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.membership-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
