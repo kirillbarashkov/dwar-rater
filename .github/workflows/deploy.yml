@@ -27,7 +27,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Wait for PostgreSQL
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -h localhost -p 5432 -U dwar && break
+            echo "Waiting for PostgreSQL... ($i)"
+            sleep 2
+          done
+
       - name: Backend tests
+        env:
+          TEST_DATABASE_URL: postgresql://dwar:change-me-in-production@localhost:5432/dwar_rater_test
         run: |
           cd backend
           pip install -r requirements.txt
