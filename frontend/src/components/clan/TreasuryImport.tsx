@@ -741,8 +741,8 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                   <p>Данные будут собраны {selectedStartDate ? <>с <strong>{selectedStartDate}</strong></> : <>с <strong>01.01.2025</strong></>} по текущую дату.</p>
                 </div>
                 {autoFetchOps.length === 0 && !isAutoFetching && fetchProgress.phase !== 'error' && (
-                  <Button variant="primary" onClick={handleAutoFetch} disabled={!selectedStartDate}>
-                    Начать сбор{selectedStartDate ? ` с ${selectedStartDate}` : ''}
+                  <Button variant="primary" onClick={handleAutoFetch}>
+                    Начать сбор{selectedStartDate ? ` с ${selectedStartDate}` : ' с 01.01.2025'}
                   </Button>
                 )}
               {isAutoFetching && (
