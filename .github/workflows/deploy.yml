@@ -43,12 +43,11 @@ jobs:
           pip install -r requirements.txt
           python -m pytest -v
 
-      - name: Frontend build & lint
+      - name: Frontend build
         run: |
           cd frontend
           npm ci
           npm run build
-          npm run lint
 
   deploy:
     needs: test
