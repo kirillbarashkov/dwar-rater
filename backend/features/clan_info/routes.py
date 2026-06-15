@@ -24,6 +24,7 @@ COUNCIL_ROLE = 'Совесть'
 COMMANDER_ROLE = 'Воевода'
 
 DEFAULT_COUNCIL_SLOTS = 4
+CLAN_MAX_PLAYERS = 70
 
 
 def build_clan_structure_from_members(clan_id, existing_structure=None):
@@ -31,6 +32,8 @@ def build_clan_structure_from_members(clan_id, existing_structure=None):
 
     leaders = [m for m in members if m.clan_role == LEADER_ROLE]
     deputies = [m for m in members if m.clan_role == DEPUTY_ROLE]
+    council = [m for m in members if m.clan_role == COUNCIL_ROLE]
+    commanders = [m for m in members if m.clan_role == COMMANDER_ROLE]
 
     if len(leaders) > 1:
         leader_nicks = [m.nick for m in leaders]
@@ -41,16 +44,27 @@ def build_clan_structure_from_members(clan_id, existing_structure=None):
     if leaders:
         structure['leader'] = {
             'nick': leaders[0].nick,
-            'description': '',
+            'description': leaders[0].clan_role,
         }
 
     if deputies:
         structure['deputies'] = [
-            {'nick': d.nick, 'description': ''} for d in deputies
+            {'nick': d.nick, 'description': d.clan_role} for d in deputies
         ]
 
+    if council:
+        structure['council'] = [
+            {'nick': c.nick, 'description': c.clan_role} for c in council
+        ]
+
+    if commanders:
+        structure['commander'] = {
+            'nick': commanders[0].nick,
+            'description': commanders[0].clan_role,
+        }
+
     if existing_structure:
-        if 'council' in existing_structure:
+        if 'council' in existing_structure and 'council' not in structure:
             valid_council = []
             for c in existing_structure['council']:
                 nick = c.get('nick', '')
@@ -59,7 +73,7 @@ def build_clan_structure_from_members(clan_id, existing_structure=None):
             if valid_council:
                 structure['council'] = valid_council
 
-        if 'commander' in existing_structure:
+        if 'commander' in existing_structure and 'commander' not in structure:
             cmd_nick = existing_structure['commander'].get('nick', '')
             if cmd_nick and any(m.nick == cmd_nick for m in members):
                 structure['commander'] = existing_structure['commander']
@@ -106,6 +120,7 @@ def get_clan_info(clan_id):
             cached.step = data.get('step', 0)
             cached.talents = data.get('talents', 0)
             cached.current_players = actual_member_count
+            cached.total_players = CLAN_MAX_PLAYERS
 
             if structure is not None:
                 cached.set_clan_structure(structure)
@@ -124,6 +139,7 @@ def get_clan_info(clan_id):
                 step=data.get('step', 0),
                 talents=data.get('talents', 0),
                 current_players=actual_member_count,
+                total_players=CLAN_MAX_PLAYERS,
             )
             if structure is not None:
                 cached.set_clan_structure(structure)
