@@ -9,7 +9,7 @@ import {
 import type { TreasuryOperationData, DateCoverage } from '../../types/clanInfo';
 import { Button } from '../ui/Button';
 import { BackupPicker } from './BackupPicker';
-import { parseTreasuryOperations, parseDate, TREASURY_CLAN_REPORT_URL, MONTHS_RU } from '../../utils/treasury';
+import { parseTreasuryOperations, parseDate, TREASURY_CLAN_REPORT_URL, MONTHS_RU, type ParsedTreasuryOperation } from '../../utils/treasury';
 import { MembershipImportTab } from './MembershipImportTab';
 import './TreasuryImport.css';
 
@@ -20,6 +20,7 @@ interface TreasuryImportProps {
 
 type SubTab = 'cookies' | 'import' | 'export' | 'membership';
 type ImportSubTab = 'auto' | 'html';
+type ParsedRow = ParsedTreasuryOperation;
 
 export function TreasuryImport({ clanId, onImportComplete }: TreasuryImportProps) {
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('cookies');
@@ -169,7 +170,6 @@ function CookieField({
 function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportComplete?: () => void }) {
   const [pastedHtml, setPastedHtml] = useState('');
   const [isImporting, setIsImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [importResult, setImportResult] = useState<{ imported: number; updated: number; skipped: number } | null>(null);
 

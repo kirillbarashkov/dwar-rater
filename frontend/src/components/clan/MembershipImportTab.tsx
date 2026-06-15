@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getTreasuryCookiesStatus, importMemberDiff, importHistoryEvents, getMembershipEvents, saveLevelEvents, getLevelEvents } from '../../api/clanInfo';
-import type { ClanMemberData, MembershipEvent, LevelChangeEvent } from '../../types/clanInfo';
+import type { MembershipEvent } from '../../types/clanInfo';
+import type { LevelChangeEvent } from '../../api/clanInfo';
 import { Button } from '../ui/Button';
 import './MembershipImportTab.css';
 

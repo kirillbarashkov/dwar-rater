@@ -132,6 +132,8 @@ export interface ParsedDate {
   day: number;
   month: number;
   year: number;
+  hour?: number;
+  minute?: number;
 }
 
 export function parseDate(dateStr: string): ParsedDate | null {
