@@ -149,10 +149,24 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
       } else if (m.trial_until) {
         const match = m.trial_until.match(/(\d{2})\.(\d{2})\.(\d{4})/);
         if (match) {
-          map[m.nick.toLowerCase()] = {
-            month: parseInt(match[2], 10),
-            year: parseInt(match[3], 10),
-          };
+          const trialMonth = parseInt(match[2], 10);
+          const trialYear = parseInt(match[3], 10);
+          const trialDate = new Date(trialYear, trialMonth - 1, parseInt(match[1], 10));
+          const now = new Date();
+          now.setHours(0, 0, 0, 0);
+          if (trialDate < now) {
+            const joinDate = new Date(trialDate);
+            joinDate.setDate(joinDate.getDate() - 14);
+            map[m.nick.toLowerCase()] = {
+              month: joinDate.getMonth() + 1,
+              year: joinDate.getFullYear(),
+            };
+          } else {
+            map[m.nick.toLowerCase()] = {
+              month: trialMonth,
+              year: trialYear,
+            };
+          }
         }
       } else {
         map[m.nick.toLowerCase()] = null;

@@ -10,6 +10,37 @@ import { Modal } from '../ui/Modal';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import './ClanMembersTable.css';
 
+function parseDate(str: string): Date | null {
+  const m = str.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+  if (!m) return null;
+  return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+}
+
+function isTrialExpired(trialUntil?: string): boolean {
+  if (!trialUntil) return false;
+  const d = parseDate(trialUntil);
+  if (!d) return false;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return d < now;
+}
+
+function getEffectiveJoinDate(member: ClanMemberData): string {
+  if (member.join_date) return member.join_date;
+  if (member.trial_until && isTrialExpired(member.trial_until)) {
+    const trialEnd = parseDate(member.trial_until);
+    if (trialEnd) {
+      const joinDate = new Date(trialEnd);
+      joinDate.setDate(joinDate.getDate() - 14);
+      const dd = String(joinDate.getDate()).padStart(2, '0');
+      const mm = String(joinDate.getMonth() + 1).padStart(2, '0');
+      const yyyy = joinDate.getFullYear();
+      return `${dd}.${mm}.${yyyy}`;
+    }
+  }
+  return '';
+}
+
 interface ClanMembersTableProps {
   clanId: number;
 }
@@ -399,7 +430,7 @@ const handleAnalyze = (nick: string) => {
         </thead>
         <tbody>
           {filtered.map((m, i) => (
-            <tr key={m.id || i} className={m.trial_until ? 'cm-trial' : ''}>
+            <tr key={m.id || i} className={m.trial_until && !isTrialExpired(m.trial_until) ? 'cm-trial' : ''}>
               <td className="cm-number">{i + 1}</td>
               <td className="cm-nick">
                 {m.icon && <span className="cm-icon">{m.icon}</span>}
@@ -414,8 +445,16 @@ const handleAnalyze = (nick: string) => {
               </td>
               <td className="cm-role">{m.clan_role}</td>
               <td className="cm-join">
-                {m.join_date && <span>{m.join_date}</span>}
-                {m.trial_until && <span className="cm-trial-badge">Исп. до {m.trial_until}</span>}
+                {(() => {
+                  const showTrial = m.trial_until && !isTrialExpired(m.trial_until);
+                  const joinDate = getEffectiveJoinDate(m);
+                  return (
+                    <>
+                      {joinDate && <span>{joinDate}</span>}
+                      {showTrial && <span className="cm-trial-badge">Исп. до {m.trial_until}</span>}
+                    </>
+                  );
+                })()}
               </td>
               <td className="cm-actions">
                 <button className="cm-btn-analyze" onClick={() => handleAnalyze(m.nick)} title="Анализировать">📊</button>
