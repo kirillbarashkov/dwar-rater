@@ -88,9 +88,12 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
   const [levelHistory, setLevelHistory] = useState<Record<string, Array<{ date: string; old_level: number; new_level: number }>>>({});
 
   useEffect(() => {
-    if (clanId) {
-      getLevelHistory(clanId).then(setLevelHistory).catch(() => setLevelHistory({}));
-    }
+    if (!clanId) return;
+    let cancelled = false;
+    getLevelHistory(clanId)
+      .then((data) => { if (!cancelled) setLevelHistory(data); })
+      .catch((err) => { console.error('Failed to load level history:', err); if (!cancelled) setLevelHistory({}); });
+    return () => { cancelled = true; };
   }, [clanId]);
 
   const getLevelAtDate = useCallback((nick: string, dateStr: string): number | null => {
@@ -254,10 +257,8 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
 
     for (const [nickLower, data] of Object.entries(paymentsByPlayer)) {
       const currentLevel = memberLevels[nickLower];
-      const levelAtPayment = data.opId ? getLevelAtDate(data.originalNick, (() => {
-        const op = operations.find(o => o.id === data.opId);
-        return op?.date || '';
-      })()) : null;
+      const paymentOp = data.opId ? operations.find(o => o.id === data.opId) : undefined;
+      const levelAtPayment = paymentOp ? getLevelAtDate(data.originalNick, paymentOp.date) : null;
       const effectiveLevel = levelAtPayment ?? currentLevel;
       const normAmount = effectiveLevel ? (CLAN_TAX_NORM[effectiveLevel] ?? DEFAULT_NORM) : (memberNorms[nickLower] || DEFAULT_NORM);
       const totalPaid = data.onTime + data.delayed;
