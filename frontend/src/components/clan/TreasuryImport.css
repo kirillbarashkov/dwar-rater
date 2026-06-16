@@ -940,6 +940,20 @@
   font-weight: 700;
 }
 
+.coverage-day.selected-start {
+  background: #22c55e;
+  color: var(--bg-primary);
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
+}
+
+.coverage-day.selected-end {
+  background: #ef4444;
+  color: var(--bg-primary);
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4);
+}
+
 .coverage-selected {
   margin-top: 8px;
   font-size: 13px;
@@ -952,6 +966,14 @@
 
 .coverage-selected strong {
   color: var(--accent);
+}
+
+.coverage-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .coverage-empty {

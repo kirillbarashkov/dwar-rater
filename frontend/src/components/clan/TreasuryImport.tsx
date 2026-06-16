@@ -176,6 +176,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
   const [dbOperations, setDbOperations] = useState<TreasuryOperationData[]>([]);
   const [dateCoverage, setDateCoverage] = useState<DateCoverage | null>(null);
   const [selectedStartDate, setSelectedStartDate] = useState<string | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<string | null>(null);
   const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
 
@@ -199,6 +200,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
       setDateCoverage(data);
       if (data.latest_date) {
         setSelectedStartDate(data.latest_date);
+        setSelectedEndDate(null);
       }
     }).catch(() => setDateCoverage(null));
   }, [clanId]);
@@ -293,6 +295,9 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     if (startDate !== '01.01.2025') {
       params.set('start_date', startDate);
     }
+    if (selectedEndDate) {
+      params.set('end_date', selectedEndDate);
+    }
     const url = `${apiBase}/api/clan/${clanId}/treasury/auto-fetch-stream?${params.toString()}`;
 
     const es = new EventSource(url);
@@ -384,7 +389,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     };
 
     setEventSource(es);
-  }, [clanId, refreshCookieStatus, selectedStartDate]);
+  }, [clanId, refreshCookieStatus, selectedStartDate, selectedEndDate]);
 
   const handleAutoImport = async () => {
     if (autoFetchOps.length === 0) return;
@@ -414,10 +419,32 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
   };
 
   const allParsedRows = useMemo((): ParsedRow[] => {
-    if (autoFetchOps.length > 0) return autoFetchOps;
+    if (autoFetchOps.length > 0) {
+      if (!selectedStartDate && !selectedEndDate) return autoFetchOps;
+      return autoFetchOps.filter((row) => {
+        const d = parseDate(row.date);
+        if (!d) return false;
+        const rowComparable = `${d.year}${String(d.month).padStart(2, '0')}${String(d.day).padStart(2, '0')}`;
+        if (selectedStartDate) {
+          const startD = parseDate(selectedStartDate);
+          if (startD) {
+            const startComparable = `${startD.year}${String(startD.month).padStart(2, '0')}${String(startD.day).padStart(2, '0')}`;
+            if (rowComparable < startComparable) return false;
+          }
+        }
+        if (selectedEndDate) {
+          const endD = parseDate(selectedEndDate);
+          if (endD) {
+            const endComparable = `${endD.year}${String(endD.month).padStart(2, '0')}${String(endD.day).padStart(2, '0')}`;
+            if (rowComparable > endComparable) return false;
+          }
+        }
+        return true;
+      });
+    }
     if (!pastedHtml.trim()) return [];
     return parseTreasuryOperations(pastedHtml);
-  }, [pastedHtml, autoFetchOps]);
+  }, [pastedHtml, autoFetchOps, selectedStartDate, selectedEndDate]);
 
   const importStatuses = useMemo((): Map<string, ImportStatus> => {
     const statuses = new Map<string, ImportStatus>();
@@ -693,20 +720,25 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                                       </button>
                                       {isMonthExpanded && (
                                         <div className="coverage-days">
-                                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
-                                            const dayStr = day.toString().padStart(2, '0');
-                                            const hasData = monthData.days.includes(dayStr);
-                                            const dateKey = `${dayStr}.${month}.${year}`;
-                                            const isSelected = selectedStartDate === dateKey;
-                                            return (
-                                              <div
-                                                key={day}
-                                                className={`coverage-day ${hasData ? 'has-data' : ''} ${isSelected ? 'selected' : ''}`}
-                                                onClick={() => hasData && setSelectedStartDate(dateKey)}
-                                              >
-                                                {day}
-                                              </div>
-                                            );
+                                           {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                                             const dayStr = day.toString().padStart(2, '0');
+                                             const hasData = monthData.days.includes(dayStr);
+                                             const dateKey = `${dayStr}.${month}.${year}`;
+                                             const isSelectedStart = selectedStartDate === dateKey;
+                                             const isSelectedEnd = selectedEndDate === dateKey;
+                                             return (
+                                               <div
+                                                 key={day}
+                                                 className={`coverage-day ${hasData ? 'has-data' : ''} ${isSelectedStart ? 'selected-start' : ''} ${isSelectedEnd ? 'selected-end' : ''}`}
+                                                 onClick={() => hasData && setSelectedStartDate(dateKey)}
+                                                 onContextMenu={(e) => {
+                                                   e.preventDefault();
+                                                   if (hasData) setSelectedEndDate(dateKey);
+                                                 }}
+                                               >
+                                                 {day}
+                                               </div>
+                                             );
                                           })}
                                         </div>
                                       )}
@@ -718,12 +750,13 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                           </div>
                         );
                       })}
-                    </div>
-                    {selectedStartDate && (
-                      <div className="coverage-selected">
-                        Выбрана дата старта: <strong>{selectedStartDate}</strong>
-                      </div>
-                    )}
+                     </div>
+                     {(selectedStartDate || selectedEndDate) && (
+                       <div className="coverage-selected">
+                         Диапазон импорта: <strong>{selectedStartDate || 'начало'}</strong> — <strong>{selectedEndDate || 'текущая дата'}</strong>
+                         <span className="coverage-hint">(ЛКМ — дата старта, ПКМ — дата окончания)</span>
+                       </div>
+                     )}
                   </>
                 ) : (
                   <div className="coverage-empty">
@@ -735,16 +768,16 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                 )}
               </section>
 
-              <section className="treasury-import-section treasury-auto-fetch-section">
-                <h3 className="treasury-import-section-title">Сбор данных</h3>
-                <div className="treasury-auto-fetch-info">
-                  <p>Данные будут собраны {selectedStartDate ? <>с <strong>{selectedStartDate}</strong></> : <>с <strong>01.01.2025</strong></>} по текущую дату.</p>
-                </div>
-                {autoFetchOps.length === 0 && !isAutoFetching && fetchProgress.phase !== 'error' && (
-                  <Button variant="primary" onClick={handleAutoFetch}>
-                    Начать сбор{selectedStartDate ? ` с ${selectedStartDate}` : ' с 01.01.2025'}
-                  </Button>
-                )}
+               <section className="treasury-import-section treasury-auto-fetch-section">
+                 <h3 className="treasury-import-section-title">Сбор данных</h3>
+                 <div className="treasury-auto-fetch-info">
+                   <p>Данные будут собраны за период: <strong>{selectedStartDate || '01.01.2025'}</strong> — <strong>{selectedEndDate || 'текущая дата'}</strong>.</p>
+                 </div>
+                 {autoFetchOps.length === 0 && !isAutoFetching && fetchProgress.phase !== 'error' && (
+                   <Button variant="primary" onClick={handleAutoFetch}>
+                     Начать сбор{selectedStartDate ? ` с ${selectedStartDate}` : ' с 01.01.2025'}{selectedEndDate ? ` по ${selectedEndDate}` : ''}
+                   </Button>
+                 )}
               {isAutoFetching && (
                 <div className="treasury-auto-fetch-progress">
                   <div className="progress-bar-container">

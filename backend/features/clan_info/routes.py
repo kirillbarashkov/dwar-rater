@@ -1206,7 +1206,8 @@ def auto_fetch_treasury_stream(clan_id):
     data_logger.info(f'[TREASURY] SSE auto-fetch starting for clan {clan_id}')
 
     start_date = request.args.get('start_date', '01.01.2025')
-    data_logger.info(f'[TREASURY] SSE start_date={start_date}')
+    end_date = request.args.get('end_date', None)
+    data_logger.info(f'[TREASURY] SSE start_date={start_date}, end_date={end_date}')
 
     def generate():
         session = requests.Session()
@@ -1219,7 +1220,7 @@ def auto_fetch_treasury_stream(clan_id):
                 key, value = part.split('=', 1)
                 session.cookies.set(key.strip(), unquote(value.strip()))
 
-        for event_type, data in fetch_all_pages_streaming(session, cutoff_date_str=start_date, max_pages=500):
+        for event_type, data in fetch_all_pages_streaming(session, cutoff_date_str=start_date, end_date_str=end_date, max_pages=500):
             payload = {'type': event_type}
             payload.update(data)
             yield f'data: {json.dumps(payload, ensure_ascii=False)}\n\n'

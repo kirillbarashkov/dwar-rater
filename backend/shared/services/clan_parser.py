@@ -270,11 +270,13 @@ def parse_total_pages(html):
     return None
 
 
-def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=500):
+def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', end_date_str=None, max_pages=500):
     """
     Generator that yields SSE-compatible progress events while fetching pages.
     Downloads pages starting from newest (page=0) and stops when all operations
     on a page are older than cutoff_date_str.
+
+    If end_date_str is provided, operations newer than end_date_str are excluded.
 
     Yields tuples: (event_type, data_dict)
     event_type: 'counting' | 'progress' | 'done' | 'error'
@@ -282,6 +284,7 @@ def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=5
     import time
 
     cutoff_comparable = _date_str_to_comparable(cutoff_date_str)
+    end_comparable = _date_str_to_comparable(end_date_str) if end_date_str else None
     all_operations = []
     start_time = time.time()
     total_pages = None
@@ -301,11 +304,16 @@ def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=5
     if total_pages is None or total_pages > max_pages:
         total_pages = max_pages
 
-    yield ('counting', {'total_pages': total_pages, 'cutoff_date': cutoff_date_str})
+    yield ('counting', {'total_pages': total_pages, 'cutoff_date': cutoff_date_str, 'end_date': end_date_str})
 
-    # Step 2: Parse page 0 operations, filter by cutoff
+    # Step 2: Parse page 0 operations, filter by cutoff and end_date
     page_ops = parse_clan_treasury_operations(html)
-    filtered_ops = [op for op in page_ops if _parse_date_to_comparable(op['date']) >= cutoff_comparable]
+    filtered_ops = []
+    for op in page_ops:
+        op_comparable = _parse_date_to_comparable(op['date'])
+        if op_comparable >= cutoff_comparable:
+            if end_comparable is None or op_comparable <= end_comparable:
+                filtered_ops.append(op)
     all_operations.extend(filtered_ops)
 
     yield ('progress', {
@@ -348,7 +356,12 @@ def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=5
 
         earliest_on_page = min((_parse_date_to_comparable(op['date']) for op in page_ops), default='')
         if earliest_on_page and earliest_on_page < cutoff_comparable:
-            filtered = [op for op in page_ops if _parse_date_to_comparable(op['date']) >= cutoff_comparable]
+            filtered = []
+            for op in page_ops:
+                op_comparable = _parse_date_to_comparable(op['date'])
+                if op_comparable >= cutoff_comparable:
+                    if end_comparable is None or op_comparable <= end_comparable:
+                        filtered.append(op)
             all_operations.extend(filtered)
             pages_fetched += 1
             yield ('progress', {
@@ -361,15 +374,28 @@ def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', max_pages=5
             })
             break
 
-        all_operations.extend(page_ops)
-        pages_fetched += 1
-        yield ('progress', {
-            'page': page,
-            'total_pages': total_pages,
-            'ops_on_page': len(page_ops),
-            'total_ops': len(all_operations),
-            'elapsed': round(time.time() - start_time, 1),
-        })
+        # Filter by end_date even when not at cutoff
+        if end_comparable is not None:
+            filtered = [op for op in page_ops if _parse_date_to_comparable(op['date']) <= end_comparable]
+            all_operations.extend(filtered)
+            pages_fetched += 1
+            yield ('progress', {
+                'page': page,
+                'total_pages': total_pages,
+                'ops_on_page': len(filtered),
+                'total_ops': len(all_operations),
+                'elapsed': round(time.time() - start_time, 1),
+            })
+        else:
+            all_operations.extend(page_ops)
+            pages_fetched += 1
+            yield ('progress', {
+                'page': page,
+                'total_pages': total_pages,
+                'ops_on_page': len(page_ops),
+                'total_ops': len(all_operations),
+                'elapsed': round(time.time() - start_time, 1),
+            })
 
     elapsed = round(time.time() - start_time, 1)
     yield ('done', {
