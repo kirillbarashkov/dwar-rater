@@ -739,63 +739,39 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                           <div className="estimate-details">
                             <span>Страницы: {pageEstimate.start_page} → {pageEstimate.end_page}</span>
                           </div>
-                          <Button variant="primary" onClick={() => {
+                          <Button variant="primary" onClick={async () => {
                             const est = pageEstimateRef.current;
                             if (!est) { estimatePages(); return; }
                             setIsAutoFetching(true);
                             setMessage(null);
                             setAutoFetchOps([]);
-                            setFetchProgress({ phase: 'counting', totalPages: est.total_pages, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: `Начинаю сбор: ~${est.estimated_pages} страниц...` });
-                            const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
-                            const token = localStorage.getItem('auth_token');
-                            const startDate = selectedStartDate || '01.01.2025';
-                            const params = new URLSearchParams({ token: token || '' });
-                            if (startDate !== '01.01.2025') params.set('start_date', startDate);
-                            if (selectedEndDate) params.set('end_date', selectedEndDate);
-                            params.set('start_page', String(est.start_page));
-                            params.set('end_page', String(est.end_page + 1));
-                            params.set('total_pages', String(est.total_pages));
-                            const url = `${apiBase}/api/clan/${clanId}/treasury/auto-fetch-stream?${params.toString()}`;
-                            const es = new EventSource(url);
-                            es.onmessage = (e) => {
-                              try {
-                                const data = JSON.parse(e.data);
-                                switch (data.type) {
-                                  case 'counting':
-                                    setFetchProgress({ phase: 'fetching', totalPages: data.total_pages, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: `Найдено ${data.total_pages} страниц. Начинаю сбор...` });
-                                    break;
-                                  case 'progress':
-                                    const pct = data.total_pages > 0 ? Math.round(((data.page + 1) / data.total_pages) * 100) : 0;
-                                    const elapsed = data.elapsed || 0;
-                                    const opsPerSec = data.page > 0 ? data.total_ops / elapsed : 0;
-                                    const remaining = data.total_pages - data.page - 1;
-                                    const eta = opsPerSec > 0 && remaining > 0 ? Math.round(remaining / opsPerSec) : 0;
-                                    setFetchProgress({ phase: 'fetching', totalPages: data.total_pages, currentPage: data.page + 1, totalOps: data.total_ops, opsOnPage: data.ops_on_page, elapsed, message: `Страница ${data.page + 1} из ${data.total_pages} (${pct}%) · ${data.total_ops} операций${eta > 0 ? ` · ~${eta}с осталось` : ''}` });
-                                    break;
-                                  case 'done':
-                                    setAutoFetchOps(data.operations as ParsedRow[]);
-                                    setFetchProgress({ phase: 'done', totalPages: data.pages_fetched, currentPage: data.pages_fetched, totalOps: data.total_ops, opsOnPage: 0, elapsed: data.elapsed, message: `Собрано ${data.total_ops} операций со ${data.pages_fetched} страниц за ${data.elapsed}с` });
-                                    es.close();
-                                    setEventSource(null);
-                                    setIsAutoFetching(false);
-                                    break;
-                                  case 'error':
-                                    setFetchProgress({ phase: 'error', totalPages: 0, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: data.message || 'Ошибка при сборе данных' });
-                                    if (data.reason === 'session_expired') refreshCookieStatus();
-                                    es.close();
-                                    setEventSource(null);
-                                    setIsAutoFetching(false);
-                                    break;
-                                }
-                              } catch (err) { console.error('SSE parse error:', err); }
-                            };
-                            es.onerror = () => {
-                              setFetchProgress((prev) => ({ ...prev, phase: 'error', message: prev.phase === 'error' ? prev.message : 'Соединение потеряно' }));
-                              es.close();
-                              setEventSource(null);
+                            setFetchProgress({ phase: 'fetching', totalPages: est.total_pages, currentPage: est.start_page, totalOps: 0, opsOnPage: 0, elapsed: 0, message: `Сбор со страниц ${est.start_page}...` });
+                            try {
+                              const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
+                              const token = localStorage.getItem('auth_token');
+                              const res = await fetch(`${apiBase}/api/clan/${clanId}/treasury/auto-fetch-json`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({
+                                  start_date: selectedStartDate || '01.01.2025',
+                                  end_date: selectedEndDate || undefined,
+                                  start_page: est.start_page,
+                                  end_page: est.end_page + 1,
+                                }),
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                setAutoFetchOps(data.operations as ParsedRow[]);
+                                setFetchProgress({ phase: 'done', totalPages: data.pages_fetched, currentPage: data.pages_fetched, totalOps: data.operations.length, opsOnPage: 0, elapsed: 0, message: data.message });
+                              } else {
+                                setFetchProgress({ phase: 'error', totalPages: 0, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: data.message || data.error || 'Ошибка' });
+                                if (data.error === 'session_expired') refreshCookieStatus();
+                              }
+                            } catch (err) {
+                              setFetchProgress({ phase: 'error', totalPages: 0, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: `Ошибка: ${err instanceof Error ? err.message : String(err)}` });
+                            } finally {
                               setIsAutoFetching(false);
-                            };
-                            setEventSource(es);
+                            }
                           }}>
                             Начать сбор ({pageEstimate.estimated_pages} страниц)
                           </Button>

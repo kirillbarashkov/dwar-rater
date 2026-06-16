@@ -1298,6 +1298,108 @@ def get_treasury_cookies_status(clan_id):
     )
 
 
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/auto-fetch-json", methods=["POST"]
+)
+@require_permission("clan_info", "admin")
+def auto_fetch_treasury_json(clan_id):
+    """JSON-based fetch for optimized range imports (no SSE)."""
+    from flask import g
+    from urllib.parse import unquote
+
+    if not g.current_user or g.current_user.role != "admin":
+        return jsonify({"error": "Только администратор"}), 403
+
+    cookie = ClanCookie.query.filter_by(clan_id=clan_id).first()
+    if not cookie or not cookie.is_valid:
+        return jsonify(
+            {
+                "success": False,
+                "error": "no_valid_cookies",
+                "message": "Нет валидных cookies.",
+            }
+        )
+
+    data = request.json or {}
+    start_date = data.get("start_date", "01.01.2025")
+    end_date = data.get("end_date")
+    start_page = data.get("start_page", 0)
+    end_page = data.get("end_page")
+
+    data_logger.info(
+        f"[TREASURY] JSON fetch: start_date={start_date}, end_date={end_date}, pages={start_page}-{end_page}"
+    )
+
+    session = requests.Session()
+    session.headers.update(
+        {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    )
+    for part in cookie.cookie_string.split(";"):
+        part = part.strip()
+        if "=" in part:
+            key, value = part.split("=", 1)
+            session.cookies.set(key.strip(), unquote(value.strip()))
+
+    all_operations = []
+    pages_fetched = 0
+    loop_start = start_page if start_page > 0 else 0
+    loop_end = end_page if end_page is not None else 500
+    cutoff_comparable = _date_str_to_comparable(start_date)
+    end_comparable = _date_str_to_comparable(end_date) if end_date else None
+
+    for page in range(loop_start, loop_end):
+        try:
+            html, session = fetch_clan_treasury_report(session=session, page=page)
+        except Exception as e:
+            return jsonify(
+                {"success": False, "error": f"Ошибка на странице {page}: {str(e)}"}
+            )
+
+        if is_login_redirect(html):
+            cookie.is_valid = False
+            db.session.commit()
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "session_expired",
+                    "message": "Сессия истекла",
+                }
+            )
+
+        page_ops = parse_clan_treasury_operations(html)
+        if not page_ops:
+            break
+
+        latest_on_page = max(
+            (_parse_date_to_comparable(op["date"]) for op in page_ops), default=""
+        )
+
+        if end_comparable and latest_on_page and latest_on_page < end_comparable:
+            break
+        if latest_on_page and latest_on_page < cutoff_comparable:
+            break
+
+        if end_comparable is not None:
+            filtered = [
+                op
+                for op in page_ops
+                if _parse_date_to_comparable(op["date"]) <= end_comparable
+            ]
+            all_operations.extend(filtered)
+        else:
+            all_operations.extend(page_ops)
+        pages_fetched += 1
+
+    return jsonify(
+        {
+            "success": True,
+            "operations": all_operations,
+            "pages_fetched": pages_fetched,
+            "message": f"Собрано {len(all_operations)} операций со {pages_fetched} страниц",
+        }
+    )
+
+
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/auto-fetch", methods=["POST"])
 @require_permission("clan_info", "admin")
 def auto_fetch_treasury(clan_id):
