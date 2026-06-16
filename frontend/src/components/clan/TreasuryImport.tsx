@@ -179,7 +179,6 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
   const [selectedEndDate, setSelectedEndDate] = useState<string | null>(null);
   const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
-  const [showCoverageTree, setShowCoverageTree] = useState(false);
 
   const [cookieStatus, setCookieStatus] = useState<{ has_cookies: boolean; is_valid: boolean; updated_at?: string | null }>({ has_cookies: false, is_valid: false });
   const [showCookieEditor, setShowCookieEditor] = useState(false);
@@ -223,60 +222,6 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
   const refreshCookieStatus = useCallback(() => {
     getTreasuryCookiesStatus(clanId).then(setCookieStatus).catch(() => setCookieStatus({ has_cookies: false, is_valid: false }));
   }, [clanId]);
-
-  const formatDate = (d: Date): string => {
-    return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getFullYear()}`;
-  };
-
-  const applyDatePreset = (preset: string) => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    switch (preset) {
-      case 'today':
-        setSelectedStartDate(formatDate(today));
-        setSelectedEndDate(formatDate(today));
-        break;
-      case 'yesterday': {
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        setSelectedStartDate(formatDate(yesterday));
-        setSelectedEndDate(formatDate(yesterday));
-        break;
-      }
-      case 'this_week': {
-        const dayOfWeek = today.getDay();
-        const monday = new Date(today);
-        monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-        setSelectedStartDate(formatDate(monday));
-        setSelectedEndDate(formatDate(today));
-        break;
-      }
-      case 'this_month': {
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        setSelectedStartDate(formatDate(firstDay));
-        setSelectedEndDate(formatDate(today));
-        break;
-      }
-      case 'last_30': {
-        const thirtyDaysAgo = new Date(today);
-        thirtyDaysAgo.setDate(today.getDate() - 30);
-        setSelectedStartDate(formatDate(thirtyDaysAgo));
-        setSelectedEndDate(formatDate(today));
-        break;
-      }
-      case 'last_7': {
-        const sevenDaysAgo = new Date(today);
-        sevenDaysAgo.setDate(today.getDate() - 7);
-        setSelectedStartDate(formatDate(sevenDaysAgo));
-        setSelectedEndDate(formatDate(today));
-        break;
-      }
-      case 'all':
-        setSelectedStartDate(null);
-        setSelectedEndDate(null);
-        break;
-    }
-  };
 
   const openCookieEditor = () => {
     setShowCookieEditor(true);
@@ -665,146 +610,108 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
 
           {cookieStatus.has_cookies && cookieStatus.is_valid && (
             <>
-              <section className="treasury-import-section treasury-range-section">
-                <h3 className="treasury-import-section-title">
-                  <span>Диапазон импорта</span>
-                  <button type="button" className="coverage-tree-toggle" onClick={() => setShowCoverageTree(!showCoverageTree)}>
-                    {showCoverageTree ? '▾ Скрыть календарь' : '▸ Показать календарь'}
-                  </button>
-                </h3>
-
-                <div className="range-inputs">
-                  <div className="range-input-group">
-                    <label className="range-label">Начало</label>
-                    <input
-                      type="text"
-                      className="range-input"
-                      placeholder="ДД.ММ.ГГГГ"
-                      value={selectedStartDate || ''}
-                      onChange={(e) => setSelectedStartDate(e.target.value || null)}
-                    />
-                  </div>
-                  <span className="range-separator">→</span>
-                  <div className="range-input-group">
-                    <label className="range-label">Окончание</label>
-                    <input
-                      type="text"
-                      className="range-input"
-                      placeholder="ДД.ММ.ГГГГ"
-                      value={selectedEndDate || ''}
-                      onChange={(e) => setSelectedEndDate(e.target.value || null)}
-                    />
-                  </div>
-                  {(selectedStartDate || selectedEndDate) && (
-                    <button type="button" className="range-clear-btn" onClick={() => { setSelectedStartDate(null); setSelectedEndDate(null); }}>
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                <div className="range-presets">
-                  <span className="range-presets-label">Быстрый выбор:</span>
-                  <div className="range-preset-buttons">
-                    <button type="button" className="range-preset-btn" onClick={() => applyDatePreset('today')}>Сегодня</button>
-                    <button type="button" className="range-preset-btn" onClick={() => applyDatePreset('yesterday')}>Вчера</button>
-                    <button type="button" className="range-preset-btn" onClick={() => applyDatePreset('this_week')}>Эта неделя</button>
-                    <button type="button" className="range-preset-btn" onClick={() => applyDatePreset('this_month')}>Этот месяц</button>
-                    <button type="button" className="range-preset-btn" onClick={() => applyDatePreset('last_7')}>7 дней</button>
-                    <button type="button" className="range-preset-btn" onClick={() => applyDatePreset('last_30')}>30 дней</button>
-                    <button type="button" className="range-preset-btn range-preset-all" onClick={() => applyDatePreset('all')}>Всё время</button>
-                  </div>
-                </div>
-
-                {dateCoverage && dateCoverage.total_dates_with_data > 0 && (
-                  <div className="coverage-summary-inline">
-                    <span>Данные в базе: {dateCoverage.earliest_date} — {dateCoverage.latest_date} ({dateCoverage.total_operations} операций)</span>
-                  </div>
-                )}
-
-                {showCoverageTree && dateCoverage && dateCoverage.total_dates_with_data > 0 && (
-                  <div className="coverage-tree">
-                    {Object.entries(dateCoverage.years).map(([year, yearData]) => {
-                      const yearKey = year;
-                      const isYearExpanded = expandedYears.has(yearKey);
-                      return (
-                        <div key={yearKey} className="coverage-year">
-                          <button
-                            type="button"
-                            className="coverage-year-header"
-                            onClick={() => {
-                              const next = new Set(expandedYears);
-                              if (next.has(yearKey)) next.delete(yearKey); else next.add(yearKey);
-                              setExpandedYears(next);
-                            }}
-                          >
-                            <span className="coverage-toggle">{isYearExpanded ? '▾' : '▸'}</span>
-                            <span className="coverage-year-label">{year}</span>
-                            <span className="coverage-year-count">{yearData.total_ops} операций</span>
-                          </button>
-                          {isYearExpanded && (
-                            <div className="coverage-months">
-                              {Object.entries(yearData.months).map(([month, monthData]) => {
-                                const monthKey = `${yearKey}-${month}`;
-                                const isMonthExpanded = expandedMonths.has(monthKey);
-                                const monthName = MONTHS_RU[parseInt(month, 10)] || month;
-                                return (
-                                  <div key={monthKey} className="coverage-month">
-                                    <button
-                                      type="button"
-                                      className="coverage-month-header"
-                                      onClick={() => {
-                                        const next = new Set(expandedMonths);
-                                        if (next.has(monthKey)) next.delete(monthKey); else next.add(monthKey);
-                                        setExpandedMonths(next);
-                                      }}
-                                    >
-                                      <span className="coverage-toggle">{isMonthExpanded ? '▾' : '▸'}</span>
-                                      <span>{monthName}</span>
-                                      <span className="coverage-month-count">{monthData.total_ops} операций</span>
-                                    </button>
-                                    {isMonthExpanded && (
-                                      <div className="coverage-days">
-                                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
-                                          const dayStr = day.toString().padStart(2, '0');
-                                          const hasData = monthData.days.includes(dayStr);
-                                          const dateKey = `${dayStr}.${month}.${year}`;
-                                          const isInRange = selectedStartDate && selectedEndDate && dateKey >= selectedStartDate && dateKey <= selectedEndDate;
-                                          const isSelectedStart = selectedStartDate === dateKey;
-                                          const isSelectedEnd = selectedEndDate === dateKey;
-                                          return (
-                                            <div
-                                              key={day}
-                                              type="button"
-                                              className={`coverage-day ${hasData ? 'has-data' : ''} ${isSelectedStart ? 'selected-start' : ''} ${isSelectedEnd ? 'selected-end' : ''} ${isInRange ? 'in-range' : ''}`}
-                                              onClick={() => {
-                                                if (!hasData) return;
-                                                if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
-                                                  setSelectedStartDate(dateKey);
-                                                  setSelectedEndDate(null);
-                                                } else {
-                                                  if (dateKey >= selectedStartDate) {
-                                                    setSelectedEndDate(dateKey);
-                                                  } else {
-                                                    setSelectedEndDate(selectedStartDate);
-                                                    setSelectedStartDate(dateKey);
-                                                  }
-                                                }
-                                              }}
-                                            >
-                                              {day}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
+              <section className="treasury-import-section treasury-coverage-section">
+                <h3 className="treasury-import-section-title">Покрытие базы данных</h3>
+                {dateCoverage && dateCoverage.total_dates_with_data > 0 ? (
+                  <>
+                    <div className="coverage-summary">
+                      <span>{dateCoverage.total_dates_with_data} дней с данными</span>
+                      <span>{dateCoverage.total_operations} операций</span>
+                      {dateCoverage.earliest_date && dateCoverage.latest_date && (
+                        <span>{dateCoverage.earliest_date} — {dateCoverage.latest_date}</span>
+                      )}
+                    </div>
+                    <div className="coverage-tree">
+                      {Object.entries(dateCoverage.years).map(([year, yearData]) => {
+                        const yearKey = year;
+                        const isYearExpanded = expandedYears.has(yearKey);
+                        return (
+                          <div key={yearKey} className="coverage-year">
+                            <button
+                              className="coverage-year-header"
+                              onClick={() => {
+                                const next = new Set(expandedYears);
+                                if (next.has(yearKey)) next.delete(yearKey); else next.add(yearKey);
+                                setExpandedYears(next);
+                              }}
+                            >
+                              <span className="coverage-toggle">{isYearExpanded ? '▾' : '▸'}</span>
+                              <span className="coverage-year-label">{year}</span>
+                              <span className="coverage-year-count">{yearData.total_ops} операций</span>
+                            </button>
+                            {isYearExpanded && (
+                              <div className="coverage-months">
+                                {Object.entries(yearData.months).map(([month, monthData]) => {
+                                  const monthKey = `${yearKey}-${month}`;
+                                  const isMonthExpanded = expandedMonths.has(monthKey);
+                                  const monthName = MONTHS_RU[parseInt(month, 10)] || month;
+                                  return (
+                                    <div key={monthKey} className="coverage-month">
+                                      <button
+                                        className="coverage-month-header"
+                                        onClick={() => {
+                                          const next = new Set(expandedMonths);
+                                          if (next.has(monthKey)) next.delete(monthKey); else next.add(monthKey);
+                                          setExpandedMonths(next);
+                                        }}
+                                      >
+                                        <span className="coverage-toggle">{isMonthExpanded ? '▾' : '▸'}</span>
+                                        <span>{monthName}</span>
+                                        <span className="coverage-month-count">{monthData.total_ops} операций</span>
+                                      </button>
+                                      {isMonthExpanded && (
+                                        <div className="coverage-days">
+                                           {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                                             const dayStr = day.toString().padStart(2, '0');
+                                             const hasData = monthData.days.includes(dayStr);
+                                             const dateKey = `${dayStr}.${month}.${year}`;
+                                             const isSelectedStart = selectedStartDate === dateKey;
+                                             const isSelectedEnd = selectedEndDate === dateKey;
+                                             return (
+                                               <div
+                                                 key={day}
+                                                 className={`coverage-day ${hasData ? 'has-data' : ''} ${isSelectedStart ? 'selected-start' : ''} ${isSelectedEnd ? 'selected-end' : ''}`}
+                                                 onClick={() => hasData && setSelectedStartDate(dateKey)}
+                                                 onContextMenu={(e) => {
+                                                   e.preventDefault();
+                                                   if (hasData) setSelectedEndDate(dateKey);
+                                                 }}
+                                               >
+                                                 {day}
+                                               </div>
+                                             );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                     </div>
+                      {(selectedStartDate || selectedEndDate) && (
+                        <div className="coverage-selected">
+                          Диапазон импорта: <strong>{selectedStartDate || 'начало'}</strong> — <strong>{selectedEndDate || 'текущая дата'}</strong>
+                          <span className="coverage-hint">(ЛКМ — дата старта, ПКМ — дата окончания)</span>
+                          <Button type="button" variant="ghost" size="small" onClick={() => {
+                            const now = new Date();
+                            const today = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()}`;
+                            setSelectedEndDate(today);
+                          }}>
+                            Сегодня
+                          </Button>
                         </div>
-                      );
-                    })}
+                      )}
+                  </>
+                ) : (
+                  <div className="coverage-empty">
+                    <p>Нет данных в базе. Запустите первый импорт.</p>
+                    <Button variant="secondary" size="small" onClick={loadDateCoverage}>
+                      Обновить
+                    </Button>
                   </div>
                 )}
               </section>
