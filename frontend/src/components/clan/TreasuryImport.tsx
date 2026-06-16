@@ -692,12 +692,19 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                         );
                       })}
                      </div>
-                     {(selectedStartDate || selectedEndDate) && (
-                       <div className="coverage-selected">
-                         Диапазон импорта: <strong>{selectedStartDate || 'начало'}</strong> — <strong>{selectedEndDate || 'текущая дата'}</strong>
-                         <span className="coverage-hint">(ЛКМ — дата старта, ПКМ — дата окончания)</span>
-                       </div>
-                     )}
+                      {(selectedStartDate || selectedEndDate) && (
+                        <div className="coverage-selected">
+                          Диапазон импорта: <strong>{selectedStartDate || 'начало'}</strong> — <strong>{selectedEndDate || 'текущая дата'}</strong>
+                          <span className="coverage-hint">(ЛКМ — дата старта, ПКМ — дата окончания)</span>
+                          <Button type="button" variant="ghost" size="small" onClick={() => {
+                            const now = new Date();
+                            const today = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()}`;
+                            setSelectedEndDate(today);
+                          }}>
+                            Сегодня
+                          </Button>
+                        </div>
+                      )}
                   </>
                 ) : (
                   <div className="coverage-empty">
