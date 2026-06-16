@@ -738,6 +738,33 @@
   margin-top: 8px;
 }
 
+.treasury-estimate-result {
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.estimate-summary {
+  font-size: 15px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.estimate-summary strong {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+.estimate-details {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 .auto-fetch-summary {
   font-size: 14px;
   color: var(--text-primary);

@@ -248,6 +248,155 @@ def _date_str_to_comparable(date_str):
     return f'{m.group(3)}{m.group(2)}{m.group(1)}'
 
 
+def _date_str_to_comparable_with_time(date_str):
+    """Convert 'DD.MM.YYYY' or 'DD.MM.YYYY HH:MM' to comparable string 'YYYYMMDDHHMM'."""
+    m = re.match(r'(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})', date_str)
+    if m:
+        return f'{m.group(3)}{m.group(2)}{m.group(1)}{m.group(4)}{m.group(5)}'
+    m = re.match(r'(\d{2})\.(\d{2})\.(\d{4})', date_str)
+    if m:
+        return f'{m.group(3)}{m.group(2)}{m.group(1)}2359'
+    return ''
+
+
+def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500):
+    """
+    Binary search to estimate page count in a date range without downloading all pages.
+
+    Returns dict with:
+      - start_page: first page with data >= start_date (newer boundary)
+      - end_page: last page with data <= end_date (older boundary)
+      - estimated_pages: number of pages in range
+      - total_pages: total pages available
+      - sample_dates: {page_0_latest, page_0_earliest, start_page_latest, end_page_earliest}
+    """
+    # Fetch page 0 to get total pages and date range
+    html, session = fetch_clan_treasury_report(session=session, page=0)
+    if is_login_redirect(html):
+        return {'error': 'session_expired', 'message': 'Сессия истекла'}
+
+    total_pages = parse_total_pages(html)
+    if total_pages is None or total_pages > max_pages:
+        total_pages = max_pages
+
+    page_ops = parse_clan_treasury_operations(html)
+    if not page_ops:
+        return {
+            'start_page': 0,
+            'end_page': 0,
+            'estimated_pages': 0,
+            'total_pages': total_pages,
+            'sample_dates': {},
+        }
+
+    start_comparable = _date_str_to_comparable_with_time(start_date_str)
+    end_comparable = _date_str_to_comparable_with_time(end_date_str)
+
+    # Check if page 0 has any data in range
+    latest_on_page_0 = max((_parse_date_to_comparable(op['date']) for op in page_ops), default='')
+    earliest_on_page_0 = min((_parse_date_to_comparable(op['date']) for op in page_ops), default='')
+
+    # If even the newest op is older than start_date → no data in range
+    if latest_on_page_0 and latest_on_page_0 < start_comparable:
+        return {
+            'start_page': 0,
+            'end_page': 0,
+            'estimated_pages': 0,
+            'total_pages': total_pages,
+            'sample_dates': {
+                'page_0_latest': latest_on_page_0,
+                'page_0_earliest': earliest_on_page_0,
+            },
+        }
+
+    # Binary search: find the page where latest op <= end_date (upper boundary)
+    # Pages go newest → oldest, so we search for the first page where ALL ops are <= end_date
+    def find_end_boundary(low, high):
+        """Find first page where latest_on_page <= end_comparable."""
+        result = high
+        while low <= high:
+            mid = (low + high) // 2
+            try:
+                mid_html, _ = fetch_clan_treasury_report(session=session, page=mid)
+                if is_login_redirect(mid_html):
+                    return result
+                mid_ops = parse_clan_treasury_operations(mid_html)
+                if not mid_ops:
+                    high = mid - 1
+                    continue
+                mid_latest = max((_parse_date_to_comparable(op['date']) for op in mid_ops), default='')
+                if mid_latest and mid_latest <= end_comparable:
+                    result = mid
+                    high = mid - 1
+                else:
+                    low = mid + 1
+            except Exception:
+                break
+        return result
+
+    # Binary search: find the page where earliest op >= start_date (lower boundary)
+    def find_start_boundary(low, high):
+        """Find last page where earliest_on_page >= start_comparable."""
+        result = low
+        while low <= high:
+            mid = (low + high) // 2
+            try:
+                mid_html, _ = fetch_clan_treasury_report(session=session, page=mid)
+                if is_login_redirect(mid_html):
+                    return result
+                mid_ops = parse_clan_treasury_operations(mid_html)
+                if not mid_ops:
+                    low = mid + 1
+                    continue
+                mid_earliest = min((_parse_date_to_comparable(op['date']) for op in mid_ops), default='')
+                if mid_earliest and mid_earliest >= start_comparable:
+                    result = mid
+                    low = mid + 1
+                else:
+                    high = mid - 1
+            except Exception:
+                break
+        return result
+
+    # Find boundaries
+    end_page = find_end_boundary(0, total_pages - 1)
+    start_page = find_start_boundary(end_page, total_pages - 1)
+
+    estimated_pages = start_page - end_page + 1
+
+    # Get sample dates from boundary pages
+    sample_dates = {
+        'page_0_latest': latest_on_page_0,
+        'page_0_earliest': earliest_on_page_0,
+    }
+
+    try:
+        end_html, _ = fetch_clan_treasury_report(session=session, page=end_page)
+        end_ops = parse_clan_treasury_operations(end_html)
+        if end_ops:
+            sample_dates['end_page_latest'] = max((_parse_date_to_comparable(op['date']) for op in end_ops), default='')
+            sample_dates['end_page_earliest'] = min((_parse_date_to_comparable(op['date']) for op in end_ops), default='')
+    except Exception:
+        pass
+
+    try:
+        start_html, _ = fetch_clan_treasury_report(session=session, page=start_page)
+        start_ops = parse_clan_treasury_operations(start_html)
+        if start_ops:
+            sample_dates['start_page_latest'] = max((_parse_date_to_comparable(op['date']) for op in start_ops), default='')
+            sample_dates['start_page_earliest'] = min((_parse_date_to_comparable(op['date']) for op in start_ops), default='')
+    except Exception:
+        pass
+
+    return {
+        'start_page': end_page,
+        'end_page': start_page,
+        'estimated_pages': max(0, estimated_pages),
+        'total_pages': total_pages,
+        'sample_dates': sample_dates,
+    }
+
+
 def is_login_redirect(html):
     """Check if HTML response is a login redirect page.
 
@@ -270,11 +419,13 @@ def parse_total_pages(html):
     return None
 
 
-def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', end_date_str=None, max_pages=500):
+def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', end_date_str=None, max_pages=500, start_page=0, end_page=None, total_pages_override=None):
     """
     Generator that yields SSE-compatible progress events while fetching pages.
-    Downloads pages starting from newest (page=0) and stops when all operations
-    on a page are older than cutoff_date_str.
+    Downloads pages starting from start_page (default 0 = newest) and stops when:
+    - All operations on a page are older than cutoff_date_str
+    - All operations on a page are older than end_date_str (if provided)
+    - Page exceeds end_page (if provided, for optimized range imports)
 
     If end_date_str is provided, operations newer than end_date_str are excluded.
 
@@ -284,63 +435,70 @@ def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', end_date_st
     import time
 
     cutoff_comparable = _date_str_to_comparable(cutoff_date_str)
-    end_comparable = _date_str_to_comparable(end_date_str) if end_date_str else None
+    end_comparable = _date_str_to_comparable_with_time(end_date_str) if end_date_str else None
     all_operations = []
     start_time = time.time()
-    total_pages = None
+    total_pages = total_pages_override
 
-    # Step 1: Fetch page 0 to count total pages
-    try:
-        html, session = fetch_clan_treasury_report(session=session, page=0)
-    except Exception as e:
-        yield ('error', {'reason': 'fetch_error', 'message': f'Ошибка загрузки: {str(e)}'})
-        return
+    # If we have a pre-computed start_page, skip directly to it
+    if start_page > 0 and total_pages is not None:
+        data_logger.info(f'[PARSER] Optimized range import: pages {start_page}-{end_page or "end"}')
+        yield ('counting', {'total_pages': total_pages, 'cutoff_date': cutoff_date_str, 'end_date': end_date_str, 'start_page': start_page, 'end_page': end_page})
+    else:
+        # Step 1: Fetch page 0 to count total pages
+        try:
+            html, session = fetch_clan_treasury_report(session=session, page=0)
+        except Exception as e:
+            yield ('error', {'reason': 'fetch_error', 'message': f'Ошибка загрузки: {str(e)}'})
+            return
 
-    if is_login_redirect(html):
-        yield ('error', {'reason': 'session_expired', 'message': 'Сессия истекла, обновите cookies'})
-        return
+        if is_login_redirect(html):
+            yield ('error', {'reason': 'session_expired', 'message': 'Сессия истекла, обновите cookies'})
+            return
 
-    total_pages = parse_total_pages(html)
-    if total_pages is None or total_pages > max_pages:
-        total_pages = max_pages
+        total_pages = parse_total_pages(html)
+        if total_pages is None or total_pages > max_pages:
+            total_pages = max_pages
 
-    yield ('counting', {'total_pages': total_pages, 'cutoff_date': cutoff_date_str, 'end_date': end_date_str})
+        yield ('counting', {'total_pages': total_pages, 'cutoff_date': cutoff_date_str, 'end_date': end_date_str})
 
-    # Step 2: Parse page 0 operations, filter by cutoff and end_date
-    page_ops = parse_clan_treasury_operations(html)
-    filtered_ops = []
-    for op in page_ops:
-        op_comparable = _parse_date_to_comparable(op['date'])
-        if op_comparable >= cutoff_comparable:
-            if end_comparable is None or op_comparable <= end_comparable:
-                filtered_ops.append(op)
-    all_operations.extend(filtered_ops)
+        # Step 2: Parse page 0 operations, filter by cutoff and end_date
+        page_ops = parse_clan_treasury_operations(html)
+        filtered_ops = []
+        for op in page_ops:
+            op_comparable = _parse_date_to_comparable(op['date'])
+            if op_comparable >= cutoff_comparable:
+                if end_comparable is None or op_comparable <= end_comparable:
+                    filtered_ops.append(op)
+        all_operations.extend(filtered_ops)
 
-    yield ('progress', {
-        'page': 0,
-        'total_pages': total_pages,
-        'ops_on_page': len(filtered_ops),
-        'total_ops': len(all_operations),
-        'elapsed': round(time.time() - start_time, 1),
-    })
-
-    # Check if page 0 already has all operations older than cutoff
-    earliest_on_page_0 = min((_parse_date_to_comparable(op['date']) for op in page_ops), default='')
-    if earliest_on_page_0 and earliest_on_page_0 < cutoff_comparable and not filtered_ops:
-        data_logger.info(f'[PARSER] Page 0 already older than cutoff {cutoff_date_str}, stopping')
-        elapsed = round(time.time() - start_time, 1)
-        yield ('done', {
+        yield ('progress', {
+            'page': 0,
+            'total_pages': total_pages,
+            'ops_on_page': len(filtered_ops),
             'total_ops': len(all_operations),
-            'pages_fetched': 1,
-            'elapsed': elapsed,
-            'operations': all_operations,
+            'elapsed': round(time.time() - start_time, 1),
         })
-        return
 
-    # Step 3: Fetch remaining pages, stop when all ops are older than cutoff
-    #         or (with end_date) when all ops are older than end_date
-    pages_fetched = 1
-    for page in range(1, total_pages):
+        # Check if page 0 already has all operations older than cutoff
+        earliest_on_page_0 = min((_parse_date_to_comparable(op['date']) for op in page_ops), default='')
+        if earliest_on_page_0 and earliest_on_page_0 < cutoff_comparable and not filtered_ops:
+            data_logger.info(f'[PARSER] Page 0 already older than cutoff {cutoff_date_str}, stopping')
+            elapsed = round(time.time() - start_time, 1)
+            yield ('done', {
+                'total_ops': len(all_operations),
+                'pages_fetched': 1,
+                'elapsed': elapsed,
+                'operations': all_operations,
+            })
+            return
+
+    # Step 3: Fetch pages from start_page (or 1) to end_page (or total_pages)
+    loop_start = start_page if start_page > 0 else 1
+    loop_end = end_page if end_page is not None else total_pages
+    pages_fetched = len(all_operations) > 0 and start_page == 0
+
+    for page in range(loop_start, loop_end):
         try:
             html, session = fetch_clan_treasury_report(session=session, page=page)
         except Exception as e:

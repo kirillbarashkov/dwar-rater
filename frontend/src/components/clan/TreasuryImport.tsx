@@ -189,6 +189,14 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
 
   const [autoFetchOps, setAutoFetchOps] = useState<ParsedRow[]>([]);
   const [isAutoFetching, setIsAutoFetching] = useState(false);
+  const [pageEstimate, setPageEstimate] = useState<{
+    estimated_pages: number;
+    start_page: number;
+    end_page: number;
+    total_pages: number;
+    sample_dates: Record<string, string>;
+  } | null>(null);
+  const [isEstimating, setIsEstimating] = useState(false);
 
   useEffect(() => {
     getTreasuryOperations(clanId).then(setDbOperations).catch(() => setDbOperations([]));
@@ -282,11 +290,54 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     setFetchProgress((prev) => ({ ...prev, phase: 'error', message: 'Сбор отменён пользователем' }));
   }, [eventSource]);
 
+  const estimatePages = useCallback(async () => {
+    setIsEstimating(true);
+    setPageEstimate(null);
+    setMessage(null);
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
+      const token = localStorage.getItem('auth_token');
+      const startDate = selectedStartDate || '01.01.2025';
+      const res = await fetch(`${apiBase}/api/clan/${clanId}/treasury/estimate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          start_date: startDate,
+          end_date: selectedEndDate || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPageEstimate({
+          estimated_pages: data.estimated_pages,
+          start_page: data.start_page,
+          end_page: data.end_page,
+          total_pages: data.total_pages,
+          sample_dates: data.sample_dates,
+        });
+      } else {
+        setMessage({ type: 'error', text: data.message || data.error || 'Ошибка оценки' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: `Ошибка: ${err instanceof Error ? err.message : String(err)}` });
+    } finally {
+      setIsEstimating(false);
+    }
+  }, [clanId, selectedStartDate, selectedEndDate]);
+
   const handleAutoFetch = useCallback(() => {
+    if (!pageEstimate) {
+      estimatePages();
+      return;
+    }
+
     setIsAutoFetching(true);
     setMessage(null);
     setAutoFetchOps([]);
-    setFetchProgress({ phase: 'counting', totalPages: 0, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: 'Определяю количество страниц...' });
+    setFetchProgress({ phase: 'counting', totalPages: pageEstimate.total_pages, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: `Начинаю сбор: ~${pageEstimate.estimated_pages} страниц...` });
 
     const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
     const token = localStorage.getItem('auth_token');
@@ -298,6 +349,9 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     if (selectedEndDate) {
       params.set('end_date', selectedEndDate);
     }
+    params.set('start_page', String(pageEstimate.start_page));
+    params.set('end_page', String(pageEstimate.end_page + 1));
+    params.set('total_pages', String(pageEstimate.total_pages));
     const url = `${apiBase}/api/clan/${clanId}/treasury/auto-fetch-stream?${params.toString()}`;
 
     const es = new EventSource(url);
@@ -768,16 +822,48 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                 )}
               </section>
 
-               <section className="treasury-import-section treasury-auto-fetch-section">
-                 <h3 className="treasury-import-section-title">Сбор данных</h3>
-                 <div className="treasury-auto-fetch-info">
-                   <p>Данные будут собраны за период: <strong>{selectedStartDate || '01.01.2025'}</strong> — <strong>{selectedEndDate || 'текущая дата'}</strong>.</p>
-                 </div>
-                 {autoFetchOps.length === 0 && !isAutoFetching && fetchProgress.phase !== 'error' && (
-                   <Button variant="primary" onClick={handleAutoFetch}>
-                     Начать сбор{selectedStartDate ? ` с ${selectedStartDate}` : ' с 01.01.2025'}{selectedEndDate ? ` по ${selectedEndDate}` : ''}
-                   </Button>
-                 )}
+                <section className="treasury-import-section treasury-auto-fetch-section">
+                  <h3 className="treasury-import-section-title">Сбор данных</h3>
+                  <div className="treasury-auto-fetch-info">
+                    <p>Данные будут собраны за период: <strong>{selectedStartDate || '01.01.2025'}</strong> — <strong>{selectedEndDate || 'текущая дата'}</strong>.</p>
+                  </div>
+                  {autoFetchOps.length === 0 && !isAutoFetching && fetchProgress.phase !== 'error' && (
+                    <>
+                      {!pageEstimate && !isEstimating && (
+                        <Button variant="primary" onClick={estimatePages}>
+                          Оценить количество страниц
+                        </Button>
+                      )}
+                      {isEstimating && (
+                        <div className="treasury-auto-fetch-progress">
+                          <div className="progress-bar-container">
+                            <div className="progress-bar">
+                              <div className="progress-bar-fill" style={{ width: '100%', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                            </div>
+                          </div>
+                          <div className="progress-details">
+                            <span className="progress-text">Оценка количества страниц...</span>
+                          </div>
+                        </div>
+                      )}
+                      {pageEstimate && !isEstimating && (
+                        <div className="treasury-estimate-result">
+                          <p className="estimate-summary">
+                            Найдено <strong>~{pageEstimate.estimated_pages} страниц</strong> из {pageEstimate.total_pages} в выбранном диапазоне.
+                          </p>
+                          <div className="estimate-details">
+                            <span>Страницы: {pageEstimate.start_page} → {pageEstimate.end_page}</span>
+                          </div>
+                          <Button variant="primary" onClick={handleAutoFetch}>
+                            Начать сбор ({pageEstimate.estimated_pages} страниц)
+                          </Button>
+                          <Button variant="secondary" size="small" onClick={() => setPageEstimate(null)} style={{ marginLeft: '8px' }}>
+                            Пересчитать
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
               {isAutoFetching && (
                 <div className="treasury-auto-fetch-progress">
                   <div className="progress-bar-container">

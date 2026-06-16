@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 import requests
-from shared.services.clan_parser import fetch_clan_page, parse_clan_info, fetch_clan_treasury_report, parse_clan_treasury_operations, fetch_all_pages_until_date, fetch_all_pages_streaming, is_login_redirect, fetch_clan_management_page, parse_clan_members_from_management, fetch_clan_history_page, parse_clan_history_events, fetch_all_history_pages_streaming, parse_level_change_events, fetch_level_events_streaming
+from shared.services.clan_parser import fetch_clan_page, parse_clan_info, fetch_clan_treasury_report, parse_clan_treasury_operations, fetch_all_pages_until_date, fetch_all_pages_streaming, is_login_redirect, fetch_clan_management_page, parse_clan_members_from_management, fetch_clan_history_page, parse_clan_history_events, fetch_all_history_pages_streaming, parse_level_change_events, fetch_level_events_streaming, estimate_pages_in_range
 from shared.services.data_logger import data_logger
 from shared.models import db
 from shared.models.clan_info import ClanInfo, ClanMemberInfo, TreasuryOperation, ClanCookie, ClanMembershipEvent, ClanLevelChangeEvent
@@ -1171,6 +1171,56 @@ def auto_fetch_treasury(clan_id):
     })
 
 
+@clan_info_bp.route('/api/clan/<int:clan_id>/treasury/estimate', methods=['POST'])
+@require_permission('clan_info', 'admin')
+def estimate_treasury_pages(clan_id):
+    """Binary search to estimate page count in a date range before import."""
+    from flask import g
+    from urllib.parse import unquote
+
+    if not g.current_user or g.current_user.role != 'admin':
+        return jsonify({'error': 'Только администратор'}), 403
+
+    cookie = ClanCookie.query.filter_by(clan_id=clan_id).first()
+    if not cookie or not cookie.is_valid:
+        return jsonify({
+            'success': False,
+            'error': 'no_valid_cookies',
+            'message': 'Нет валидных cookies.',
+        })
+
+    data = request.json or {}
+    start_date = data.get('start_date', '01.01.2025')
+    end_date = data.get('end_date')
+
+    data_logger.info(f'[TREASURY] Estimating pages for clan {clan_id}: {start_date} to {end_date}')
+
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    })
+    for part in cookie.cookie_string.split(';'):
+        part = part.strip()
+        if '=' in part:
+            key, value = part.split('=', 1)
+            session.cookies.set(key.strip(), unquote(value.strip()))
+
+    result = estimate_pages_in_range(session, start_date, end_date)
+
+    if 'error' in result:
+        return jsonify({'success': False, 'error': result['error'], 'message': result.get('message', '')})
+
+    return jsonify({
+        'success': True,
+        'start_page': result['start_page'],
+        'end_page': result['end_page'],
+        'estimated_pages': result['estimated_pages'],
+        'total_pages': result['total_pages'],
+        'sample_dates': result['sample_dates'],
+        'message': f'~{result["estimated_pages"]} страниц в диапазоне {start_date}–{end_date or "сейчас"}',
+    })
+
+
 @clan_info_bp.route('/api/clan/<int:clan_id>/treasury/auto-fetch-stream', methods=['GET'])
 def auto_fetch_treasury_stream(clan_id):
     from flask import Response, request
@@ -1207,7 +1257,14 @@ def auto_fetch_treasury_stream(clan_id):
 
     start_date = request.args.get('start_date', '01.01.2025')
     end_date = request.args.get('end_date', None)
-    data_logger.info(f'[TREASURY] SSE start_date={start_date}, end_date={end_date}')
+    start_page = int(request.args.get('start_page', 0))
+    end_page = request.args.get('end_page', None)
+    if end_page is not None:
+        end_page = int(end_page)
+    total_pages_override = request.args.get('total_pages', None)
+    if total_pages_override is not None:
+        total_pages_override = int(total_pages_override)
+    data_logger.info(f'[TREASURY] SSE start_date={start_date}, end_date={end_date}, start_page={start_page}, end_page={end_page}')
 
     def generate():
         session = requests.Session()
@@ -1220,7 +1277,15 @@ def auto_fetch_treasury_stream(clan_id):
                 key, value = part.split('=', 1)
                 session.cookies.set(key.strip(), unquote(value.strip()))
 
-        for event_type, data in fetch_all_pages_streaming(session, cutoff_date_str=start_date, end_date_str=end_date, max_pages=500):
+        for event_type, data in fetch_all_pages_streaming(
+            session,
+            cutoff_date_str=start_date,
+            end_date_str=end_date,
+            max_pages=500,
+            start_page=start_page,
+            end_page=end_page,
+            total_pages_override=total_pages_override,
+        ):
             payload = {'type': event_type}
             payload.update(data)
             yield f'data: {json.dumps(payload, ensure_ascii=False)}\n\n'
