@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   getTreasuryOperations,
   importTreasuryOperations,
@@ -198,11 +198,6 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
   } | null>(null);
   const [isEstimating, setIsEstimating] = useState(false);
 
-  // Refs to avoid stale closures in handleAutoFetch
-  const pageEstimateRef = useRef(pageEstimate);
-  pageEstimateRef.current = pageEstimate;
-  const estimatePagesRef = useRef<() => Promise<void>>(() => {});
-
   useEffect(() => {
     getTreasuryOperations(clanId).then(setDbOperations).catch(() => setDbOperations([]));
     loadDateCoverage();
@@ -333,22 +328,16 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     }
   }, [clanId, selectedStartDate, selectedEndDate]);
 
-  // Keep ref in sync
-  useEffect(() => {
-    estimatePagesRef.current = estimatePages;
-  }, [estimatePages]);
-
-  const handleAutoFetch = useCallback(() => {
-    const currentEstimate = pageEstimateRef.current;
-    if (!currentEstimate) {
-      estimatePagesRef.current();
+  const handleAutoFetch = () => {
+    if (!pageEstimate) {
+      estimatePages();
       return;
     }
 
     setIsAutoFetching(true);
     setMessage(null);
     setAutoFetchOps([]);
-    setFetchProgress({ phase: 'counting', totalPages: currentEstimate.total_pages, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: `Начинаю сбор: ~${currentEstimate.estimated_pages} страниц...` });
+    setFetchProgress({ phase: 'counting', totalPages: pageEstimate.total_pages, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: `Начинаю сбор: ~${pageEstimate.estimated_pages} страниц...` });
 
     const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
     const token = localStorage.getItem('auth_token');
@@ -360,9 +349,9 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     if (selectedEndDate) {
       params.set('end_date', selectedEndDate);
     }
-    params.set('start_page', String(currentEstimate.start_page));
-    params.set('end_page', String(currentEstimate.end_page + 1));
-    params.set('total_pages', String(currentEstimate.total_pages));
+    params.set('start_page', String(pageEstimate.start_page));
+    params.set('end_page', String(pageEstimate.end_page + 1));
+    params.set('total_pages', String(pageEstimate.total_pages));
     const url = `${apiBase}/api/clan/${clanId}/treasury/auto-fetch-stream?${params.toString()}`;
 
     const es = new EventSource(url);
@@ -454,7 +443,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     };
 
     setEventSource(es);
-  }, [clanId, refreshCookieStatus, selectedStartDate, selectedEndDate]);
+  };
 
   const handleAutoImport = async () => {
     if (autoFetchOps.length === 0) return;
