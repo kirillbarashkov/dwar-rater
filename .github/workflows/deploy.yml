@@ -54,6 +54,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
@@ -66,3 +69,12 @@ jobs:
             git pull origin main
             docker compose -f docker-compose.prod.yml up -d --build
             docker image prune -f
+
+      - name: Create release tag
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          TAG="v${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "Release ${TAG} (auto-deployed)" || echo "Tag ${TAG} already exists"
+          git push origin "${TAG}" || echo "Failed to push tag ${TAG}"

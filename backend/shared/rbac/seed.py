@@ -40,6 +40,7 @@ PERMISSIONS = [
     ('admin', 'read', 'Просмотр админки', 'GET /api/admin/*'),
     ('admin', 'write', 'Управление пользователями и ролями', 'POST/PUT/DELETE /api/admin/*'),
     ('admin', 'admin', 'Просмотр audit log', 'GET /api/admin/audit'),
+    ('admin', 'deploy', 'Деплой на продакшен', 'POST /api/admin/deploy, version bump'),
 ]
 
 # Default role_permissions: (role_name, feature, action, level)
@@ -68,6 +69,7 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('admin', 'admin', 'read', 'full'),
     ('admin', 'admin', 'write', 'full'),
     ('admin', 'admin', 'admin', 'full'),
+    ('admin', 'admin', 'deploy', 'full'),
 
     # superuser: everything full EXCEPT admin.*
     ('superuser', 'analyze', 'read', 'full'),

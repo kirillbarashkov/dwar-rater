@@ -37,6 +37,8 @@ services:
       RATE_LIMIT_MAX: "100"
       RATE_LIMIT_WINDOW: "60"
       CORS_ORIGINS: ${CORS_ORIGINS}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_REPO: ${GITHUB_REPO:-kirillbarashkov/dwar-rater}
     networks:
       - dwar-net
 
