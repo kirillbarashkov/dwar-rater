@@ -338,6 +338,7 @@ def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', end_date_st
         return
 
     # Step 3: Fetch remaining pages, stop when all ops are older than cutoff
+    #         or (with end_date) when all ops are older than end_date
     pages_fetched = 1
     for page in range(1, total_pages):
         try:
@@ -355,6 +356,19 @@ def fetch_all_pages_streaming(session, cutoff_date_str='01.01.2025', end_date_st
             break
 
         earliest_on_page = min((_parse_date_to_comparable(op['date']) for op in page_ops), default='')
+        latest_on_page = max((_parse_date_to_comparable(op['date']) for op in page_ops), default='')
+
+        # EARLY EXIT: If the freshest op on this page is already older than end_date,
+        # we've scrolled past the entire target range. Stop immediately.
+        if end_comparable and latest_on_page and latest_on_page < end_comparable:
+            data_logger.info(f'[PARSER] Page {page}: latest op {latest_on_page} < end_date {end_comparable}, stopping early')
+            break
+
+        # Early exit: all ops on this page (and all subsequent pages) are older than cutoff
+        if latest_on_page and latest_on_page < cutoff_comparable:
+            data_logger.info(f'[PARSER] Page {page}: latest op {latest_on_page} < cutoff {cutoff_comparable}, stopping early')
+            break
+
         if earliest_on_page and earliest_on_page < cutoff_comparable:
             filtered = []
             for op in page_ops:
