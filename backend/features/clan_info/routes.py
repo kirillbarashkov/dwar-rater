@@ -17,6 +17,9 @@ from shared.services.clan_parser import (
     parse_level_change_events,
     fetch_level_events_streaming,
     estimate_pages_in_range,
+    _date_str_to_comparable,
+    _date_str_to_comparable_with_time,
+    _parse_date_to_comparable,
 )
 from shared.services.data_logger import data_logger
 from shared.models import db
@@ -1342,10 +1345,17 @@ def auto_fetch_treasury_json(clan_id):
 
     all_operations = []
     pages_fetched = 0
-    loop_start = start_page if start_page > 0 else 0
+
+    # Ensure start_page <= end_page
+    if start_page is not None and end_page is not None and start_page > end_page:
+        start_page, end_page = end_page, start_page
+
+    loop_start = start_page if start_page is not None and start_page > 0 else 0
     loop_end = end_page if end_page is not None else 500
-    cutoff_comparable = _date_str_to_comparable(start_date)
-    end_comparable = _date_str_to_comparable(end_date) if end_date else None
+    cutoff_comparable = _date_str_to_comparable_with_time(start_date)
+    end_comparable = _date_str_to_comparable_with_time(end_date) if end_date else None
+
+    data_logger.info(f"[TREASURY] Fetch loop: pages {loop_start} to {loop_end}")
 
     for page in range(loop_start, loop_end):
         try:
@@ -1373,21 +1383,39 @@ def auto_fetch_treasury_json(clan_id):
         latest_on_page = max(
             (_parse_date_to_comparable(op["date"]) for op in page_ops), default=""
         )
+        earliest_on_page = min(
+            (_parse_date_to_comparable(op["date"]) for op in page_ops), default=""
+        )
 
-        if end_comparable and latest_on_page and latest_on_page < end_comparable:
-            break
+        data_logger.info(
+            f"[TREASURY] Page {page}: {len(page_ops)} ops, latest={latest_on_page}, earliest={earliest_on_page}, "
+            f"cutoff={cutoff_comparable}, end={end_comparable}"
+        )
+
+        # Early exit: ALL ops on this page are older than start_date
         if latest_on_page and latest_on_page < cutoff_comparable:
+            data_logger.info(
+                f"[TREASURY] Page {page}: latest {latest_on_page} < start {cutoff_comparable}, stopping"
+            )
             break
 
+        # Filter ops within [start_date, end_date]
         if end_comparable is not None:
             filtered = [
                 op
                 for op in page_ops
-                if _parse_date_to_comparable(op["date"]) <= end_comparable
+                if cutoff_comparable
+                <= _parse_date_to_comparable(op["date"])
+                <= end_comparable
             ]
-            all_operations.extend(filtered)
         else:
-            all_operations.extend(page_ops)
+            filtered = [
+                op
+                for op in page_ops
+                if _parse_date_to_comparable(op["date"]) >= cutoff_comparable
+            ]
+        data_logger.info(f"[TREASURY] Page {page}: {len(filtered)} ops in range")
+        all_operations.extend(filtered)
         pages_fetched += 1
 
     return jsonify(

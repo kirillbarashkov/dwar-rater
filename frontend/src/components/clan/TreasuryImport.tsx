@@ -345,6 +345,8 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
         const data = await getTreasuryOperations(clanId);
         setDbOperations(data);
         setAutoFetchOps([]);
+        setPageEstimate(null);
+        setFetchProgress({ phase: 'counting', totalPages: 0, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: '' });
         loadDateCoverage();
         onImportComplete?.();
       } else {
@@ -739,9 +741,13 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                           <div className="estimate-details">
                             <span>Страницы: {pageEstimate.start_page} → {pageEstimate.end_page}</span>
                           </div>
-                          <Button variant="primary" onClick={async () => {
+                          <Button type="button" variant="primary" onClick={async (e: any) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('[TREASURY] Button clicked, estimate:', pageEstimateRef.current);
                             const est = pageEstimateRef.current;
-                            if (!est) { estimatePages(); return; }
+                            if (!est) { console.log('[TREASURY] No estimate, calling estimatePages'); estimatePages(); return; }
+                            console.log('[TREASURY] Starting fetch, pages:', est.start_page, 'to', est.end_page + 1);
                             setIsAutoFetching(true);
                             setMessage(null);
                             setAutoFetchOps([]);
@@ -749,7 +755,9 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                             try {
                               const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
                               const token = localStorage.getItem('auth_token');
-                              const res = await fetch(`${apiBase}/api/clan/${clanId}/treasury/auto-fetch-json`, {
+                              const url = `${apiBase}/api/clan/${clanId}/treasury/auto-fetch-json`;
+                              console.log('[TREASURY] Fetching:', url);
+                              const res = await fetch(url, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify({
@@ -759,15 +767,25 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                                   end_page: est.end_page + 1,
                                 }),
                               });
+                              console.log('[TREASURY] Response status:', res.status);
+                              if (!res.ok) {
+                                const errorText = await res.text();
+                                console.error('[TREASURY] HTTP error:', res.status, errorText);
+                                throw new Error(`HTTP ${res.status}: ${errorText}`);
+                              }
                               const data = await res.json();
+                              console.log('[TREASURY] Response data:', data);
                               if (data.success) {
-                                setAutoFetchOps(data.operations as ParsedRow[]);
-                                setFetchProgress({ phase: 'done', totalPages: data.pages_fetched, currentPage: data.pages_fetched, totalOps: data.operations.length, opsOnPage: 0, elapsed: 0, message: data.message });
+                                const ops = Array.isArray(data.operations) ? data.operations : [];
+                                console.log('[TREASURY] Success, ops count:', ops.length);
+                                setAutoFetchOps(ops);
+                                setFetchProgress({ phase: 'done', totalPages: data.pages_fetched, currentPage: data.pages_fetched, totalOps: ops.length, opsOnPage: 0, elapsed: 0, message: data.message });
                               } else {
                                 setFetchProgress({ phase: 'error', totalPages: 0, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: data.message || data.error || 'Ошибка' });
                                 if (data.error === 'session_expired') refreshCookieStatus();
                               }
                             } catch (err) {
+                              console.error('[TREASURY] Fetch error:', err);
                               setFetchProgress({ phase: 'error', totalPages: 0, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: `Ошибка: ${err instanceof Error ? err.message : String(err)}` });
                             } finally {
                               setIsAutoFetching(false);
@@ -817,16 +835,16 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                   </Button>
                 </div>
               )}
-              {!isAutoFetching && fetchProgress.phase === 'error' && fetchProgress.message && (
-                <div className="treasury-auto-fetch-error">
-                  <p>{fetchProgress.message}</p>
-                  {fetchProgress.totalPages === 0 && (
-                    <Button variant="secondary" size="small" onClick={handleAutoFetch}>
-                      Попробовать снова
-                    </Button>
+                  {!isAutoFetching && fetchProgress.phase === 'error' && fetchProgress.message && (
+                    <div className="treasury-auto-fetch-error">
+                      <p>{fetchProgress.message}</p>
+                      {fetchProgress.totalPages === 0 && (
+                        <Button type="button" variant="secondary" size="small" onClick={() => { setFetchProgress({ phase: 'counting', totalPages: 0, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: '' }); setPageEstimate(null); }}>
+                          Попробовать снова
+                        </Button>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
               {autoFetchOps.length > 0 && !isAutoFetching && (
                 <div className="treasury-auto-fetch-result">
                   <p className="auto-fetch-summary">

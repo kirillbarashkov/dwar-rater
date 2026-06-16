@@ -333,6 +333,10 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
     start_comparable = _date_str_to_comparable_with_time(start_date_str)
     end_comparable = _date_str_to_comparable_with_time(end_date_str)
 
+    data_logger.info(
+        f"[PARSER] Estimate: start={start_comparable}, end={end_comparable}"
+    )
+
     # Check if page 0 has any data in range
     latest_on_page_0 = max(
         (_parse_date_to_comparable(op["date"]) for op in page_ops), default=""
@@ -354,10 +358,10 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
             },
         }
 
-    # Binary search: find the page where latest op <= end_date (upper boundary)
-    # Pages go newest → oldest, so we search for the first page where ALL ops are <= end_date
-    def find_end_boundary(low, high):
-        """Find first page where latest_on_page <= end_comparable."""
+    # Binary search: find the first page (newest) where earliest_on_page <= end_comparable
+    # This is the first page that could have data in the target range
+    def find_start_boundary(low, high):
+        """Find first page where earliest_on_page <= end_comparable (page has data <= end_date)."""
         result = high
         while low <= high:
             mid = (low + high) // 2
@@ -369,11 +373,11 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
                 if not mid_ops:
                     high = mid - 1
                     continue
-                mid_latest = max(
+                mid_earliest = min(
                     (_parse_date_to_comparable(op["date"]) for op in mid_ops),
                     default="",
                 )
-                if mid_latest and mid_latest <= end_comparable:
+                if mid_earliest and mid_earliest <= end_comparable:
                     result = mid
                     high = mid - 1
                 else:
@@ -382,9 +386,10 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
                 break
         return result
 
-    # Binary search: find the page where earliest op >= start_date (lower boundary)
-    def find_start_boundary(low, high):
-        """Find last page where earliest_on_page >= start_comparable."""
+    # Binary search: find the last page (oldest) where latest_on_page >= start_comparable
+    # This is the last page that could have data in the target range
+    def find_end_boundary(low, high):
+        """Find last page where latest_on_page >= start_comparable (page has data >= start_date)."""
         result = low
         while low <= high:
             mid = (low + high) // 2
@@ -396,11 +401,11 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
                 if not mid_ops:
                     low = mid + 1
                     continue
-                mid_earliest = min(
+                mid_latest = max(
                     (_parse_date_to_comparable(op["date"]) for op in mid_ops),
                     default="",
                 )
-                if mid_earliest and mid_earliest >= start_comparable:
+                if mid_latest and mid_latest >= start_comparable:
                     result = mid
                     low = mid + 1
                 else:
@@ -410,10 +415,32 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
         return result
 
     # Find boundaries
-    end_page = find_end_boundary(0, total_pages - 1)
-    start_page = find_start_boundary(end_page, total_pages - 1)
+    # newest_page: smallest page number with data <= end_date (newest boundary of range)
+    # oldest_page: largest page number with data >= start_date (oldest boundary of range)
+    newest_page = find_start_boundary(0, total_pages - 1)
+    oldest_page = find_end_boundary(newest_page, total_pages - 1)
 
-    estimated_pages = start_page - end_page + 1
+    # Ensure correct order: newest_page <= oldest_page
+    if newest_page > oldest_page:
+        newest_page, oldest_page = oldest_page, newest_page
+
+    # If no valid range found, return 0
+    if newest_page > oldest_page:
+        data_logger.info(
+            f"[PARSER] No pages in range: newest={newest_page} > oldest={oldest_page}"
+        )
+        return {
+            "start_page": 0,
+            "end_page": 0,
+            "estimated_pages": 0,
+            "total_pages": total_pages,
+            "sample_dates": {
+                "page_0_latest": latest_on_page_0,
+                "page_0_earliest": earliest_on_page_0,
+            },
+        }
+
+    estimated_pages = oldest_page - newest_page + 1
 
     # Get sample dates from boundary pages
     sample_dates = {
@@ -422,34 +449,34 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
     }
 
     try:
-        end_html, _ = fetch_clan_treasury_report(session=session, page=end_page)
-        end_ops = parse_clan_treasury_operations(end_html)
-        if end_ops:
-            sample_dates["end_page_latest"] = max(
-                (_parse_date_to_comparable(op["date"]) for op in end_ops), default=""
+        newest_html, _ = fetch_clan_treasury_report(session=session, page=newest_page)
+        newest_ops = parse_clan_treasury_operations(newest_html)
+        if newest_ops:
+            sample_dates["newest_page_latest"] = max(
+                (_parse_date_to_comparable(op["date"]) for op in newest_ops), default=""
             )
-            sample_dates["end_page_earliest"] = min(
-                (_parse_date_to_comparable(op["date"]) for op in end_ops), default=""
+            sample_dates["newest_page_earliest"] = min(
+                (_parse_date_to_comparable(op["date"]) for op in newest_ops), default=""
             )
     except Exception:
         pass
 
     try:
-        start_html, _ = fetch_clan_treasury_report(session=session, page=start_page)
-        start_ops = parse_clan_treasury_operations(start_html)
-        if start_ops:
-            sample_dates["start_page_latest"] = max(
-                (_parse_date_to_comparable(op["date"]) for op in start_ops), default=""
+        oldest_html, _ = fetch_clan_treasury_report(session=session, page=oldest_page)
+        oldest_ops = parse_clan_treasury_operations(oldest_html)
+        if oldest_ops:
+            sample_dates["oldest_page_latest"] = max(
+                (_parse_date_to_comparable(op["date"]) for op in oldest_ops), default=""
             )
-            sample_dates["start_page_earliest"] = min(
-                (_parse_date_to_comparable(op["date"]) for op in start_ops), default=""
+            sample_dates["oldest_page_earliest"] = min(
+                (_parse_date_to_comparable(op["date"]) for op in oldest_ops), default=""
             )
     except Exception:
         pass
 
     return {
-        "start_page": end_page,
-        "end_page": start_page,
+        "start_page": newest_page,
+        "end_page": oldest_page,
         "estimated_pages": max(0, estimated_pages),
         "total_pages": total_pages,
         "sample_dates": sample_dates,
