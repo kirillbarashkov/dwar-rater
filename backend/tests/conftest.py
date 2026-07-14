@@ -81,7 +81,7 @@ def _truncate_all():
     Uses CASCADE to handle FK dependencies.
     """
     try:
-        db.session.execute(db.text('TRUNCATE TABLE audit_log, user_permission, role_permission, session_token, equipment_item, compare_character, improvement_track, analysis_log, treasury_operations, clan_member_info, clan_chat_message, clan_chat_room, clan_member, character_snapshot, character_cache, closed_profiles, clan_info, clan, permission, app_user, role, leveling_scenario RESTART IDENTITY CASCADE'))
+        db.session.execute(db.text('TRUNCATE TABLE audit_log, user_permission, role_permission, session_token, equipment_item, compare_character, improvement_track, analysis_log, treasury_operations, clan_member_info, clan_chat_message, clan_chat_room, clan_member, character_snapshot, character_cache, closed_profiles, clan_info, clan, permission, app_user, role, leveling_scenario, rate_limit RESTART IDENTITY CASCADE'))
         db.session.commit()
     except Exception:
         db.session.rollback()
