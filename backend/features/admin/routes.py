@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify, g, send_file
 from shared.models import db
 from shared.models.user import User
 from shared.models.clan_info import ClanMemberInfo
-from shared.rbac.models import Role, Permission, RolePermission, UserPermission, AuditLog
+from shared.rbac.models import Role, Permission, RolePermission, UserPermission, AuditLog, SessionToken
 from shared.rbac import require_permission, feature, Permission as PermDef
 from shared.utils.transliterate import ensure_unique_username
 
@@ -119,6 +119,10 @@ def update_user(user_id):
         user.password_hash = bcrypt.hashpw(data['password'].encode(), bcrypt.gensalt()).decode()
         user.must_change_password = True
 
+    # Invalidate all active sessions if role, active status, or password changed
+    if 'role' in data or 'is_active' in data or 'password' in data:
+        SessionToken.query.filter_by(user_id=user_id).delete()
+
     db.session.commit()
 
     changes = {}
@@ -141,6 +145,7 @@ def deactivate_user(user_id):
         return jsonify({'error': 'Нельзя деактивировать последнего админа'}), 400
 
     user.is_active = False
+    SessionToken.query.filter_by(user_id=user_id).delete()
     db.session.commit()
 
     _audit('user_deactivate', target_type='user', target_id=user.id, old='active', new='inactive')
@@ -207,26 +212,41 @@ def sync_users_from_clan():
 @admin_bp.route('/api/admin/permissions', methods=['GET'])
 @require_permission('admin', 'read')
 def get_permissions():
-    """Get all permissions with role levels."""
-    perms = Permission.query.filter_by(is_deprecated=False).order_by(Permission.feature, Permission.action).all()
-    roles = Role.query.all()
+    """Get all permissions with role levels (single JOIN query, no N+1)."""
+    from sqlalchemy.orm import aliased
 
-    result = []
-    for perm in perms:
-        entry = {
-            'id': perm.id,
-            'feature': perm.feature,
-            'action': perm.action,
-            'label': perm.label,
-            'description': perm.description,
-            'roles': {},
-        }
-        for role in roles:
-            rp = RolePermission.query.filter_by(role_id=role.id, permission_id=perm.id).first()
-            entry['roles'][role.name] = rp.level if rp else 'none'
-        result.append(entry)
+    # Single query: permissions LEFT JOIN role_permission LEFT JOIN role
+    rows = (
+        db.session.query(Permission, Role, RolePermission.level)
+        .outerjoin(RolePermission, RolePermission.permission_id == Permission.id)
+        .outerjoin(Role, Role.id == RolePermission.role_id)
+        .filter(Permission.is_deprecated == False)
+        .order_by(Permission.feature, Permission.action, Role.name)
+        .all()
+    )
 
-    return jsonify({'permissions': result, 'roles': [r.to_dict() for r in roles]})
+    all_roles = Role.query.order_by(Role.name).all()
+
+    # Group by permission
+    perm_map = {}
+    role_order = {r.name: idx for idx, r in enumerate(all_roles)}
+    for perm, role, level in rows:
+        if perm.id not in perm_map:
+            perm_map[perm.id] = {
+                'id': perm.id,
+                'feature': perm.feature,
+                'action': perm.action,
+                'label': perm.label,
+                'description': perm.description,
+                'roles': {r.name: 'none' for r in all_roles},
+            }
+        if role:
+            perm_map[perm.id]['roles'][role.name] = level or 'none'
+
+    return jsonify({
+        'permissions': list(perm_map.values()),
+        'roles': [r.to_dict() for r in all_roles],
+    })
 
 
 @admin_bp.route('/api/admin/permissions/role/<int:role_id>', methods=['PUT'])
@@ -257,6 +277,12 @@ def update_role_permissions(role_id):
             updated += 1
 
     db.session.commit()
+
+    # Invalidate sessions for all users with this role so permission changes take effect
+    user_ids = [u.id for u in User.query.filter_by(role=role.name).all()]
+    if user_ids:
+        SessionToken.query.filter(SessionToken.user_id.in_(user_ids)).delete(synchronize_session=False)
+        db.session.commit()
 
     _audit('role_permissions_update', target_type='role', target_id=role_id, new=data['permissions'])
 
@@ -310,6 +336,10 @@ def update_user_permissions(user_id):
 
     db.session.commit()
 
+    # Invalidate sessions for this user so permission changes take effect
+    SessionToken.query.filter_by(user_id=user_id).delete()
+    db.session.commit()
+
     _audit('user_permissions_update', target_type='user', target_id=user_id, new=data['permissions'])
 
     return jsonify({'status': 'updated', 'count': updated})
@@ -317,13 +347,26 @@ def update_user_permissions(user_id):
 
 # ── Audit Log ───────────────────────────────────────────────────────────
 
+@admin_bp.route('/api/admin/audit/filters', methods=['GET'])
+@require_permission('admin', 'admin')
+def get_audit_filters():
+    """Get unique action and target_type values for audit filter dropdowns."""
+    from sqlalchemy import distinct
+    actions = [r[0] for r in db.session.query(distinct(AuditLog.action)).order_by(AuditLog.action).all() if r[0]]
+    target_types = [r[0] for r in db.session.query(distinct(AuditLog.target_type)).order_by(AuditLog.target_type).all() if r[0]]
+    return jsonify({'actions': actions, 'target_types': target_types})
+
+
 @admin_bp.route('/api/admin/audit', methods=['GET'])
 @require_permission('admin', 'admin')
 def get_audit_log():
-    """Get audit log with filters."""
+    """Get audit log with filters (action, target_type, date-range, username)."""
     user_filter = request.args.get('user_id', type=int)
+    username_filter = request.args.get('username')
     action_filter = request.args.get('action')
     target_type_filter = request.args.get('target_type')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
 
@@ -331,10 +374,24 @@ def get_audit_log():
 
     if user_filter:
         query = query.filter(AuditLog.user_id == user_filter)
+    if username_filter:
+        query = query.filter(User.username.ilike(f'%{username_filter}%'))
     if action_filter:
         query = query.filter(AuditLog.action == action_filter)
     if target_type_filter:
         query = query.filter(AuditLog.target_type == target_type_filter)
+    if date_from:
+        try:
+            dt_from = datetime.fromisoformat(date_from)
+            query = query.filter(AuditLog.created_at >= dt_from)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            dt_to = datetime.fromisoformat(date_to)
+            query = query.filter(AuditLog.created_at <= dt_to)
+        except ValueError:
+            pass
 
     query = query.order_by(AuditLog.created_at.desc())
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)

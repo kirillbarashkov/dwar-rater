@@ -94,14 +94,11 @@ def sync_permissions(db):
         db.session.add(perm)
 
     # Handle orphaned permissions (in DB but not registered via @feature)
-    # Only deprecate if they have NO role_permissions assigned
+    # Always deprecate — orphaned means the code no longer declares this permission.
+    # Admin can delete deprecated permissions via DELETE /api/admin/permissions/deprecated.
     for key in orphaned:
         perm = in_db[key]
-        has_roles = RolePermission.query.filter_by(permission_id=perm.id).first()
-        if has_roles and perm.is_deprecated:
-            # Un-deprecate: it has role assignments, so it's intentionally seeded
-            perm.is_deprecated = False
-        elif not perm.is_deprecated and not has_roles:
+        if not perm.is_deprecated:
             perm.is_deprecated = True
 
     # Assign default role_permissions for new permissions
@@ -147,14 +144,63 @@ def sync_permissions(db):
         db.session.flush()
 
 
+def load_user_permissions(user) -> dict:
+    """Load all permissions for a user into a flat dict.
+
+    Uses 2 queries total (role perms + user overrides) instead of
+    3 queries per permission check. Called once per request in session_auth.
+
+    Returns: {f"{feature}:{action}": "full"|"read"|"none"}
+    """
+    from shared.models import db
+    from shared.rbac.models import Permission as PermModel, UserPermission, RolePermission
+
+    role_id = user.role_obj.id if user.role_obj else None
+
+    # Query 1: all non-deprecated permissions with role level (LEFT JOIN)
+    role_perms = (
+        db.session.query(
+            PermModel.id, PermModel.feature, PermModel.action, RolePermission.level
+        )
+        .outerjoin(RolePermission,
+                   (RolePermission.permission_id == PermModel.id) &
+                   (RolePermission.role_id == role_id))
+        .filter(PermModel.is_deprecated == False)
+        .all()
+    )
+
+    result = {}
+    perm_id_to_key = {}
+    for perm_id, feature, action, level in role_perms:
+        key = f"{feature}:{action}"
+        result[key] = level or 'none'
+        perm_id_to_key[perm_id] = key
+
+    # Query 2: individual user overrides (take precedence over role)
+    user_overrides = (
+        db.session.query(UserPermission.permission_id, UserPermission.level)
+        .filter(UserPermission.user_id == user.id)
+        .all()
+    )
+    for perm_id, level in user_overrides:
+        key = perm_id_to_key.get(perm_id)
+        if key:
+            result[key] = level
+
+    return result
+
+
 def require_permission(feature: str, action: str):
     """Decorator to require a specific permission.
 
     Checks:
-    1. If user.role == 'admin' → allowed
+    1. If user is not active → 403
     2. user_permission override → use that level
     3. role_permission → use that level
     4. none → 403
+
+    Note: admin role gets 'full' on all permissions via seed data,
+    so it passes checks naturally — no hardcoded bypass needed.
     """
     def decorator(f):
         @wraps(f)
@@ -165,10 +211,6 @@ def require_permission(feature: str, action: str):
 
             if not user.is_active:
                 return jsonify({'error': 'Аккаунт деактивирован'}), 403
-
-            # Admin bypass
-            if user.role == 'admin':
-                return f(*args, **kwargs)
 
             level = get_user_permission(user, feature, action)
             if level == 'none':
@@ -187,10 +229,19 @@ def get_user_permission(user, feature: str, action: str) -> str:
     """Get effective permission level for a user.
 
     Returns: 'full' | 'read' | 'none'
+
+    Reads from g.user_perms cache (populated in session_auth before_request).
+    Falls back to DB queries if cache not available (CLI / non-request context).
     """
+    from flask import g
+
+    cached = getattr(g, 'user_perms', None)
+    if cached is not None:
+        return cached.get(f"{feature}:{action}", 'none')
+
+    # CLI / non-request context: query DB directly
     from shared.rbac.models import UserPermission, RolePermission, Permission as PermModel
 
-    # Check individual override first
     perm = PermModel.query.filter_by(feature=feature, action=action).first()
     if not perm:
         return 'none'
@@ -201,7 +252,6 @@ def get_user_permission(user, feature: str, action: str) -> str:
     if user_perm:
         return user_perm.level
 
-    # Fall back to role permission
     role_perm = RolePermission.query.filter_by(
         role_id=user.role_obj.id if user.role_obj else None,
         permission_id=perm.id

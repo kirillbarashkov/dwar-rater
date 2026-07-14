@@ -1590,7 +1590,7 @@ def auto_fetch_treasury_stream(clan_id):
     ).replace("Bearer ", "")
     current_user = None
     if token:
-        session_token = SessionToken.query.filter_by(token=token).first()
+        session_token = SessionToken.find_by_token(token)
         if session_token:
             expires = session_token.expires_at
             if expires.tzinfo is None:
@@ -1719,7 +1719,7 @@ def auto_fetch_members_stream(clan_id):
     ).replace("Bearer ", "")
     current_user = None
     if token:
-        session_token = SessionToken.query.filter_by(token=token).first()
+        session_token = SessionToken.find_by_token(token)
         if session_token:
             expires = session_token.expires_at
             if expires.tzinfo is None:
@@ -2154,7 +2154,7 @@ def import_level_events_stream(clan_id):
         from shared.models.user import User
         from datetime import datetime, timezone
 
-        session_token = SessionToken.query.filter_by(token=token).first()
+        session_token = SessionToken.find_by_token(token)
         if session_token:
             expires = session_token.expires_at
             if expires.tzinfo is None:

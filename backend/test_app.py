@@ -73,9 +73,11 @@ def create_test_app():
         if auth_header.startswith('Bearer '):
             token = auth_header[7:]
             from shared.rbac.models import SessionToken
-            session = SessionToken.query.filter_by(token=token).first()
+            from shared.rbac import load_user_permissions
+            session = SessionToken.find_by_token(token)
             if session and not session.is_expired:
                 g.current_user = session.user
+                g.user_perms = load_user_permissions(session.user)
                 return
             if request.path.startswith('/api/admin/') or request.path.startswith('/api/auth/'):
                 return jsonify({'error': 'Сессия истекла'}), 401

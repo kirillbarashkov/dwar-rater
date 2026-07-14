@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { usePermission } from '../../hooks/useAuth';
 import './Sidebar.css';
 
 interface TabItem {
@@ -63,7 +63,7 @@ export function Sidebar({
 }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const canAccessAdmin = usePermission('admin', 'read') === 'full';
   const [expandedGroup, setExpandedGroup] = useState<string>(() => 
     location.pathname.startsWith('/clan') ? 'clan' : 'analysis'
   );
@@ -133,7 +133,7 @@ export function Sidebar({
           })}
         </div>
       </nav>
-      {user?.role === 'admin' && (
+      {canAccessAdmin && (
         <div className="sidebar-admin">
           <button
             className={`sidebar-item ${location.pathname === '/admin' ? 'active' : ''}`}

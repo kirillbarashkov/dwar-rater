@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { usePermission } from '../../hooks/useAuth';
-import { DeployModal } from './DeployModal';
 import './Header.css';
 
 function getInitialTheme(): string {
@@ -19,8 +17,6 @@ export function Header() {
     build_date: string;
     branch: string;
   } | null>(null);
-  const [showDeployModal, setShowDeployModal] = useState(false);
-  const canDeploy = usePermission('admin', 'deploy') === 'full';
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -51,16 +47,6 @@ export function Header() {
         {versionInfo && (
           <div className="version-info" title={`${versionInfo.build_date} · ${versionInfo.git_hash} · ${versionInfo.branch}`}>
             <span className="version-tag">v{versionInfo.version}</span>
-            {canDeploy && (
-              <button
-                className="deploy-trigger"
-                onClick={() => setShowDeployModal(true)}
-                title="Deploy to production"
-                aria-label="Deploy"
-              >
-                ⚡
-              </button>
-            )}
           </div>
         )}
         <button
@@ -84,12 +70,6 @@ export function Header() {
           </div>
         )}
       </div>
-      {showDeployModal && (
-        <DeployModal
-          onClose={() => setShowDeployModal(false)}
-          currentVersion={versionInfo?.version || '0.0.0'}
-        />
-      )}
     </header>
   );
 }

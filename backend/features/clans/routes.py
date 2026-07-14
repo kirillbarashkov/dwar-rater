@@ -1,6 +1,6 @@
 import json
 from flask import Blueprint, request, jsonify, g
-from shared.rbac import require_permission, feature, Permission as PermDef
+from shared.rbac import require_permission, feature, Permission as PermDef, get_user_permission
 from shared.models import db
 from shared.models.clan import Clan, ClanMember, ClanChatRoom, ClanChatMessage
 
@@ -35,7 +35,8 @@ def _is_clan_member(user, clan_id):
 @require_permission('clans', 'read')
 def list_clans():
     user = g.current_user
-    if user.role == 'admin':
+    # Users with clans:write permission see all clans; others see only their own
+    if get_user_permission(user, 'clans', 'write') == 'full':
         clans = Clan.query.all()
     else:
         memberships = ClanMember.query.filter_by(user_id=user.id).all()

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { ClanMemberData, LeftMemberData } from '../../types/clanInfo';
 import type { ClanInfoData } from '../../utils/parseMembers';
 import { getClanMembers, addClanMember, updateClanMember, deleteClanMember, importClanMembers, getLeftMembers } from '../../api/clanInfo';
-import { useAuth } from '../../hooks/useAuth';
+import { usePermission } from '../../hooks/useAuth';
 import { parseMembersFile } from '../../utils/parseMembers';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -68,8 +68,7 @@ const PROFESSION_COLORS: Record<string, string> = {
 };
 
 export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const canEdit = usePermission('clan_info', 'write') === 'full';
   const [members, setMembers] = useState<(ClanMemberData & { id?: number })[]>([]);
   const [leftMembers, setLeftMembers] = useState<LeftMemberData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -405,7 +404,7 @@ const handleAnalyze = (nick: string) => {
         <Button variant="primary" onClick={() => { setShowAddModal(true); setForm({ nick: '', icon: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' }); }}>
           + Добавить
         </Button>
-        {isAdmin && (
+        {canEdit && (
           <Button variant="secondary" onClick={openImportModal}>
             Импорт
           </Button>

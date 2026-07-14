@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { usePermission } from '../../hooks/useAuth';
 import { UserTable } from './UserTable';
 import { PermissionMatrix } from './PermissionMatrix';
 import { AuditLogTable } from './AuditLogTable';
@@ -8,22 +8,45 @@ import { FeatureMatrix } from './FeatureMatrix';
 import { BackupManager } from './BackupManager';
 import './AdminPage.css';
 
-const TABS = [
-  { key: 'users', label: 'Пользователи' },
-  { key: 'permissions', label: 'Роли и права' },
-  { key: 'backups', label: 'Бэкапы БД' },
-  { key: 'audit', label: 'Audit Log' },
-  { key: 'features', label: 'Матрица фич' },
+interface TabDef {
+  key: string;
+  label: string;
+  requiredLevel: 'read' | 'admin';
+}
+
+const ALL_TABS: TabDef[] = [
+  { key: 'users', label: 'Пользователи', requiredLevel: 'read' },
+  { key: 'permissions', label: 'Роли и права', requiredLevel: 'read' },
+  { key: 'backups', label: 'Бэкапы БД', requiredLevel: 'read' },
+  { key: 'audit', label: 'Audit Log', requiredLevel: 'admin' },
+  { key: 'features', label: 'Матрица фич', requiredLevel: 'read' },
 ];
 
 export function AdminPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('users');
 
-  if (user?.role !== 'admin') {
-    return <div className="admin-access-denied">Доступ запрещён. Только для администраторов.</div>;
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    return new URLSearchParams(window.location.search).get('tab') ?? 'users';
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', activeTab);
+    window.history.replaceState({}, '', `${window.location.pathname}?${params}`);
+  }, [activeTab]);
+
+  const canReadAdmin = usePermission('admin', 'read') === 'full';
+  const canViewAudit = usePermission('admin', 'admin') === 'full';
+
+  const visibleTabs = ALL_TABS.filter((tab) =>
+    tab.requiredLevel === 'admin' ? canViewAudit : canReadAdmin
+  );
+
+  if (visibleTabs.length === 0) {
+    return <div className="admin-access-denied">Доступ запрещён.</div>;
   }
+
+  const currentTab = visibleTabs.find((t) => t.key === activeTab) ?? visibleTabs[0];
 
   return (
     <div className="admin-page">
@@ -34,10 +57,10 @@ export function AdminPage() {
         <h1 className="admin-title">Администрирование</h1>
       </div>
       <div className="admin-tabs">
-        {TABS.map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab.key}
-            className={`admin-tab ${activeTab === tab.key ? 'active' : ''}`}
+            className={`admin-tab ${currentTab.key === tab.key ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.key)}
           >
             {tab.label}
@@ -45,11 +68,11 @@ export function AdminPage() {
         ))}
       </div>
       <div className="admin-content">
-        {activeTab === 'users' && <UserTable />}
-        {activeTab === 'permissions' && <PermissionMatrix />}
-        {activeTab === 'backups' && <BackupManager />}
-        {activeTab === 'audit' && <AuditLogTable />}
-        {activeTab === 'features' && <FeatureMatrix />}
+        {currentTab.key === 'users' && <UserTable />}
+        {currentTab.key === 'permissions' && <PermissionMatrix />}
+        {currentTab.key === 'backups' && <BackupManager />}
+        {currentTab.key === 'audit' && <AuditLogTable />}
+        {currentTab.key === 'features' && <FeatureMatrix />}
       </div>
     </div>
   );

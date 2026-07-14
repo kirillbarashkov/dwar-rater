@@ -36,18 +36,23 @@ def _generate_token() -> str:
     return secrets.token_hex(32)
 
 
-def _create_session(user: User) -> SessionToken:
-    """Create a new session token, invalidating all existing sessions."""
+def _create_session(user: User) -> tuple[SessionToken, str]:
+    """Create a new session token, invalidating all existing sessions.
+
+    Returns (session, plain_token) — plain_token is returned to client,
+    only token_hash is stored in DB.
+    """
     SessionToken.query.filter_by(user_id=user.id).delete()
 
     ttl_hours = SESSION_TTL.get(user.role, 24)
-    token = SessionToken(
+    plain_token = _generate_token()
+    session = SessionToken(
         user_id=user.id,
-        token=_generate_token(),
+        token_hash=SessionToken.hash_token(plain_token),
         expires_at=datetime.now(timezone.utc) + timedelta(hours=ttl_hours),
     )
-    db.session.add(token)
-    return token
+    db.session.add(session)
+    return session, plain_token
 
 
 def _audit(action: str, user=None, target_type=None, target_id=None, old=None, new=None):
@@ -99,14 +104,14 @@ def login():
             'username': user.username,
         }), 200
 
-    session = _create_session(user)
+    session, plain_token = _create_session(user)
     user.last_login_at = datetime.now(timezone.utc)
     db.session.commit()
 
     _audit('login', user=user, target_type='session', target_id=session.id)
 
     return jsonify({
-        'token': session.token,
+        'token': plain_token,
         'user': user.to_dict(),
         'must_change_password': user.must_change_password,
         'expires_at': session.expires_at.isoformat(),
@@ -127,14 +132,14 @@ def login_2fa():
     if not totp.verify(data['code']):
         return jsonify({'error': 'Неверный код'}), 401
 
-    session = _create_session(user)
+    session, plain_token = _create_session(user)
     user.last_login_at = datetime.now(timezone.utc)
     db.session.commit()
 
     _audit('login_2fa', user=user, target_type='session', target_id=session.id)
 
     return jsonify({
-        'token': session.token,
+        'token': plain_token,
         'user': user.to_dict(),
         'must_change_password': user.must_change_password,
         'expires_at': session.expires_at.isoformat(),
@@ -145,7 +150,7 @@ def login_2fa():
 def logout():
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
     if token:
-        session = SessionToken.query.filter_by(token=token).first()
+        session = SessionToken.find_by_token(token)
         if session:
             _audit('logout', user=session.user, target_type='session', target_id=session.id)
             db.session.delete(session)
@@ -159,7 +164,7 @@ def me():
     if not token:
         return jsonify({'error': 'Требуется авторизация'}), 401
 
-    session = SessionToken.query.filter_by(token=token).first()
+    session = SessionToken.find_by_token(token)
     if not session or session.is_expired:
         return jsonify({'error': 'Сессия истекла'}), 401
 
@@ -167,12 +172,16 @@ def me():
     if not user.is_active:
         return jsonify({'error': 'Аккаунт деактивирован'}), 403
 
-    from shared.rbac.models import Permission as PermModel
-    permissions = {}
-    for perm in PermModel.query.filter_by(is_deprecated=False).all():
-        level = get_user_permission(user, perm.feature, perm.action)
-        key = f"{perm.feature}:{perm.action}"
-        permissions[key] = level
+    # Use cached permissions from g.user_perms (populated in session_auth)
+    from flask import g
+    permissions = getattr(g, 'user_perms', None)
+    if permissions is None:
+        # Fallback: load permissions directly (e.g. if before_request didn't run)
+        permissions = {}
+        from shared.rbac.models import Permission as PermModel
+        for perm in PermModel.query.filter_by(is_deprecated=False).all():
+            level = get_user_permission(user, perm.feature, perm.action)
+            permissions[f"{perm.feature}:{perm.action}"] = level
 
     return jsonify({
         'user': user.to_dict(),
@@ -183,7 +192,7 @@ def me():
 @auth_bp.route('/api/auth/change-password', methods=['POST'])
 def change_password():
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    session = SessionToken.query.filter_by(token=token).first()
+    session = SessionToken.find_by_token(token)
     if not session or session.is_expired:
         return jsonify({'error': 'Требуется авторизация'}), 401
 

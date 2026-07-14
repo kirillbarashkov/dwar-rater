@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../api/client';
+import { showToast } from '../../components/ui/Toast';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import './BackupManager.css';
 
 interface Backup {
@@ -8,6 +10,11 @@ interface Backup {
   size_human: string;
   created_at: string;
 }
+
+type ConfirmState =
+  | { type: 'delete'; filename: string }
+  | { type: 'restore'; filename: string }
+  | null;
 
 export function BackupManager() {
   const [backups, setBackups] = useState<Backup[]>([]);
@@ -18,6 +25,7 @@ export function BackupManager() {
   const [schedule, setSchedule] = useState('');
   const [retention, setRetention] = useState('');
   const [error, setError] = useState('');
+  const [confirmState, setConfirmState] = useState<ConfirmState>(null);
 
   const fetchBackups = useCallback(async () => {
     try {
@@ -40,6 +48,7 @@ export function BackupManager() {
     setError('');
     try {
       await apiClient.post('/api/admin/backups');
+      showToast('Бэкап создан', 'success');
       fetchBackups();
     } catch (e: unknown) {
       setError((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Ошибка создания бэкапа');
@@ -49,12 +58,14 @@ export function BackupManager() {
   };
 
   const handleDelete = async (filename: string) => {
-    if (!confirm(`Удалить бэкап ${filename}?`)) return;
     try {
       await apiClient.delete(`/api/admin/backups/${filename}`);
+      showToast('Бэкап удалён', 'success');
+      setConfirmState(null);
       fetchBackups();
     } catch {
-      alert('Ошибка удаления');
+      showToast('Ошибка удаления', 'error');
+      setConfirmState(null);
     }
   };
 
@@ -66,18 +77,34 @@ export function BackupManager() {
   };
 
   const handleRestore = async (filename: string) => {
-    if (!confirm(`Восстановить БД из бэкапа ${filename}? Все текущие данные будут заменены.`)) return;
     setRestoring(filename);
     setError('');
     try {
       await apiClient.post(`/api/admin/backups/${filename}/restore`);
-      alert('Бэкап успешно восстановлен');
+      showToast('Бэкап успешно восстановлен', 'success');
     } catch (e: unknown) {
       setError((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Ошибка восстановления');
     } finally {
       setRestoring(null);
+      setConfirmState(null);
     }
   };
+
+  const handleConfirm = () => {
+    if (!confirmState) return;
+    if (confirmState.type === 'delete') {
+      handleDelete(confirmState.filename);
+    } else if (confirmState.type === 'restore') {
+      handleRestore(confirmState.filename);
+    }
+  };
+
+  const confirmTitle = confirmState?.type === 'restore'
+    ? 'Восстановление БД'
+    : 'Удаление бэкапа';
+  const confirmMessage = confirmState?.type === 'restore'
+    ? `Восстановить БД из бэкапа "${confirmState.filename}"? Все текущие данные будут заменены.`
+    : `Удалить бэкап "${confirmState?.filename}"?`;
 
   if (loading) return <div className="admin-loading">Загрузка...</div>;
 
@@ -132,12 +159,12 @@ export function BackupManager() {
                 </button>
                 <button
                   className="btn btn-primary btn-sm"
-                  onClick={() => handleRestore(b.filename)}
+                  onClick={() => setConfirmState({ type: 'restore', filename: b.filename })}
                   disabled={restoring === b.filename}
                 >
                   {restoring === b.filename ? 'Восстановление...' : 'Восстановить'}
                 </button>
-                <button className="btn btn-danger btn-sm" onClick={() => handleDelete(b.filename)}>
+                <button className="btn btn-danger btn-sm" onClick={() => setConfirmState({ type: 'delete', filename: b.filename })}>
                   Удалить
                 </button>
               </td>
@@ -150,6 +177,16 @@ export function BackupManager() {
           )}
         </tbody>
       </table>
+
+      <ConfirmModal
+        isOpen={confirmState !== null}
+        title={confirmTitle}
+        message={confirmMessage}
+        confirmLabel={confirmState?.type === 'restore' ? 'Восстановить' : 'Удалить'}
+        danger
+        onConfirm={handleConfirm}
+        onClose={() => setConfirmState(null)}
+      />
     </div>
   );
 }

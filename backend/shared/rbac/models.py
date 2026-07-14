@@ -1,5 +1,6 @@
 from shared.models import db
 from datetime import datetime, timezone
+import hashlib
 
 
 class Permission(db.Model):
@@ -95,11 +96,23 @@ class SessionToken(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('app_user.id'), nullable=False)
-    token = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    token_hash = db.Column(db.String(64), unique=True, nullable=False, index=True)
     expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = db.relationship('User', back_populates='sessions')
+
+    @staticmethod
+    def hash_token(token: str) -> str:
+        """Hash a plain token for storage/lookup (sha256)."""
+        return hashlib.sha256(token.encode()).hexdigest()
+
+    @classmethod
+    def find_by_token(cls, token: str):
+        """Lookup session by plain token (hashes internally)."""
+        if not token:
+            return None
+        return cls.query.filter_by(token_hash=cls.hash_token(token)).first()
 
     @property
     def is_expired(self):

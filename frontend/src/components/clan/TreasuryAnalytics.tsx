@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getTreasuryOperations, getClanMembers } from '../../api/clanInfo';
 import type { TreasuryOperationData, ClanMemberData } from '../../types/clanInfo';
-import { useAuth } from '../../hooks/useAuth';
+import { usePermission } from '../../hooks/useAuth';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { TaxAnalytics } from './TaxAnalytics';
 import { TalentAnalytics } from './TalentAnalytics';
@@ -21,8 +21,7 @@ const TABS: { key: TabType; label: string }[] = [
 ];
 
 export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = usePermission('clan_info', 'admin') === 'full';
   const [operations, setOperations] = useState<TreasuryOperationData[]>([]);
   const [members, setMembers] = useState<ClanMemberData[]>([]);
   const [isLoading, setIsLoading] = useState(true);

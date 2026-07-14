@@ -7,9 +7,6 @@ import psycopg2
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import shared.middleware.auth
-shared.middleware.auth._cached_users = None
-
 from test_app import create_test_app
 from shared.models import db
 from shared.models.user import User
@@ -70,7 +67,7 @@ def _create_token(user_id, hours=24):
     token = secrets.token_hex(32)
     session = SessionToken(
         user_id=user_id,
-        token=token,
+        token_hash=SessionToken.hash_token(token),
         expires_at=datetime.now(timezone.utc) + timedelta(hours=hours),
     )
     db.session.add(session)
@@ -95,9 +92,7 @@ def reset_config():
     Config.ADMIN_USER = 'admin'
     Config.ADMIN_PASS = 'testpass'
     Config.AUTH_ENABLED = True
-    shared.middleware.auth._cached_users = None
     yield
-    shared.middleware.auth._cached_users = None
 
 
 @pytest.fixture
@@ -119,7 +114,6 @@ def app():
     Config.ADMIN_USER = 'admin'
     Config.ADMIN_PASS = 'testpass'
     Config.AUTH_ENABLED = True
-    shared.middleware.auth._cached_users = None
 
     app = create_test_app()
     app.config['TESTING'] = True

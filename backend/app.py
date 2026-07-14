@@ -76,14 +76,16 @@ def create_app():
 
     @app.before_request
     def session_auth():
-        """Validate Bearer token and set g.current_user."""
+        """Validate Bearer token and set g.current_user + g.user_perms."""
         auth_header = request.headers.get('Authorization', '')
         if auth_header.startswith('Bearer '):
             token = auth_header[7:]
             from shared.rbac.models import SessionToken
-            session = SessionToken.query.filter_by(token=token).first()
+            from shared.rbac import load_user_permissions
+            session = SessionToken.find_by_token(token)
             if session and not session.is_expired:
                 g.current_user = session.user
+                g.user_perms = load_user_permissions(session.user)
                 return
             # Token invalid or expired
             if request.path.startswith('/api/admin/') or request.path.startswith('/api/auth/'):

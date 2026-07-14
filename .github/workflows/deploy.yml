@@ -78,6 +78,11 @@ jobs:
           script: |
             cd ~/dwar-rater
             git pull origin main
+            # Pre-consolidate branched alembic migrations (idempotent).
+            # Migrations 004 and 005 both descend from 003, but alembic_version
+            # may only contain 005. Insert 004 marker so alembic upgrade head
+            # to merge-point 006 does not re-run 004 (DuplicateTable).
+            docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater -c "INSERT INTO alembic_version (version_num) VALUES ('004_add_membership_events') ON CONFLICT DO NOTHING;" || true
             docker compose -f docker-compose.prod.yml up -d --build
             docker image prune -f
 

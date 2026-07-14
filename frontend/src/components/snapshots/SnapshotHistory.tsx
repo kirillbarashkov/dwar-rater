@@ -5,7 +5,7 @@ import { SnapshotCard } from './SnapshotCard';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { useAuth } from '../../hooks/useAuth';
+import { usePermission } from '../../hooks/useAuth';
 import { showToast } from '../ui/Toast';
 import './SnapshotHistory.css';
 
@@ -14,8 +14,7 @@ interface SnapshotHistoryProps {
 }
 
 export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = usePermission('snapshots', 'delete') === 'full';
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);

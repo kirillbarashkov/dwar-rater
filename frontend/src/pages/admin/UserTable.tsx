@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../api/client';
+import { showToast } from '../../components/ui/Toast';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { UserPermissionsModal } from './UserPermissionsModal';
 
 interface User {
   id: number;
@@ -18,6 +21,8 @@ export function UserTable() {
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'user' });
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ created: number; updated: number; skipped: number } | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<User | null>(null);
+  const [permsTarget, setPermsTarget] = useState<User | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -38,29 +43,34 @@ export function UserTable() {
       await apiClient.post('/api/admin/users', newUser);
       setShowCreate(false);
       setNewUser({ username: '', password: '', role: 'user' });
+      showToast('Пользователь создан', 'success');
       fetchUsers();
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Ошибка';
-      alert(msg);
+      showToast(msg, 'error');
     }
   };
 
   const handleRoleChange = async (userId: number, role: string) => {
     try {
       await apiClient.put(`/api/admin/users/${userId}`, { role });
+      showToast('Роль обновлена', 'success');
       fetchUsers();
     } catch {
-      alert('Ошибка смены роли');
+      showToast('Ошибка смены роли', 'error');
     }
   };
 
-  const handleDeactivate = async (userId: number) => {
-    if (!confirm('Деактивировать пользователя?')) return;
+  const handleDeactivate = async () => {
+    if (!deactivateTarget) return;
     try {
-      await apiClient.delete(`/api/admin/users/${userId}`);
+      await apiClient.delete(`/api/admin/users/${deactivateTarget.id}`);
+      showToast('Пользователь деактивирован', 'success');
+      setDeactivateTarget(null);
       fetchUsers();
     } catch {
-      alert('Ошибка деактивации');
+      showToast('Ошибка деактивации', 'error');
+      setDeactivateTarget(null);
     }
   };
 
@@ -69,9 +79,10 @@ export function UserTable() {
     try {
       const res = await apiClient.post('/api/admin/users/sync');
       setSyncResult(res.data);
+      showToast('Синхронизация завершена', 'success');
       fetchUsers();
     } catch {
-      alert('Ошибка синхронизации');
+      showToast('Ошибка синхронизации', 'error');
     } finally {
       setSyncing(false);
     }
@@ -162,16 +173,40 @@ export function UserTable() {
               <td>{u.last_login_at ? new Date(u.last_login_at).toLocaleString('ru') : '—'}</td>
               <td>{u.must_change_password ? 'Да' : 'Нет'}</td>
               <td>
-                {u.is_active && (
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDeactivate(u.id)}>
-                    Деактивировать
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setPermsTarget(u)}>
+                    Права
                   </button>
-                )}
+                  {u.is_active && (
+                    <button className="btn btn-danger btn-sm" onClick={() => setDeactivateTarget(u)}>
+                      Деактивировать
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      <ConfirmModal
+        isOpen={deactivateTarget !== null}
+        title="Деактивация пользователя"
+        message={`Деактивировать пользователя "${deactivateTarget?.username}"? Все активные сессии будут завершены.`}
+        confirmLabel="Деактивировать"
+        danger
+        onConfirm={handleDeactivate}
+        onClose={() => setDeactivateTarget(null)}
+      />
+
+      {permsTarget && (
+        <UserPermissionsModal
+          userId={permsTarget.id}
+          username={permsTarget.username}
+          isOpen={true}
+          onClose={() => setPermsTarget(null)}
+        />
+      )}
     </div>
   );
 }
