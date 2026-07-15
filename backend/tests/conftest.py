@@ -92,6 +92,11 @@ def reset_config():
     Config.ADMIN_USER = 'admin'
     Config.ADMIN_PASS = 'testpass'
     Config.AUTH_ENABLED = True
+    # Disable rate limiting for tests (Config is already imported with
+    # default RATE_LIMIT_MAX=30 at module load time; setting os.environ
+    # here has no effect. Direct attribute override is required.)
+    Config.RATE_LIMIT_MAX = 999999
+    Config.RATE_LIMIT_WINDOW = 60
     yield
 
 
@@ -105,8 +110,6 @@ def app():
     os.environ['AUTH_ENABLED'] = 'true'
     os.environ['ADMIN_USER'] = 'admin'
     os.environ['ADMIN_PASS'] = 'testpass'
-    os.environ['RATE_LIMIT_MAX'] = '100'
-    os.environ['RATE_LIMIT_WINDOW'] = '60'
     os.environ['SECRET_KEY'] = 'test-secret-key'
 
     Config.DATABASE_URL = test_db_url
@@ -114,6 +117,8 @@ def app():
     Config.ADMIN_USER = 'admin'
     Config.ADMIN_PASS = 'testpass'
     Config.AUTH_ENABLED = True
+    Config.RATE_LIMIT_MAX = 999999
+    Config.RATE_LIMIT_WINDOW = 60
 
     app = create_test_app()
     app.config['TESTING'] = True
