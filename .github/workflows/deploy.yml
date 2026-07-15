@@ -75,30 +75,44 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 15m
           script: |
             cd ~/dwar-rater
             git pull origin main
-            # Pre-consolidate branched alembic migrations (idempotent).
-            # Migrations 004 and 005 both descend from 003, but alembic_version
-            # may only contain 005. Insert 004 marker so alembic upgrade head
-            # to merge-point 006 does not re-run 004 (DuplicateTable).
-            docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater -c "INSERT INTO alembic_version (version_num) VALUES ('004_add_membership_events') ON CONFLICT DO NOTHING;" || true
             docker compose -f docker-compose.prod.yml up -d --build
             docker image prune -f
+            # Allow backend to run alembic migrations + start gunicorn
+            sleep 15
+            # Consolidate branched alembic migrations only if alembic_version
+            # table exists (skipped on fresh DB; backend's alembic upgrade head
+            # builds schema from scratch in that case). Idempotent via ON
+            # CONFLICT DO NOTHING so safe to run repeatedly.
+            docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater -c "INSERT INTO alembic_version (version_num) VALUES ('004_add_membership_events') ON CONFLICT DO NOTHING;" 2>&1 || echo "alembic_version not present yet — schema built from scratch by backend"
+            # Restart backend to re-run alembic upgrade head now that 004
+            # marker is in place (only matters for existing DBs at 005).
+            docker compose -f docker-compose.prod.yml restart backend
+            sleep 15
 
-      - name: Wait for health check
-        run: |
-          echo "Waiting for backend to become healthy..."
-          for i in $(seq 1 30); do
-            if curl -sf "http://${{ secrets.VM_HOST }}:5000/api/health" > /dev/null 2>&1; then
-              echo "Backend is healthy!"
-              exit 0
-            fi
-            echo "Waiting... ($i/30)"
-            sleep 5
-          done
-          echo "Health check failed after 150s"
-          exit 1
+      - name: Wait for health check (via SSH inside VM)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 5m
+          script: |
+            for i in $(seq 1 20); do
+              if docker compose -f ~/dwar-rater/docker-compose.prod.yml exec -T backend python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')" 2>/dev/null; then
+                echo "Backend is healthy!"
+                exit 0
+              fi
+              echo "Waiting... ($i/20)"
+              sleep 10
+            done
+            echo "Health check failed after 200s"
+            echo "=== Backend logs (last 50 lines) ==="
+            docker compose -f ~/dwar-rater/docker-compose.prod.yml logs --tail 50 backend 2>&1 || true
+            exit 1
 
       - name: Create release tag
         run: |
@@ -111,6 +125,22 @@ jobs:
 
       - name: Notify on failure
         if: failure()
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 2m
+          script: |
+            echo "=== Deployment failed — collecting diagnostics ==="
+            docker compose -f ~/dwar-rater/docker-compose.prod.yml ps 2>&1 || true
+            echo "=== Backend logs (last 80 lines) ==="
+            docker compose -f ~/dwar-rater/docker-compose.prod.yml logs --tail 80 backend 2>&1 || true
+            echo "=== Postgres logs (last 20 lines) ==="
+            docker compose -f ~/dwar-rater/docker-compose.prod.yml logs --tail 20 postgres 2>&1 || true
+
+      - name: Report failure
+        if: failure()
         run: |
-          echo "::error::Deployment failed! Check logs for details."
+          echo "::error::Deployment failed! Check logs for diagnostics from SSH step."
           echo "Last known good commit: ${{ github.sha }}"
