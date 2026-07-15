@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'Action: check, reset-password, or set-password'
+        description: 'Action'
         required: true
         default: 'check'
         type: choice
@@ -12,6 +12,7 @@ on:
           - check
           - reset-password
           - set-password
+          - fix-schema
       new_password:
         description: 'New password (for set-password only, min 8 chars)'
         required: false
@@ -35,12 +36,56 @@ jobs:
             echo "=== 1. ADMIN_PASS from .env ==="
             grep ADMIN_PASS .env || echo "(not found)"
             echo ""
-            echo "=== 2. Admin user in DB ==="
-            docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater -c "SELECT id, username, role, is_active, must_change_password, LENGTH(password_hash) as hash_len FROM app_user WHERE username='admin';" 2>&1
+
+            echo "=== 2. session_token schema ==="
+            docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater -c "\d session_token" 2>&1
             echo ""
 
+            echo "=== 3. alembic_version ==="
+            docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater -c "SELECT * FROM alembic_version;" 2>&1
+            echo ""
+
+            echo "=== 4. Backend logs (last 30 lines) ==="
+            docker compose -f docker-compose.prod.yml logs --tail 30 backend 2>&1 || true
+            echo ""
+
+            if [ "${{ github.event.inputs.action }}" = "fix-schema" ]; then
+              echo "=== 5. FIXING session_token schema ==="
+              # Check if token_hash is missing
+              HAS_HASH=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater -t -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name='session_token' AND column_name='token_hash';" 2>/dev/null | tr -d ' ')
+              HAS_TOKEN=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater -t -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name='session_token' AND column_name='token';" 2>/dev/null | tr -d ' ')
+              echo "token_hash column exists: $HAS_HASH"
+              echo "token column exists: $HAS_TOKEN"
+
+              if [ "$HAS_TOKEN" = "1" ] && [ "$HAS_HASH" = "0" ]; then
+                echo "Fixing: adding token_hash, backfilling, dropping token..."
+                docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater << 'PSQL'
+                ALTER TABLE session_token ADD COLUMN token_hash VARCHAR(64);
+                UPDATE session_token SET token_hash = encode(digest(token, 'sha256'), 'hex') WHERE token IS NOT NULL AND token != '';
+                UPDATE session_token SET token_hash = '0000000000000000000000000000000000000000000000000000000000000000' WHERE token_hash IS NULL;
+                ALTER TABLE session_token ALTER COLUMN token_hash SET NOT NULL;
+                CREATE UNIQUE INDEX ix_session_token_token_hash ON session_token (token_hash);
+                DROP INDEX IF EXISTS ix_session_token_token;
+                ALTER TABLE session_token DROP COLUMN token;
+                DELETE FROM alembic_version;
+                INSERT INTO alembic_version (version_num) VALUES ('006_hash_session_tokens');
+                PSQL
+                echo "Schema fix applied."
+              elif [ "$HAS_HASH" = "1" ]; then
+                echo "token_hash already exists — just fixing alembic_version..."
+                docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater -c "DELETE FROM alembic_version; INSERT INTO alembic_version (version_num) VALUES ('006_hash_session_tokens');" 2>&1 || true
+              fi
+
+              echo "Restarting backend..."
+              docker compose -f docker-compose.prod.yml restart backend
+              sleep 15
+              echo ""
+              echo "=== 6. Backend logs after restart ==="
+              docker compose -f docker-compose.prod.yml logs --tail 20 backend 2>&1 || true
+            fi
+
             if [ "${{ github.event.inputs.action }}" = "reset-password" ]; then
-              echo "=== 3. Resetting admin password to ADMIN_PASS from .env ==="
+              echo "=== 5. Resetting admin password to ADMIN_PASS from .env ==="
               PASS=$(grep '^ADMIN_PASS=' .env | cut -d= -f2)
               echo "Using password from .env (length: ${#PASS})"
               docker compose -f docker-compose.prod.yml exec -T backend python -c "
@@ -52,7 +97,7 @@ jobs:
             with app.app_context():
                 u = User.query.filter_by(username='admin').first()
                 if u:
-                    u.password_hash = bcrypt.hashpw('${PASS}'.encode(), bcrypt.gensalt()).decode()
+                    u.password_hash = bcrypt.hashpw(os.environ.get('ADMIN_PASS','change-me').encode(), bcrypt.gensalt()).decode()
                     u.must_change_password = False
                     db.session.commit()
                     print('Password reset OK for admin')
@@ -65,7 +110,7 @@ jobs:
                 echo "ERROR: new_password must be at least 8 characters"
                 exit 1
               fi
-              echo "=== 3. Setting admin password to user-supplied value ==="
+              echo "=== 5. Setting admin password to user-supplied value ==="
               docker compose -f docker-compose.prod.yml exec -T backend python -c "
             import bcrypt
             from shared.models import db
@@ -85,14 +130,14 @@ jobs:
             fi
 
             echo ""
-            echo "=== 4. Test login ==="
+            echo "=== 7. Test login ==="
             PASS=$(grep '^ADMIN_PASS=' .env | cut -d= -f2)
             if [ "${{ github.event.inputs.action }}" = "set-password" ]; then
               PASS="${{ github.event.inputs.new_password }}"
             fi
             docker compose -f docker-compose.prod.yml exec -T backend python -c "
             import json, urllib.request
-            body = json.dumps({'username':'admin','password':'${PASS}'}).encode()
+            body = json.dumps({'username':'admin','password':os.environ.get('ADMIN_PASS','change-me')}).encode()
             req = urllib.request.Request('http://localhost:5000/api/auth/login', data=body, headers={'Content-Type':'application/json'}, method='POST')
             try:
                 r = urllib.request.urlopen(req)
