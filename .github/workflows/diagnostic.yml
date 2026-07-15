@@ -1,0 +1,103 @@
+name: Diagnostic
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action: check, reset-password, or set-password'
+        required: true
+        default: 'check'
+        type: choice
+        options:
+          - check
+          - reset-password
+          - set-password
+      new_password:
+        description: 'New password (for set-password only, min 8 chars)'
+        required: false
+        type: string
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SSH diagnostic
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 5m
+          script: |
+            cd ~/dwar-rater
+            echo "=== 1. ADMIN_PASS from .env ==="
+            grep ADMIN_PASS .env || echo "(not found)"
+            echo ""
+            echo "=== 2. Admin user in DB ==="
+            docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater -c "SELECT id, username, role, is_active, must_change_password, LENGTH(password_hash) as hash_len FROM app_user WHERE username='admin';" 2>&1
+            echo ""
+
+            if [ "${{ github.event.inputs.action }}" = "reset-password" ]; then
+              echo "=== 3. Resetting admin password to ADMIN_PASS from .env ==="
+              PASS=$(grep '^ADMIN_PASS=' .env | cut -d= -f2)
+              echo "Using password from .env (length: ${#PASS})"
+              docker compose -f docker-compose.prod.yml exec -T backend python -c "
+            import bcrypt, os
+            from shared.models import db
+            from shared.models.user import User
+            from app import create_app
+            app = create_app()
+            with app.app_context():
+                u = User.query.filter_by(username='admin').first()
+                if u:
+                    u.password_hash = bcrypt.hashpw('${PASS}'.encode(), bcrypt.gensalt()).decode()
+                    u.must_change_password = False
+                    db.session.commit()
+                    print('Password reset OK for admin')
+                else:
+                    print('ERROR: admin user not found')
+            " 2>&1
+            elif [ "${{ github.event.inputs.action }}" = "set-password" ]; then
+              NEWPASS="${{ github.event.inputs.new_password }}"
+              if [ -z "$NEWPASS" ] || [ ${#NEWPASS} -lt 8 ]; then
+                echo "ERROR: new_password must be at least 8 characters"
+                exit 1
+              fi
+              echo "=== 3. Setting admin password to user-supplied value ==="
+              docker compose -f docker-compose.prod.yml exec -T backend python -c "
+            import bcrypt
+            from shared.models import db
+            from shared.models.user import User
+            from app import create_app
+            app = create_app()
+            with app.app_context():
+                u = User.query.filter_by(username='admin').first()
+                if u:
+                    u.password_hash = bcrypt.hashpw('${NEWPASS}'.encode(), bcrypt.gensalt()).decode()
+                    u.must_change_password = False
+                    db.session.commit()
+                    print('Password set OK for admin')
+                else:
+                    print('ERROR: admin user not found')
+            " 2>&1
+            fi
+
+            echo ""
+            echo "=== 4. Test login ==="
+            PASS=$(grep '^ADMIN_PASS=' .env | cut -d= -f2)
+            if [ "${{ github.event.inputs.action }}" = "set-password" ]; then
+              PASS="${{ github.event.inputs.new_password }}"
+            fi
+            docker compose -f docker-compose.prod.yml exec -T backend python -c "
+            import json, urllib.request
+            body = json.dumps({'username':'admin','password':'${PASS}'}).encode()
+            req = urllib.request.Request('http://localhost:5000/api/auth/login', data=body, headers={'Content-Type':'application/json'}, method='POST')
+            try:
+                r = urllib.request.urlopen(req)
+                d = json.loads(r.read())
+                print(f'Login OK: status={r.status}, user={d[\"user\"][\"username\"]}, role={d[\"user\"][\"role\"]}')
+            except Exception as e:
+                print(f'Login FAILED: {e}')
+            " 2>&1
