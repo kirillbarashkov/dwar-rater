@@ -31,131 +31,15 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 5m
+          envs: DIAG_ACTION,DIAG_NEWPASS,ADMIN_PASS
           script: |
             cd ~/dwar-rater
-            ACTION="${{ github.event.inputs.action }}"
-            NEWPASS="${{ github.event.inputs.new_password }}"
-
-            docker compose -f docker-compose.prod.yml cp - /app/_diag.py << 'PYEOF'
-            import hashlib, os, sys, json, urllib.request
-            from sqlalchemy import text
-            from shared.models import db
-            from shared.models.user import User
-            import bcrypt
-
-            ACTION = os.environ.get('DIAG_ACTION', 'check')
-            NEWPASS = os.environ.get('DIAG_NEWPASS', '')
-
-            def run():
-                from app import create_app
-                app = create_app()
-                with app.app_context():
-                    print("=== 1. session_token schema ===")
-                    rows = db.session.execute(text(
-                        "SELECT column_name, data_type FROM information_schema.columns "
-                        "WHERE table_name='session_token' ORDER BY ordinal_position"
-                    )).fetchall()
-                    for r in rows:
-                        print(f"  {r[0]}: {r[1]}")
-
-                    print("=== 2. alembic_version ===")
-                    try:
-                        rows = db.session.execute(text("SELECT version_num FROM alembic_version")).fetchall()
-                        for r in rows:
-                            print(f"  {r[0]}")
-                    except Exception as e:
-                        print(f"  ERROR: {e}")
-
-                    print("=== 3. Admin user ===")
-                    u = User.query.filter_by(username='admin').first()
-                    if u:
-                        print(f"  id={u.id} role={u.role} active={u.is_active} must_change={u.must_change_password} hash_len={len(u.password_hash) if u.password_hash else 0}")
-                    else:
-                        print("  NOT FOUND")
-
-                    print("=== 4. Tables count ===")
-                    rows = db.session.execute(text(
-                        "SELECT table_name FROM information_schema.tables "
-                        "WHERE table_schema='public' ORDER BY table_name"
-                    )).fetchall()
-                    print(f"  total tables: {len(rows)}")
-                    print(f"  (first 5): {[r[0] for r in rows[:5]]}")
-
-                    if ACTION == 'fix-schema':
-                        print("=== 5. FIX-SCHEMA ===")
-                        cols = [r[0] for r in db.session.execute(text(
-                            "SELECT column_name FROM information_schema.columns "
-                            "WHERE table_name='session_token'"
-                        )).fetchall()]
-                        has_hash = 'token_hash' in cols
-                        has_token = 'token' in cols
-                        print(f"  token_hash exists: {has_hash}, token exists: {has_token}")
-                        if has_token and not has_hash:
-                            print("  Adding token_hash, backfilling sha256, dropping token...")
-                            db.session.execute(text("ALTER TABLE session_token ADD COLUMN token_hash VARCHAR(64)"))
-                            sessions = db.session.execute(text("SELECT id, token FROM session_token WHERE token IS NOT NULL")).fetchall()
-                            for sid, tok in sessions:
-                                h = hashlib.sha256(tok.encode()).hexdigest() if tok else '0' * 64
-                                db.session.execute(text("UPDATE session_token SET token_hash = :h WHERE id = :id"), {'h': h, 'id': sid})
-                            db.session.execute(text("UPDATE session_token SET token_hash = '0' * 64 WHERE token_hash IS NULL"))
-                            db.session.execute(text("ALTER TABLE session_token ALTER COLUMN token_hash SET NOT NULL"))
-                            db.session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_session_token_token_hash ON session_token (token_hash)"))
-                            db.session.execute(text("DROP INDEX IF EXISTS ix_session_token_token"))
-                            db.session.execute(text("ALTER TABLE session_token DROP COLUMN token"))
-                            db.session.commit()
-                            print("  Schema fix applied.")
-                        elif has_hash:
-                            print("  token_hash already present — no schema fix needed.")
-
-                        print("  Stamping alembic_version to 006_hash_session_tokens...")
-                        try:
-                            db.session.execute(text("DELETE FROM alembic_version"))
-                            db.session.execute(text("INSERT INTO alembic_version (version_num) VALUES ('006_hash_session_tokens')"))
-                            db.session.commit()
-                            print("  Alembic stamped.")
-                        except Exception as e:
-                            print(f"  Stamp failed: {e}")
-                            db.session.rollback()
-
-                    if ACTION in ('reset-password', 'set-password'):
-                        pwd = os.environ.get('ADMIN_PASS', 'change-me') if ACTION == 'reset-password' else NEWPASS
-                        if len(pwd) < 8:
-                            print(f"  ERROR: password too short (len={len(pwd)})")
-                        else:
-                            u = User.query.filter_by(username='admin').first()
-                            if u:
-                                u.password_hash = bcrypt.hashpw(pwd.encode(), bcrypt.gensalt()).decode()
-                                u.must_change_password = False
-                                db.session.commit()
-                                print(f"  Password set (len={len(pwd)})")
-                            else:
-                                print("  admin not found")
-                        print(f"  ACTION={ACTION}, ADMIN_PASS env len={len(os.environ.get('ADMIN_PASS',''))}")
-
-                    print("=== 6. Login test ===")
-                    pwd = os.environ.get('ADMIN_PASS', 'change-me')
-                    if ACTION == 'set-password' and NEWPASS:
-                        pwd = NEWPASS
-                    body = json.dumps({'username':'admin','password':pwd}).encode()
-                    req = urllib.request.Request('http://localhost:5000/api/auth/login',
-                        data=body, headers={'Content-Type':'application/json'}, method='POST')
-                    try:
-                        r = urllib.request.urlopen(req, timeout=10)
-                        d = json.loads(r.read())
-                        print(f"  Login OK: status={r.status}, user={d.get('user',{}).get('username')}, role={d.get('user',{}).get('role')}")
-                    except urllib.error.HTTPError as e:
-                        body = e.read().decode()[:300]
-                        print(f"  Login FAILED: HTTP {e.code} — {body}")
-                    except Exception as e:
-                        print(f"  Login ERROR: {type(e).__name__}: {str(e)[:200]}")
-
-            if __name__ == '__main__':
-                run()
-            PYEOF
-
-            echo "=== Running _diag.py (action=$ACTION) ==="
-            DIAG_ACTION="$ACTION" DIAG_NEWPASS="$NEWPASS" docker compose -f docker-compose.prod.yml exec -T -e DIAG_ACTION="$ACTION" -e DIAG_NEWPASS="$NEWPASS" backend python /app/_diag.py 2>&1
-
+            echo "=== Running _diag.py (action=$DIAG_ACTION) ==="
+            docker compose -f docker-compose.prod.yml exec -T -e DIAG_ACTION="$DIAG_ACTION" -e DIAG_NEWPASS="$DIAG_NEWPASS" -e ADMIN_PASS="$ADMIN_PASS" backend python /app/_diag.py 2>&1
             echo ""
-            echo "=== Backend logs (tail 20) ==="
-            docker compose -f docker-compose.prod.yml logs --tail 20 backend 2>&1 || true
+            echo "=== Backend logs (tail 25) ==="
+            docker compose -f docker-compose.prod.yml logs --tail 25 backend 2>&1 || true
+        env:
+          DIAG_ACTION: ${{ github.event.inputs.action }}
+          DIAG_NEWPASS: ${{ github.event.inputs.new_password }}
+          ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
