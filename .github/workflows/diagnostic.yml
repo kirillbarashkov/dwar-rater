@@ -31,15 +31,13 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 5m
-          envs: DIAG_ACTION,DIAG_NEWPASS,ADMIN_PASS
           script: |
             cd ~/dwar-rater
-            echo "=== Running _diag.py (action=$DIAG_ACTION) ==="
-            docker compose -f docker-compose.prod.yml exec -T -e DIAG_ACTION="$DIAG_ACTION" -e DIAG_NEWPASS="$DIAG_NEWPASS" -e ADMIN_PASS="$ADMIN_PASS" backend python /app/_diag.py 2>&1
+            ACTION="${{ github.event.inputs.action }}"
+            NEWPASS="${{ github.event.inputs.new_password }}"
+            ADMIN_PASS_VALUE=$(grep '^ADMIN_PASS=' .env | cut -d= -f2-)
+            echo "=== Running _diag.py (action=$ACTION) ==="
+            docker compose -f docker-compose.prod.yml exec -T -e DIAG_ACTION="$ACTION" -e DIAG_NEWPASS="$NEWPASS" -e ADMIN_PASS="$ADMIN_PASS_VALUE" backend python /app/_diag.py 2>&1
             echo ""
             echo "=== Backend logs (tail 25) ==="
             docker compose -f docker-compose.prod.yml logs --tail 25 backend 2>&1 || true
-        env:
-          DIAG_ACTION: ${{ github.event.inputs.action }}
-          DIAG_NEWPASS: ${{ github.event.inputs.new_password }}
-          ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
