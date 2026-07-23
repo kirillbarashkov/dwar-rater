@@ -33,6 +33,11 @@ const navGroups: TabGroup[] = [
     { key: 'analytics', label: 'Аналитика', icon: '📊' },
     { key: 'treasury-import', label: 'Импорт / Экспорт', icon: '📥' },
   ]},
+  { key: 'character', label: 'Персонаж', icon: '🧙', children: [
+    { key: 'info', label: 'Информация', icon: '📋' },
+    { key: 'combat', label: 'Боевое', icon: '⚔️' },
+    { key: 'clan', label: 'Клановое', icon: '🛡️' },
+  ]},
   { key: 'analysis', label: 'Анализ персонажа', icon: '📊', children: [
     { key: 'stats', label: 'Характеристики', icon: '📊' },
     { key: 'equipment', label: 'Экипировка', icon: '⚔️' },
@@ -64,10 +69,13 @@ export function Sidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const canAccessAdmin = usePermission('admin', 'read') === 'full';
-  const [expandedGroup, setExpandedGroup] = useState<string>(() => 
-    location.pathname.startsWith('/clan') ? 'clan' : 'analysis'
+  const [expandedGroup, setExpandedGroup] = useState<string>(() =>
+    location.pathname.startsWith('/clan') ? 'clan'
+    : location.pathname.startsWith('/character') ? 'character'
+    : 'analysis'
   );
   const isClanPage = location.pathname.startsWith('/clan');
+  const isCharacterPage = location.pathname.startsWith('/character');
   const isAnalyzePage = location.pathname.startsWith('/analyze');
 
   const handleGroupClick = (groupKey: string, children?: TabItem[]) => {
@@ -76,7 +84,9 @@ export function Sidebar({
       setExpandedGroup(willExpand ? groupKey : '');
       if (willExpand && groupKey === 'clan' && !isClanPage) {
         navigate('/clan/2315');
-      } else if (willExpand && groupKey === 'analysis' && isClanPage) {
+      } else if (willExpand && groupKey === 'character' && !isCharacterPage) {
+        navigate('/character');
+      } else if (willExpand && groupKey === 'analysis' && (isClanPage || isCharacterPage)) {
         navigate('/');
       } else if (willExpand && groupKey === 'track') {
         navigate('/');
@@ -100,7 +110,8 @@ export function Sidebar({
         <div className="sidebar-section">
           <span className="sidebar-section-title">Навигация</span>
           {tabGroups.map((group) => {
-            const isActive = isClanPage && group.key === 'clan' || 
+            const isActive = (isClanPage && group.key === 'clan') ||
+                            (isCharacterPage && group.key === 'character') ||
                             (group.key === 'analysis' && isAnalyzePage) ||
                             (group.key === 'chat' && chatOpen);
             return (

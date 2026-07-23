@@ -2,15 +2,21 @@ import apiClient from './client';
 
 import type { User } from '../types/auth';
 
+interface UserPayload {
+  id: number;
+  username: string;
+  role: string;
+  is_active: boolean;
+  must_change_password: boolean;
+  character_nick: string | null;
+  character_url: string | null;
+  last_login_at?: string | null;
+  created_at?: string | null;
+}
+
 export interface LoginResponse {
   token: string;
-  user: {
-    id: number;
-    username: string;
-    role: string;
-    is_active: boolean;
-    must_change_password: boolean;
-  };
+  user: UserPayload;
   must_change_password: boolean;
   requires_2fa?: boolean;
   user_id?: number;
@@ -18,16 +24,12 @@ export interface LoginResponse {
 }
 
 export interface MeResponse {
-  user: {
-    id: number;
-    username: string;
-    role: string;
-    is_active: boolean;
-    must_change_password: boolean;
-    last_login_at: string | null;
-    created_at: string | null;
-  };
+  user: UserPayload;
   permissions: Record<string, 'full' | 'read' | 'none'>;
+}
+
+export interface UpdateProfileResponse {
+  user: UserPayload;
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
@@ -54,6 +56,11 @@ export async function changePassword(newPassword: string) {
   await apiClient.post('/api/auth/change-password', { new_password: newPassword });
 }
 
+export async function updateProfile(characterUrl: string): Promise<UpdateProfileResponse> {
+  const response = await apiClient.put<UpdateProfileResponse>('/api/auth/profile', { character_url: characterUrl });
+  return response.data;
+}
+
 export async function fetchMe(): Promise<MeResponse> {
   const response = await apiClient.get<MeResponse>('/api/auth/me');
   return response.data;
@@ -74,6 +81,8 @@ export function getStoredUser(): User | null {
     const parsed = JSON.parse(raw);
     return {
       ...parsed,
+      character_nick: parsed.character_nick ?? null,
+      character_url: parsed.character_url ?? null,
       last_login_at: parsed.last_login_at ?? null,
       created_at: parsed.created_at ?? null,
     };

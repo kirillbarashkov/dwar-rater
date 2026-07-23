@@ -193,6 +193,24 @@
   position: relative;
 }
 
+.user-profile-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: var(--transition);
+  border-radius: var(--radius);
+}
+
+.user-profile-link:hover .username {
+  color: var(--accent);
+}
+
 .user-avatar::after {
   content: '';
   position: absolute;

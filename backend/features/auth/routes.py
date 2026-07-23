@@ -14,11 +14,13 @@ import qrcode
 import base64
 import io
 from datetime import datetime, timezone, timedelta
+from urllib.parse import urlparse, parse_qs
 from flask import Blueprint, request, jsonify, g
 from shared.models import db
 from shared.models.user import User
 from shared.rbac.models import SessionToken, AuditLog
 from shared.rbac import get_user_permission, Permission as PermDef, feature, require_permission
+from shared.utils.validators import validate_dwar_url
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -277,3 +279,63 @@ def disable_2fa():
     _audit('2fa_disabled', user=user, target_type='user', target_id=user.id)
 
     return jsonify({'status': 'ok'})
+
+
+def _normalize_character_url(raw_url):
+    """Валидирует и нормализует URL персонажа.
+
+    Возвращает (url, nick, error):
+      - пустая строка → (None, None, None) — означает «отвязать персонажа»
+      - ошибка валидации → (None, None, 'сообщение об ошибке')
+      - успех → (url, nick, None)
+    """
+    raw_url = (raw_url or '').strip()
+    if not raw_url:
+        return None, None, None
+
+    valid, error = validate_dwar_url(raw_url)
+    if not valid:
+        return None, None, error
+
+    if not raw_url.startswith('http'):
+        nick = raw_url
+        if 'nick=' in nick:
+            nick = nick.split('nick=')[1].split('&')[0]
+        if not nick:
+            return None, None, 'Не удалось извлечь ник из URL'
+        url = f'https://w1.dwar.ru/user_info.php?nick={nick}'
+    else:
+        nick = parse_qs(urlparse(raw_url).query).get('nick', [''])[0]
+        if not nick:
+            return None, None, 'Не удалось извлечь ник из URL'
+        url = raw_url
+
+    return url, nick, None
+
+
+@auth_bp.route('/api/auth/profile', methods=['PUT'])
+@require_permission('character', 'write')
+def update_profile():
+    user = g.current_user
+    data = request.json or {}
+    raw_url = data.get('character_url')
+
+    url, nick, error = _normalize_character_url(raw_url)
+    if error:
+        return jsonify({'error': error}), 400
+
+    old_value = {'character_url': user.character_url, 'character_nick': user.character_nick}
+    user.character_url = url
+    user.character_nick = nick
+    db.session.commit()
+
+    _audit(
+        'update_profile',
+        user=user,
+        target_type='user',
+        target_id=user.id,
+        old=old_value,
+        new={'character_url': user.character_url, 'character_nick': user.character_nick},
+    )
+
+    return jsonify({'user': user.to_dict()})

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import './Header.css';
 
@@ -10,6 +11,7 @@ function getInitialTheme(): string {
 
 export function Header() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [theme, setTheme] = useState(getInitialTheme);
   const [versionInfo, setVersionInfo] = useState<{
     version: string;
@@ -59,11 +61,17 @@ export function Header() {
         </button>
         {user && (
           <div className="user-info">
-            <span className="user-avatar">👤</span>
-            <div className="user-details">
-              <span className="username">{user.username}</span>
-              <span className={`role-badge role-${user.role}`}>{user.role}</span>
-            </div>
+            <button
+              className="user-profile-link"
+              onClick={() => navigate('/profile')}
+              title="Профиль"
+            >
+              <span className="user-avatar">👤</span>
+              <div className="user-details">
+                <span className="username">{user.username}</span>
+                <span className={`role-badge role-${user.role}`}>{user.role}</span>
+              </div>
+            </button>
             <button className="btn btn-ghost btn-sm logout-btn" onClick={logout} title="Выйти">
               🚪
             </button>

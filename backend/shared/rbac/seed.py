@@ -36,6 +36,9 @@ PERMISSIONS = [
     # closed_profiles
     ('closed_profiles', 'read', 'Просмотр закрытых профилей', 'GET /api/closed-profiles'),
     ('closed_profiles', 'write', 'Добавление/удаление/проверка', 'POST/PUT/DELETE /api/closed-profiles/*'),
+    # character
+    ('character', 'read', 'Доступ к своему персонажу', 'GET /api/auth/me/character — вкладка Персонаж'),
+    ('character', 'write', 'Обновление своего персонажа', 'PUT /api/auth/profile, POST /api/auth/me/character/refresh'),
     # admin
     ('admin', 'read', 'Просмотр админки', 'GET /api/admin/*'),
     ('admin', 'write', 'Управление пользователями и ролями', 'POST/PUT/DELETE /api/admin/*'),
@@ -65,6 +68,8 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('admin', 'compare', 'write', 'full'),
     ('admin', 'closed_profiles', 'read', 'full'),
     ('admin', 'closed_profiles', 'write', 'full'),
+    ('admin', 'character', 'read', 'full'),
+    ('admin', 'character', 'write', 'full'),
     ('admin', 'admin', 'read', 'full'),
     ('admin', 'admin', 'write', 'full'),
     ('admin', 'admin', 'admin', 'full'),
@@ -90,6 +95,8 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('superuser', 'compare', 'write', 'full'),
     ('superuser', 'closed_profiles', 'read', 'full'),
     ('superuser', 'closed_profiles', 'write', 'full'),
+    ('superuser', 'character', 'read', 'full'),
+    ('superuser', 'character', 'write', 'full'),
     ('superuser', 'admin', 'read', 'none'),
     ('superuser', 'admin', 'write', 'none'),
     ('superuser', 'admin', 'admin', 'none'),
@@ -115,6 +122,8 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('user', 'compare', 'write', 'full'),
     ('user', 'closed_profiles', 'read', 'full'),
     ('user', 'closed_profiles', 'write', 'full'),
+    ('user', 'character', 'read', 'full'),
+    ('user', 'character', 'write', 'full'),
     ('user', 'admin', 'read', 'none'),
     ('user', 'admin', 'write', 'none'),
     ('user', 'admin', 'admin', 'none'),

@@ -5,6 +5,7 @@ import {
   login2fa as apiLogin2fa,
   logout as apiLogout,
   changePassword as apiChangePassword,
+  updateProfile as apiUpdateProfile,
   fetchMe,
   setSession,
   getStoredUser,
@@ -26,6 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then((data) => {
           const u: User = {
             ...data.user,
+            character_nick: data.user.character_nick ?? null,
+            character_url: data.user.character_url ?? null,
             last_login_at: data.user.last_login_at ?? null,
             created_at: data.user.created_at ?? null,
           };
@@ -51,6 +54,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const u: User = {
       ...result.user,
+      character_nick: result.user.character_nick ?? null,
+      character_url: result.user.character_url ?? null,
       last_login_at: null,
       created_at: null,
     };
@@ -63,6 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const result = await apiLogin2fa(userId, code);
     const u: User = {
       ...result.user,
+      character_nick: result.user.character_nick ?? null,
+      character_url: result.user.character_url ?? null,
       last_login_at: null,
       created_at: null,
     };
@@ -85,8 +92,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, permissions]);
 
+  const updateProfile = useCallback(async (characterUrl: string) => {
+    const result = await apiUpdateProfile(characterUrl);
+    const u: User = {
+      ...result.user,
+      character_nick: result.user.character_nick ?? null,
+      character_url: result.user.character_url ?? null,
+      last_login_at: result.user.last_login_at ?? user?.last_login_at ?? null,
+      created_at: result.user.created_at ?? user?.created_at ?? null,
+    };
+    setUser(u);
+    setSession(localStorage.getItem('auth_token') || '', u, permissions);
+  }, [user, permissions]);
+
   return (
-    <AuthContext.Provider value={{ user, permissions, login, login2fa, logout, changePassword, isAuthenticated: !!user, isLoading }}>
+    <AuthContext.Provider value={{ user, permissions, login, login2fa, logout, changePassword, updateProfile, isAuthenticated: !!user, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

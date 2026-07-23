@@ -39,6 +39,7 @@ def create_test_app():
     from features.clan_info.routes import clan_info_bp
     from features.compare.routes import compare_bp
     from features.closed_profiles.routes import closed_profiles_bp
+    from features.character.routes import character_bp
     from features.admin.routes import admin_bp
 
     app.register_blueprint(auth_bp)
@@ -51,6 +52,7 @@ def create_test_app():
     app.register_blueprint(clan_info_bp)
     app.register_blueprint(compare_bp)
     app.register_blueprint(closed_profiles_bp)
+    app.register_blueprint(character_bp)
     app.register_blueprint(admin_bp)
 
     @app.route('/')

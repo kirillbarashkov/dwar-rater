@@ -1,30 +1,9 @@
 import type { AnalysisResult } from '../../types/character';
+import { StatGroup } from '../ui/StatGroup';
 import './StatsTab.css';
 
 interface StatsTabProps {
   character: AnalysisResult;
-}
-
-function StatGroup({ title, stats }: { title: string; stats?: Record<string, string> }) {
-  if (!stats) return null;
-  const entries = Object.entries(stats);
-  if (entries.length === 0) return null;
-
-  return (
-    <div className="stat-group">
-      <h3 className="stat-group-title">{title}</h3>
-      <table className="stat-table">
-        <tbody>
-          {entries.map(([key, value]) => (
-            <tr key={key}>
-              <td className="stat-label">{key}</td>
-              <td className="stat-value">{value}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
 }
 
 export function StatsTab({ character }: StatsTabProps) {

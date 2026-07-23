@@ -41,6 +41,28 @@ EQUIPMENT_KINDS = {
     'Экзотическое кольцо', 'Экзотический амулет',
 }
 
+# Воинские звания (PvP-лестница 1-20). dwar.ru отдаёт числовой ID в API
+# закрытых профилей и <img title="..."> на странице открытых.
+GAME_RANKS = {
+    1: 'Рекрут', 2: 'Солдат', 3: 'Боец', 4: 'Воин', 5: 'Элитный воин',
+    6: 'Чемпион', 7: 'Гладиатор', 8: 'Полководец', 9: 'Мастер войны',
+    10: 'Герой', 11: 'Военный эксперт', 12: 'Магистр войны', 13: 'Вершитель',
+    14: 'Высший магистр', 15: 'Повелитель', 16: 'Легендарный завоеватель',
+    17: 'Властелин боя', 18: 'Победоносец', 19: 'Триумфатор', 20: 'Избранник богов',
+}
+
+
+def _rank_id_to_name(rank_value):
+    """Преобразует числовой ID звания (от API закрытых профилей) в текст.
+    Если значение уже текстовое/нечисловое — возвращает как есть."""
+    if not rank_value:
+        return ''
+    s = str(rank_value).strip()
+    try:
+        return GAME_RANKS.get(int(s), s)
+    except (ValueError, TypeError):
+        return s
+
 
 def fetch_character_page(url):
     """
@@ -118,7 +140,7 @@ def check_profile_closed(session, nick, html):
         return {
             'closed': bool(user_info.get('closed', False) or user_info.get('user_close_info', False)),
             'level': str(user_info.get('level', '')),
-            'rank': str(user_info.get('rank', '')),
+            'rank': _rank_id_to_name(user_info.get('rank', '')),
             'picture': str(user_info.get('picture', '')),
             'description': str(user_info.get('description', '')),
             'premium_level': str(user_info.get('premium_level', '')),
@@ -227,11 +249,17 @@ def parse_stats_tables(html):
 
         for table_html in stats_tables:
             rows = STATS_ROW_PATTERN.findall(table_html)
-            for label, value in rows:
+            for label, raw_value in rows:
                 label = clean_html(label)
-                value = clean_html(value)
-                if label and value:
-                    all_stats[label] = value
+                text = clean_html(raw_value)
+                # Воинское звание на dwar.ru отображается иконкой <img title="...">;
+                # clean_html снимает тег вместе с атрибутом — извлекаем имя из title.
+                if label == 'Звание' and not text:
+                    title_match = re.search(r'title="([^"]+)"', raw_value)
+                    if title_match:
+                        text = title_match.group(1).strip()
+                if label and text:
+                    all_stats[label] = text
 
         logging.debug(f"Parsed {len(all_stats)} stats")
         return all_stats
@@ -520,6 +548,7 @@ def parse_character(html, session=None, nick=None):
         
         # Parse all data components
         result['stats'] = parse_stats_tables(html)
+        result['rank'] = result['stats'].get('Звание', '')
         result['clan'] = parse_clan_info(html)
         result['professions'] = parse_profession_info(html)
         result['personal_info'] = parse_personal_info(html)
@@ -558,6 +587,8 @@ def parse_character(html, session=None, nick=None):
             result['name'] = 'Unknown'
         if 'stats' not in result:
             result['stats'] = {}
+        if 'rank' not in result:
+            result['rank'] = ''
         if 'clan' not in result:
             result['clan'] = {}
         if 'professions' not in result:

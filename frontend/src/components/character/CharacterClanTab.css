@@ -1,0 +1,293 @@
+.char-clan-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.char-clan-loading,
+.char-clan-error,
+.char-clan-empty {
+  padding: 32px;
+  text-align: center;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.char-clan-error {
+  border-color: rgba(255, 85, 85, 0.3);
+  background: rgba(255, 85, 85, 0.08);
+}
+
+.char-clan-empty a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.char-clan-empty a:hover {
+  text-decoration: underline;
+}
+
+/* Месяц навигация */
+.char-clan-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.char-clan-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.char-clan-nav-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-subtle);
+}
+
+.char-clan-month-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  min-width: 180px;
+  text-align: center;
+}
+
+.char-clan-deadline {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  background: rgba(255, 181, 71, 0.1);
+  border: 1px solid rgba(255, 181, 71, 0.3);
+  border-radius: var(--radius);
+}
+
+/* Секции */
+.char-clan-section {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 20px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.char-clan-section-title {
+  color: var(--accent);
+  font-size: 0.95rem;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Налог */
+.char-clan-tax-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.char-clan-tax-status {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.char-clan-tax-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.char-clan-tax-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.char-clan-tax-row:last-child {
+  border-bottom: none;
+}
+
+.char-clan-tax-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.char-clan-tax-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.char-clan-tax-win {
+  color: var(--green);
+}
+
+.char-clan-tax-lose {
+  color: var(--red);
+}
+
+/* Бейджи статусов */
+.char-clan-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.char-clan-badge-paid {
+  color: var(--green);
+  background: rgba(80, 250, 123, 0.1);
+  border: 1px solid rgba(80, 250, 123, 0.3);
+}
+
+.char-clan-badge-delayed {
+  color: var(--gold);
+  background: rgba(255, 181, 71, 0.1);
+  border: 1px solid rgba(255, 181, 71, 0.3);
+}
+
+.char-clan-badge-compensated {
+  color: var(--blue);
+  background: rgba(80, 120, 250, 0.1);
+  border: 1px solid rgba(80, 120, 250, 0.3);
+}
+
+.char-clan-badge-notpaid {
+  color: var(--red);
+  background: rgba(255, 85, 85, 0.1);
+  border: 1px solid rgba(255, 85, 85, 0.3);
+}
+
+.char-clan-badge-future {
+  color: var(--text-muted);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+}
+
+.char-clan-badge-over {
+  color: var(--gold);
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+/* Таблица ресурсов */
+.char-clan-resource-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.char-clan-resource-table th {
+  text-align: left;
+  padding: 8px 12px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+.char-clan-resource-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.char-clan-resource-table tr:last-child td {
+  border-bottom: none;
+}
+
+.char-clan-resource-name {
+  color: var(--text-primary);
+}
+
+.char-clan-num-col {
+  text-align: right;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.char-clan-status-col {
+  text-align: center;
+}
+
+.char-clan-group-empty {
+  margin-top: 12px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Сводка за всё время */
+.char-clan-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.char-clan-summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px;
+  background: var(--bg-input);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.char-clan-summary-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.char-clan-summary-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .char-clan-month-nav {
+    flex-wrap: wrap;
+  }
+
+  .char-clan-deadline {
+    margin-left: 0;
+    width: 100%;
+    text-align: center;
+  }
+
+  .char-clan-resource-table {
+    font-size: 0.8rem;
+  }
+}

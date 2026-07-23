@@ -12,6 +12,8 @@ class User(db.Model):
     last_login_at = db.Column(db.DateTime, nullable=True)
     totp_secret = db.Column(db.String(64), nullable=True)
     must_change_password = db.Column(db.Boolean, default=False)
+    character_nick = db.Column(db.String(100), nullable=True, index=True)
+    character_url = db.Column(db.String(512), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     role_obj = db.relationship('Role', primaryjoin='User.role == foreign(Role.name)', lazy='select', uselist=False)
@@ -30,5 +32,7 @@ class User(db.Model):
             'is_active': self.is_active,
             'last_login_at': self.last_login_at.isoformat() if self.last_login_at else None,
             'must_change_password': self.must_change_password,
+            'character_nick': self.character_nick,
+            'character_url': self.character_url,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }

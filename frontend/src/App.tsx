@@ -37,6 +37,8 @@ import type { AnalysisResult } from './types/character';
 import type { Snapshot } from './types/snapshot';
 import { LoginPage } from './pages/auth/LoginPage';
 import { AdminPage } from './pages/admin/AdminPage';
+import { ProfilePage } from './pages/profile/ProfilePage';
+import { CharacterPageWrapper } from './pages/character/CharacterPageWrapper';
 import './styles/globals.css';
 
 function AnalysisResultDisplay({
@@ -338,6 +340,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/character"
+          element={
+            <ProtectedRoute>
+              <CharacterPageWrapper />
             </ProtectedRoute>
           }
         />

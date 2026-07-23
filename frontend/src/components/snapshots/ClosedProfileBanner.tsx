@@ -33,8 +33,9 @@ interface ClosedProfileBannerProps {
 
 export function ClosedProfileBanner({ character }: ClosedProfileBannerProps) {
   const closedInfo = character.closed_info;
-  const rankId = closedInfo?.rank ? parseInt(closedInfo.rank, 10) : null;
-  const gameRank = rankId ? GAME_RANKS[rankId] : null;
+  const rankRaw = closedInfo?.rank || '';
+  const rankId = rankRaw ? parseInt(rankRaw, 10) : null;
+  const gameRank = (rankId && !isNaN(rankId) && GAME_RANKS[rankId]) ? GAME_RANKS[rankId] : rankRaw;
   const [isAdding, setIsAdding] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   const [scannedOpenAt, setScannedOpenAt] = useState<string | null>(null);

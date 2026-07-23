@@ -4,6 +4,8 @@ export interface User {
   role: string;
   is_active: boolean;
   must_change_password: boolean;
+  character_nick: string | null;
+  character_url: string | null;
   last_login_at: string | null;
   created_at: string | null;
 }
@@ -15,6 +17,7 @@ export interface AuthContextType {
   login2fa: (userId: number, code: string) => Promise<void>;
   logout: () => void;
   changePassword: (newPassword: string) => Promise<void>;
+  updateProfile: (characterUrl: string) => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
