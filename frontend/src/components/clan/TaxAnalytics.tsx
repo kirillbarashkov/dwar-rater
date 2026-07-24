@@ -295,7 +295,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
         normAmount,
         totalPaid,
         onTimePaid: data.onTime,
-        delayedPaid: data.delayed,
+        delayedPaid: data.onTime >= normAmount ? 0 : data.delayed,
         compensationAmount: data.compensation,
         compensationComment: data.comment,
         status,

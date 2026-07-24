@@ -182,8 +182,9 @@ export function CharacterClanTab() {
     }
 
     const isOver = totalPaid > normAmount || compensation >= normAmount;
+    const effectiveDelayed = onTime >= normAmount ? 0 : delayed;
 
-    return { status, totalPaid, onTimePaid: onTime, delayedPaid: delayed, normAmount, isOver };
+    return { status, totalPaid, onTimePaid: onTime, delayedPaid: effectiveDelayed, normAmount, isOver };
   }, [operations, myNick, myNickLower, selectedMonth, selectedYear, myLevel, isPaymentDue]);
 
   const resourceInfos = useMemo<ResourceInfo[]>(() => {
