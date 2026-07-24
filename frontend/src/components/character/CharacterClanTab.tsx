@@ -178,7 +178,7 @@ export function CharacterClanTab() {
     } else if (hasCompensationFlag) {
       status = 'compensated';
     } else if (totalPaid >= normAmount) {
-      status = delayed > 0 ? 'paid_delayed' : 'paid';
+      status = onTime >= normAmount ? 'paid' : 'paid_delayed';
     }
 
     const isOver = totalPaid > normAmount || compensation >= normAmount;

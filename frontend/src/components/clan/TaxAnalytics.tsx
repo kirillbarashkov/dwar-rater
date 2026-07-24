@@ -283,7 +283,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
       } else if (data.flag) {
         status = 'compensated';
       } else if (totalPaid >= normAmount) {
-        status = data.delayed > 0 ? 'paid_delayed' : 'paid';
+        status = data.onTime >= normAmount ? 'paid' : 'paid_delayed';
       }
 
       const isOver = totalPaid > normAmount || data.compensation >= normAmount;
