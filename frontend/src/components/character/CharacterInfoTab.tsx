@@ -62,7 +62,7 @@ export function CharacterInfoTab({ character, fetchedAt, onRefresh, refreshing }
   const fv: FlashvarsExtra | undefined = character.flashvars_extra;
   const pi: PersonalInfo | undefined = character.personal_info;
   const isOnline = fv?.online === '1';
-  const genderLabel = fv?.gender === '1' ? 'Женский' : fv?.gender === '0' ? 'Мужской' : null;
+  const genderLabel = fv?.gender === '1' ? 'Мужской' : fv?.gender === '0' ? 'Женский' : null;
   const profEntries = Object.entries(character.professions || {});
 
   return (
