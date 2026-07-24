@@ -7,6 +7,6 @@ export async function getMyCharacter(): Promise<AnalysisResult> {
 }
 
 export async function refreshMyCharacter(): Promise<AnalysisResult> {
-  const response = await apiClient.post<AnalysisResult>('/api/auth/me/character/refresh');
+  const response = await apiClient.post<AnalysisResult>('/api/auth/me/character/refresh', {});
   return response.data;
 }
