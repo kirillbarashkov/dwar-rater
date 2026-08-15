@@ -9,9 +9,21 @@ on:
         description: 'Type "DEPLOY" to confirm production deployment'
         required: true
         type: string
+      bump_part:
+        description: 'Version bump part for hotfix releases (always applied when dispatching)'
+        required: false
+        default: 'patch'
+        type: choice
+        options: [patch, minor, major]
+
+# Avoid infinite loop: release commits ([skip ci]) must not re-trigger
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
 
 jobs:
   test:
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release)') }}
     runs-on: ubuntu-latest
 
     services:
@@ -63,22 +75,69 @@ jobs:
     needs: [test, validate-deploy-input]
     if: always() && needs.test.result == 'success' && (github.event_name == 'push' || needs.validate-deploy-input.result == 'success')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Determine bump part
+        id: bump
+        run: |
+          PART="patch"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PART="${{ github.event.inputs.bump_part }}"
+          else
+            # PR-label driven: bump:major / bump:minor on the merged PR containing this sha
+            LABELS=$(curl -sf -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.groot-preview+json" \
+              "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+              | jq -r '.[0].labels[].name' 2>/dev/null || true)
+            if echo "$LABELS" | grep -qx 'bump:major'; then PART="major"; fi
+            if echo "$LABELS" | grep -qx 'bump:minor'; then PART="minor"; fi
+          fi
+          echo "part=$PART" >> "$GITHUB_OUTPUT"
+
+      - name: Compute release version
+        id: ver
+        run: |
+          OLD=$(cat VERSION | tr -d '[:space:]')
+          PART="${{ steps.bump.outputs.part }}"
+          IFS='.' read -r MA MI PA <<< "$OLD"
+          case "$PART" in
+            major) MA=$((MA+1)); MI=0; PA=0 ;;
+            minor) MI=$((MI+1)); PA=0 ;;
+            *)     PA=$((PA+1)) ;;
+          esac
+          NEW="$MA.$MI.$PA"
+          GIT_HASH=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +'%Y-%m-%d %H:%M UTC')
+          echo "old=$OLD" >> "$GITHUB_OUTPUT"
+          echo "new=$NEW" >> "$GITHUB_OUTPUT"
+          echo "git_hash=$GIT_HASH" >> "$GITHUB_OUTPUT"
+          echo "build_date=$BUILD_DATE" >> "$GITHUB_OUTPUT"
+          echo "Deploying v$OLD → image will report v$NEW (bump: $PART)"
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
+        env:
+          APP_VERSION: ${{ steps.ver.outputs.new }}
+          APP_GIT_HASH: ${{ steps.ver.outputs.git_hash }}
+          APP_BRANCH: main
+          APP_BUILD_DATE: ${{ steps.ver.outputs.build_date }}
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 15m
+          envs: APP_VERSION,APP_GIT_HASH,APP_BRANCH,APP_BUILD_DATE
           script: |
             cd ~/dwar-rater
             git pull origin main
+            # Build args reach docker-compose via env (${APP_VERSION:-dev} etc.)
+            export APP_VERSION APP_GIT_HASH APP_BRANCH APP_BUILD_DATE
             docker compose -f docker-compose.prod.yml up -d --build
             docker image prune -f
             # Allow backend to run alembic migrations + start gunicorn
@@ -114,14 +173,26 @@ jobs:
             docker compose -f ~/dwar-rater/docker-compose.prod.yml logs --tail 50 backend 2>&1 || true
             exit 1
 
-      - name: Create release tag
+      - name: Commit release bump and tag
         run: |
-          VERSION=$(cat VERSION | tr -d '[:space:]')
-          TAG="v${VERSION}"
+          NEW="${{ steps.ver.outputs.new }}"
+          OLD="${{ steps.ver.outputs.old }}"
+          TAG="v${NEW}"
+          # Idempotency: if tag already exists, this run is a re-run — skip silently
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists — skipping release commit"
+            exit 0
+          fi
+          echo "$NEW" > VERSION
+          # Sync frontend package.json with the canonical VERSION (sync-point, do not hand-edit)
+          jq --arg v "$NEW" '.version = $v' frontend/package.json > frontend/package.json.tmp \
+            && mv frontend/package.json.tmp frontend/package.json
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "${TAG}" -m "Release ${TAG} (auto-deployed)" || echo "Tag ${TAG} already exists"
-          git push origin "${TAG}" || echo "Failed to push tag ${TAG}"
+          git add VERSION frontend/package.json
+          git commit -m "chore(release): ${TAG} [skip ci]" || echo "Nothing to commit"
+          git tag -a "${TAG}" -m "Release ${TAG} (auto-deployed from v${OLD}, bump: ${{ steps.bump.outputs.part }})"
+          git push origin main --follow-tags
 
       - name: Notify on failure
         if: failure()

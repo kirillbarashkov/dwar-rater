@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Version management utilities for dwar-rater."""
+"""Version management utilities for dwar-rater.
+
+Strategy: env-first. In production, build/deploy metadata is injected via
+ARG/ENV at image build time (see backend/Dockerfile and .github/workflows/deploy.yml).
+Local dev falls back to the VERSION file, git, and file mtime.
+"""
 
 import os
 import subprocess
@@ -10,29 +15,43 @@ from datetime import datetime, timezone
 VERSION_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'VERSION')
 
 
-def read_version():
-    """Read current version from VERSION file."""
-    try:
-        with open(VERSION_FILE, 'r') as f:
-            return f.read().strip()
-    except FileNotFoundError:
-        return '0.0.0'
-
-
-def read_git_hash():
-    """Get current git commit hash."""
+def _run_git(*args):
+    """Run a git command at the repo root; return stripped output or None."""
     try:
         return subprocess.check_output(
-            ['git', 'rev-parse', '--short', 'HEAD'],
+            ['git', *args],
             cwd=os.path.dirname(VERSION_FILE),
             stderr=subprocess.DEVNULL
         ).decode().strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
-        return 'unknown'
+        return None
+
+
+def read_version():
+    """Current version: APP_VERSION env → VERSION file → '0.0.0'."""
+    env_val = os.environ.get('APP_VERSION')
+    if env_val:
+        return env_val
+    try:
+        with open(VERSION_FILE, 'r') as f:
+            return f.read().strip() or '0.0.0'
+    except (FileNotFoundError, OSError):
+        return '0.0.0'
+
+
+def read_git_hash():
+    """Short commit hash: APP_GIT_HASH env → git → 'unknown'."""
+    env_val = os.environ.get('APP_GIT_HASH')
+    if env_val:
+        return env_val
+    return _run_git('rev-parse', '--short', 'HEAD') or 'unknown'
 
 
 def read_build_date():
-    """Get build/deploy date."""
+    """Build date: APP_BUILD_DATE env → VERSION file mtime → now (UTC)."""
+    env_val = os.environ.get('APP_BUILD_DATE')
+    if env_val:
+        return env_val
     try:
         stat = os.stat(VERSION_FILE)
         return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
@@ -41,19 +60,18 @@ def read_build_date():
 
 
 def read_branch():
-    """Get current git branch."""
-    try:
-        return subprocess.check_output(
-            ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
-            cwd=os.path.dirname(VERSION_FILE),
-            stderr=subprocess.DEVNULL
-        ).decode().strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return 'unknown'
+    """Branch name: APP_BRANCH env → git → 'unknown'."""
+    env_val = os.environ.get('APP_BRANCH')
+    if env_val:
+        return env_val
+    return _run_git('rev-parse', '--abbrev-ref', 'HEAD') or 'unknown'
 
 
 def bump_version(part='patch'):
-    """Bump version: major.minor.patch → returns new version string."""
+    """Bump version: major.minor.patch → writes VERSION file, returns new version.
+
+    Dev/CI utility only — never called from runtime request paths.
+    """
     version = read_version()
     parts = version.split('.')
     if len(parts) != 3:

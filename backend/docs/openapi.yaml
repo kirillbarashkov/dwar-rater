@@ -6,6 +6,8 @@ info:
     for the browser MMORPG "Legend: Legacy of the Dragons" (dwar.ru).
 
     **Authentication:** HTTP Basic Auth. All endpoints except `/api/login`, `/api/health`, and `/` require authentication.
+
+    **Versioning:** canonical version source is the repo-root `VERSION` file (sync `frontend/package.json` on release; keep this schema version in sync manually — the OpenAPI schema is static).
   version: "1.0.0"
   contact:
     name: Dwar Rater

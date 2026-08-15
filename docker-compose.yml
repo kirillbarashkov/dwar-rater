@@ -24,6 +24,11 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
+        APP_GIT_HASH: ${APP_GIT_HASH:-unknown}
+        APP_BRANCH: ${APP_BRANCH:-unknown}
+        APP_BUILD_DATE: ${APP_BUILD_DATE:-unknown}
     ports:
       - "5000:5000"
     env_file:
@@ -48,6 +53,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
     ports:
       - "5173:5173"
     environment:

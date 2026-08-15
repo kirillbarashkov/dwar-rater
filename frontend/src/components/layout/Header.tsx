@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import apiClient from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
 import './Header.css';
 
@@ -26,10 +27,10 @@ export function Header() {
   }, [theme]);
 
   useEffect(() => {
-    fetch('/api/version')
-      .then(r => r.json())
-      .then(setVersionInfo)
-      .catch(() => {});
+    apiClient
+      .get('/api/version')
+      .then((r) => setVersionInfo(r.data))
+      .catch(() => setVersionInfo(null));
   }, []);
 
   const toggleTheme = () => {
@@ -46,9 +47,18 @@ export function Header() {
         </div>
       </div>
       <div className="header-actions">
-        {versionInfo && (
-          <div className="version-info" title={`${versionInfo.build_date} · ${versionInfo.git_hash} · ${versionInfo.branch}`}>
-            <span className="version-tag">v{versionInfo.version}</span>
+        {(versionInfo || import.meta.env.VITE_APP_VERSION) && (
+          <div
+            className="version-info"
+            title={
+              versionInfo
+                ? `${versionInfo.build_date} · ${versionInfo.git_hash} · ${versionInfo.branch}`
+                : 'Сборка: версия недоступна'
+            }
+          >
+            <span className="version-tag">
+              v{versionInfo?.version ?? import.meta.env.VITE_APP_VERSION}
+            </span>
           </div>
         )}
         <button

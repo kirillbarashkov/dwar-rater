@@ -19,6 +19,11 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
+        APP_GIT_HASH: ${APP_GIT_HASH:-unknown}
+        APP_BRANCH: ${APP_BRANCH:-unknown}
+        APP_BUILD_DATE: ${APP_BUILD_DATE:-unknown}
     container_name: dwar_rater_backend
     restart: unless-stopped
     depends_on:
@@ -37,8 +42,6 @@ services:
       RATE_LIMIT_MAX: "100"
       RATE_LIMIT_WINDOW: "60"
       CORS_ORIGINS: ${CORS_ORIGINS}
-      GITHUB_TOKEN: ${GITHUB_TOKEN}
-      GITHUB_REPO: ${GITHUB_REPO:-kirillbarashkov/dwar-rater}
     networks:
       - dwar-net
 
@@ -46,6 +49,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
     container_name: dwar_rater_frontend
     restart: unless-stopped
     depends_on:
