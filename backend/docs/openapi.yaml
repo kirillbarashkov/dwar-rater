@@ -450,6 +450,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/StatusResponse"
 
+  /api/tracks/{track_id}/re-evaluate:
+    post:
+      summary: Re-evaluate track
+      description: Authoritative re-sync of steps against a fresh source character snapshot (target stays frozen).
+      tags:
+        - Tracks
+      parameters:
+        - name: track_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                character_data:
+                  type: object
+                  description: Fresh processed source character (same character the track was created for)
+                force_refresh:
+                  type: boolean
+                  description: Parse source from the user's profile character_url instead (requires analyze.write)
+      responses:
+        "200":
+          description: Updated steps, phases and power_gap
+        "400":
+          description: character_data missing or not an object
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Legacy track without target snapshot, or character mismatch
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /api/tracks/{track_id}/step/{step_id}:
     put:
       summary: Update track step

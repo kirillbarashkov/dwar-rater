@@ -143,3 +143,292 @@
   margin: 0;
   line-height: 1.4;
 }
+
+/* ===== v2: target selector ===== */
+.it-target-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.it-target-modes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.it-mode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.it-mode.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.it-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.it-force-refresh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* ===== v2: header extras ===== */
+.it-power-gap {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--gold);
+  background: var(--bg-card);
+  padding: 4px 10px;
+  border-radius: var(--radius);
+}
+
+.it-reevaluate {
+  white-space: nowrap;
+}
+
+/* ===== v2: summaries ===== */
+.it-summaries {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.it-summary-card {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.it-summary-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.it-summary-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.it-summary-level,
+.it-summary-hp,
+.it-summary-stat {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* ===== v2: phases ===== */
+.it-phase {
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.it-phase-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.it-phase-header:hover {
+  background: var(--bg-secondary);
+}
+
+.it-phase-icon {
+  font-size: 1rem;
+}
+
+.it-phase-title {
+  font-weight: 600;
+  flex: 1;
+  text-align: left;
+}
+
+.it-phase-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.it-phase-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.it-phase-progress-bar {
+  width: 90px;
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.it-phase-progress-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 3px;
+}
+
+.it-phase-pct {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  min-width: 42px;
+  text-align: right;
+}
+
+.it-phase-chevron {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.it-phase-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+/* ===== v2: step badges + breakdown ===== */
+.step-badge {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.step-badge.effort-low { color: var(--green); }
+.step-badge.effort-medium { color: var(--gold); }
+.step-badge.effort-high { color: var(--red); }
+.step-badge.roi { color: var(--accent); }
+
+.step-breakdown {
+  margin-top: 4px;
+}
+
+.step-breakdown code {
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.step-completed-auto {
+  opacity: 0.75;
+}
+
+/* ===== v2: resync notice ===== */
+.it-resync-notice {
+  padding: 8px 14px;
+  margin-bottom: 10px;
+  background: var(--bg-card);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* ===== v2: diff view ===== */
+.it-diff-toggle {
+  margin-top: 4px;
+}
+
+.it-diff {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.it-diff-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.it-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.it-diff-table th,
+.it-diff-table td {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.it-diff-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.it-diff-medals {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.it-diff-title {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.it-diff-medal {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 2px 8px;
+  border-radius: 3px;
+}

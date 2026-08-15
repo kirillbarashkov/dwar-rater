@@ -23,3 +23,16 @@ class Config:
 
     _cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173')
     CORS_ORIGINS = [origin.strip() for origin in _cors_origins.split(',') if origin.strip()]
+
+    # === Improvement Track v2 (gap-close) ===
+    # Weighted power model: impact = Σ(Δ · weight). Tuning is deferred (see
+    # development-roadmap/improvement-track-v2-plan.md §11 — admin UI later).
+    POWER_WEIGHTS = {
+        'main_stats': {'Живучесть': 1.0, 'Сила': 2.0, 'Ловкость': 1.5,
+                       'Интуиция': 1.5, 'Защита': 1.2},
+        'combat_stats': {'Инициатива': 1.8, 'Стойкость': 1.3},
+        'magic_stats': {'Воля': 1.0, 'Интеллект': 1.2, 'Концентрация': 1.1,
+                        'Мудрость': 1.0, 'Подавление': 1.0},
+        'hp': 1.5,
+    }
+    EFFORT_RANK = {'low': 1, 'medium': 2, 'high': 3}
