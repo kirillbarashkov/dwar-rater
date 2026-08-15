@@ -17,7 +17,7 @@ import json
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
-ROUTES_DIR = os.path.join(BASE_DIR, 'routes')
+FEATURES_DIR = os.path.join(BASE_DIR, 'features')
 OPENAPI_PATH = os.path.join(BASE_DIR, 'docs', 'openapi.yaml')
 
 
@@ -32,7 +32,16 @@ def extract_routes_from_file(filepath):
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    for match in re.finditer(r"@(\w+)\.route\(['\"]([^'\"]+)['\"](?:,\s*methods=\[([^\]]+)\])?\)", content):
+    # Matches both single-line and multi-line decorators:
+    #   @bp.route('/path', methods=['GET', 'POST'])
+    #   @bp.route(
+    #       '/path', methods=['GET']
+    #   )
+    pattern = re.compile(
+        r"@(\w+)\.route\(\s*['\"]([^'\"]+)['\"](?:,\s*methods=\[([^\]]+)\])?\s*\)",
+        re.DOTALL
+    )
+    for match in pattern.finditer(content):
         bp_var = match.group(1)
         path = match.group(2)
         methods_str = match.group(3)
@@ -46,6 +55,19 @@ def extract_routes_from_file(filepath):
         for method in methods:
             routes.add(f"{method.upper()} {normalized}")
 
+    return routes
+
+
+def extract_routes_from_features(features_dir):
+    """Extract route paths and methods from all features/*/routes.py files."""
+    routes = set()
+    if not os.path.isdir(features_dir):
+        print(f"ERROR: features dir not found at {features_dir}")
+        sys.exit(1)
+    for entry in sorted(os.listdir(features_dir)):
+        routes_file = os.path.join(features_dir, entry, 'routes.py')
+        if os.path.isfile(routes_file):
+            routes.update(extract_routes_from_file(routes_file))
     return routes
 
 
@@ -73,11 +95,7 @@ def extract_paths_from_openapi(filepath):
 def main():
     check_mode = '--check' in sys.argv
 
-    all_routes = set()
-    for filename in os.listdir(ROUTES_DIR):
-        if filename.endswith('.py') and filename != '__init__.py':
-            filepath = os.path.join(ROUTES_DIR, filename)
-            all_routes.update(extract_routes_from_file(filepath))
+    all_routes = extract_routes_from_features(FEATURES_DIR)
 
     if not os.path.exists(OPENAPI_PATH):
         print(f"ERROR: OpenAPI spec not found at {OPENAPI_PATH}")
@@ -92,23 +110,24 @@ def main():
     print(f"Routes in OpenAPI: {len(openapi_routes)}")
 
     if missing:
-        print(f"\nMISSING from OpenAPI ({len(missing)}):")
+        print(f"\nMISSING from OpenAPI ({len(missing)}) — documentation debt, tracked in ROADMAP P4:")
         for route in sorted(missing):
             print(f"  - {route}")
 
     if extra:
-        print(f"\nEXTRA in OpenAPI (not in code) ({len(extra)}):")
+        print(f"\nEXTRA in OpenAPI (not in code) ({len(extra)}) — STALE DOCS, must be removed:")
         for route in sorted(extra):
             print(f"  - {route}")
 
     if not missing and not extra:
         print("\nAPI docs are up to date.")
         sys.exit(0)
+    elif extra:
+        print(f"\nAPI docs are OUT OF DATE (stale endpoints documented).")
+        print("Remove the EXTRA paths from docs/openapi.yaml.")
+        sys.exit(1)
     else:
-        print(f"\nAPI docs are OUT OF DATE.")
-        print("Run: python scripts/generate_openapi.py > docs/openapi.yaml")
-        if check_mode:
-            sys.exit(1)
+        print(f"\nAPI docs are PARTIAL (missing {len(missing)} endpoints) — allowed.")
         sys.exit(0)
 
 

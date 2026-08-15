@@ -36,42 +36,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
 
-  /api/login:
-    post:
-      summary: Login
-      description: Authenticate with HTTP Basic Auth.
-      tags:
-        - Auth
-      security: []
-      responses:
-        "200":
-          description: Authentication successful
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LoginResponse"
-        "401":
-          description: Invalid credentials
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /api/me:
-    get:
-      summary: Current user info
-      description: Returns the authenticated user's info.
-      tags:
-        - Auth
-      responses:
-        "200":
-          description: User info
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UserInfo"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
 
   /api/analyze:
     post:
