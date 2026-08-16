@@ -162,6 +162,29 @@ def create_app():
 
                     with db.engine.connect() as conn:
                         context = MigrationContext.configure(conn)
+                        # Sanitize alembic_version: the legacy deploy-time
+                        # INSERT could leave duplicate rows (no PK) which make
+                        # alembic see "more than one head" and silently fall
+                        # back to db.create_all(). Keep only the newest row.
+                        try:
+                            rows = conn.execute(db.text(
+                                "SELECT version_num FROM alembic_version"
+                            )).fetchall()
+                            if len(rows) > 1:
+                                revisions = {r[0] for r in rows}
+                                script_pre = ScriptDirectory.from_config(alembic_cfg)
+                                order = [wr.revision for wr in script_pre.walk_revisions()]
+                                # keep the revision closest to head
+                                best = max(revisions, key=order.index)
+                                conn.execute(db.text(
+                                    "DELETE FROM alembic_version WHERE version_num <> :keep"
+                                ), {'keep': best})
+                                conn.commit()
+                                data_logger.warning(
+                                    f'Alembic: sanitized {len(rows) - 1} duplicate version rows, kept {best}')
+                        except Exception as sanitize_err:
+                            data_logger.warning(f'Alembic: version sanitize skipped: {sanitize_err}')
+
                         current_rev = context.get_current_revision()
                         script = ScriptDirectory.from_config(alembic_cfg)
                         head_rev = script.get_current_head()
@@ -216,6 +239,25 @@ def create_app():
 
                 with db.engine.connect() as conn:
                     context = MigrationContext.configure(conn)
+                    # Sanitize alembic_version (same as Docker branch above)
+                    try:
+                        rows = conn.execute(db.text(
+                            "SELECT version_num FROM alembic_version"
+                        )).fetchall()
+                        if len(rows) > 1:
+                            revisions = {r[0] for r in rows}
+                            script_pre = ScriptDirectory.from_config(alembic_cfg)
+                            order = [wr.revision for wr in script_pre.walk_revisions()]
+                            best = max(revisions, key=order.index)
+                            conn.execute(db.text(
+                                "DELETE FROM alembic_version WHERE version_num <> :keep"
+                            ), {'keep': best})
+                            conn.commit()
+                            data_logger.warning(
+                                f'Alembic: sanitized {len(rows) - 1} duplicate version rows, kept {best}')
+                    except Exception as sanitize_err:
+                        data_logger.warning(f'Alembic: version sanitize skipped: {sanitize_err}')
+
                     current_rev = context.get_current_revision()
                     script = ScriptDirectory.from_config(alembic_cfg)
                     head_rev = script.get_current_head()

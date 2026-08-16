@@ -140,17 +140,6 @@ jobs:
             export APP_VERSION APP_GIT_HASH APP_BRANCH APP_BUILD_DATE
             docker compose -f docker-compose.prod.yml up -d --build
             docker image prune -f
-            # Allow backend to run alembic migrations + start gunicorn
-            sleep 15
-            # Consolidate branched alembic migrations only if alembic_version
-            # table exists (skipped on fresh DB; backend's alembic upgrade head
-            # builds schema from scratch in that case). Idempotent via ON
-            # CONFLICT DO NOTHING so safe to run repeatedly.
-            docker compose -f docker-compose.prod.yml exec -T postgres psql -U dwar -d dwar_rater -c "INSERT INTO alembic_version (version_num) VALUES ('004_add_membership_events') ON CONFLICT DO NOTHING;" 2>&1 || echo "alembic_version not present yet — schema built from scratch by backend"
-            # Restart backend to re-run alembic upgrade head now that 004
-            # marker is in place (only matters for existing DBs at 005).
-            docker compose -f docker-compose.prod.yml restart backend
-            sleep 15
 
       - name: Wait for health check (via SSH inside VM)
         uses: appleboy/ssh-action@v1
