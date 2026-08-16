@@ -273,6 +273,13 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
     setCollapsedPhases((prev) => ({ ...prev, [phaseId]: !prev[phaseId] }));
   };
 
+  const targetRefEmpty =
+    targetType === 'character'
+      ? !targetUrl.trim()
+      : targetType === 'snapshot'
+        ? selectedSnapshot === null
+        : selectedScenario === null;
+
   if (!track) {
     return (
       <div className="improvement-track">
@@ -364,7 +371,7 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
           <button
             className="btn btn-primary btn-sm"
             onClick={handleGenerate}
-            disabled={isLoading || (targetType === 'character' ? !targetUrl.trim() : true)}
+            disabled={isLoading || targetRefEmpty}
           >
             {isLoading ? 'Генерация...' : 'Создать трек'}
           </button>
