@@ -1,5 +1,5 @@
-# v1.0.8
+# v1.0.9
 
-## Новое
-- feat: make Improvement Track tab independent of character analysis
+## Исправления
+- fix: fetch tags on the VM so release notes list real changes
 
