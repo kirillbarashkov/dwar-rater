@@ -1,5 +1,5 @@
-# v1.0.6
+# v1.0.7
 
 ## Исправления
-- fix: legendary star levels misread as 5 + track empty-state guide + release-notes tooltip
+- fix: generate release notes on the VM before image build
 
