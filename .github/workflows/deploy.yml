@@ -136,6 +136,9 @@ jobs:
           script: |
             cd ~/dwar-rater
             git pull origin main
+            # Tags are pushed by the CI release step, git pull does not fetch
+            # them — fetch explicitly or the notes fall back to a stub.
+            git fetch --tags origin || true
             # Release notes: generate from commits since the last deployed tag
             # BEFORE building, so the file lands inside the backend image.
             LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -151,7 +154,9 @@ jobs:
                 if [ -n "$FIXES" ]; then echo "## Исправления"; echo "$FIXES" | while IFS= read -r l; do echo "- $l"; done; echo ""; fi
                 if [ -n "$OTHER" ]; then echo "## Прочее"; echo "$OTHER" | while IFS= read -r l; do echo "- $l"; done; echo ""; fi
               else
-                echo "- Релиз v${APP_VERSION}"
+                echo "## Изменения"
+                git log --no-merges -8 --pretty=format:'- %s' | grep -v '^chore(release)' || echo "- Релиз v${APP_VERSION}"
+                echo ""
               fi
             } > backend/RELEASE_NOTES.md
             # Build args reach docker-compose via env (${APP_VERSION:-dev} etc.)
