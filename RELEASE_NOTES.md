@@ -1,5 +1,5 @@
-# v1.0.11
+# v1.0.12
 
-## Новое
-- feat: analyze from snapshot + clear-field fix + track source selector
+## Исправления
+- fix: unify source-selector styling and import missing CSS
 
