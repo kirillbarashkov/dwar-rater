@@ -12,6 +12,8 @@ interface User {
   last_login_at: string | null;
   must_change_password: boolean;
   created_at: string | null;
+  character_nick?: string | null;
+  character_url?: string | null;
 }
 
 export function UserTable() {
@@ -23,6 +25,34 @@ export function UserTable() {
   const [syncResult, setSyncResult] = useState<{ created: number; updated: number; skipped: number } | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<User | null>(null);
   const [permsTarget, setPermsTarget] = useState<User | null>(null);
+  const [resetTarget, setResetTarget] = useState<User | null>(null);
+  const [unbindTarget, setUnbindTarget] = useState<User | null>(null);
+
+  const handleResetPassword = async (password: string) => {
+    if (!resetTarget) return;
+    try {
+      await apiClient.put(`/api/admin/users/${resetTarget.id}`, { password });
+      showToast(`Пароль «${resetTarget.username}» сброшен. Сессии завершены.`, 'success');
+      setResetTarget(null);
+      fetchUsers();
+    } catch (err) {
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Ошибка';
+      showToast(message, 'error');
+    }
+  };
+
+  const handleUnbindCharacter = async () => {
+    if (!unbindTarget) return;
+    try {
+      await apiClient.delete(`/api/admin/users/${unbindTarget.id}/character`);
+      showToast(`Персонаж «${unbindTarget.character_nick}» отвязан от «${unbindTarget.username}»`, 'success');
+      setUnbindTarget(null);
+      fetchUsers();
+    } catch (err) {
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Ошибка';
+      showToast(message, 'error');
+    }
+  };
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -142,6 +172,7 @@ export function UserTable() {
         <thead>
           <tr>
             <th>Логин</th>
+            <th>Персонаж</th>
             <th>Роль</th>
             <th>Статус</th>
             <th>Последний вход</th>
@@ -153,6 +184,15 @@ export function UserTable() {
           {users.map((u) => (
             <tr key={u.id} className={!u.is_active ? 'inactive' : ''}>
               <td>{u.username}</td>
+              <td>
+                {u.character_nick ? (
+                  <span className="bound-character" title={u.character_url ?? undefined}>
+                    🧙 {u.character_nick}
+                  </span>
+                ) : (
+                  <span className="no-character">—</span>
+                )}
+              </td>
               <td>
                 <select
                   value={u.role}
@@ -173,10 +213,18 @@ export function UserTable() {
               <td>{u.last_login_at ? new Date(u.last_login_at).toLocaleString('ru') : '—'}</td>
               <td>{u.must_change_password ? 'Да' : 'Нет'}</td>
               <td>
-                <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   <button className="btn btn-secondary btn-sm" onClick={() => setPermsTarget(u)}>
                     Права
                   </button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setResetTarget(u)}>
+                    Сброс пароля
+                  </button>
+                  {u.character_nick && (
+                    <button className="btn btn-danger btn-sm" onClick={() => setUnbindTarget(u)}>
+                      Отвязать
+                    </button>
+                  )}
                   {u.is_active && (
                     <button className="btn btn-danger btn-sm" onClick={() => setDeactivateTarget(u)}>
                       Деактивировать
@@ -199,6 +247,24 @@ export function UserTable() {
         onClose={() => setDeactivateTarget(null)}
       />
 
+      <ConfirmModal
+        isOpen={unbindTarget !== null}
+        title="Отвязка персонажа"
+        message={`Отвязать персонажа "${unbindTarget?.character_nick}" от пользователя "${unbindTarget?.username}"? Пользователь сможет привязать другого персонажа в профиле.`}
+        confirmLabel="Отвязать"
+        danger
+        onConfirm={handleUnbindCharacter}
+        onClose={() => setUnbindTarget(null)}
+      />
+
+      {resetTarget && (
+        <ResetPasswordModal
+          username={resetTarget.username}
+          onConfirm={handleResetPassword}
+          onClose={() => setResetTarget(null)}
+        />
+      )}
+
       {permsTarget && (
         <UserPermissionsModal
           userId={permsTarget.id}
@@ -207,6 +273,66 @@ export function UserTable() {
           onClose={() => setPermsTarget(null)}
         />
       )}
+    </div>
+  );
+}
+function ResetPasswordModal({
+  username,
+  onConfirm,
+  onClose,
+}: {
+  username: string;
+  onConfirm: (password: string) => void;
+  onClose: () => void;
+}) {
+  const gen = (): string => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+    const arr = new Uint32Array(14);
+    crypto.getRandomValues(arr);
+    return Array.from(arr, (n) => chars[n % chars.length]).join('');
+  };
+  const [password, setPassword] = useState(gen());
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h3>Сброс пароля — {username}</h3>
+        <p className="modal-hint">
+          Новый пароль будет установлен немедленно, все сессии пользователя завершатся,
+          при следующем входе потребуется сменить пароль.
+        </p>
+        <div className="reset-pw-row">
+          <input
+            type="text"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setCopied(false); }}
+            className="reset-pw-input"
+            autoFocus
+            spellCheck={false}
+          />
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPassword(gen())}>
+            ⟳
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => { navigator.clipboard.writeText(password); setCopied(true); }}
+          >
+            {copied ? '✓' : 'Копировать'}
+          </button>
+        </div>
+        <div className="modal-actions">
+          <button className="btn btn-ghost" onClick={onClose}>Отмена</button>
+          <button
+            className="btn btn-primary"
+            disabled={password.length < 8}
+            onClick={() => onConfirm(password)}
+          >
+            Сбросить пароль
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

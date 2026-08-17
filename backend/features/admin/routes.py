@@ -153,6 +153,28 @@ def deactivate_user(user_id):
     return jsonify({'status': 'deactivated', 'user': user.to_dict()})
 
 
+@admin_bp.route('/api/admin/users/<int:user_id>/character', methods=['DELETE'])
+@require_permission('admin', 'write')
+def admin_unbind_character(user_id):
+    """Admin-side unbind of a user's character (user sees it on next reload)."""
+    user = User.query.get_or_404(user_id)
+
+    old_value = {'character_url': user.character_url, 'character_nick': user.character_nick}
+    if not old_value['character_url'] and not old_value['character_nick']:
+        return jsonify({'error': 'У пользователя нет привязанного персонажа'}), 400
+
+    user.character_url = None
+    user.character_nick = None
+    db.session.commit()
+
+    _audit(
+        'admin_unbind_character', target_type='user', target_id=user.id,
+        old=old_value, new={'character_url': None, 'character_nick': None},
+    )
+
+    return jsonify({'status': 'unbound', 'user': user.to_dict()})
+
+
 # ── Sync from clan ──────────────────────────────────────────────────────
 
 @admin_bp.route('/api/admin/users/sync', methods=['POST'])

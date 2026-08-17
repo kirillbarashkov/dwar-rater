@@ -556,3 +556,37 @@
   color: var(--text-muted);
   border-color: var(--border);
 }
+
+/* ===== user table: character binding + reset password ===== */
+.bound-character {
+  font-weight: 500;
+  cursor: help;
+}
+
+.no-character {
+  color: var(--text-muted);
+}
+
+.reset-pw-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.reset-pw-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.modal-hint {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}

@@ -112,9 +112,11 @@ def login():
 
     _audit('login', user=user, target_type='session', target_id=session.id)
 
+    from shared.rbac import load_user_permissions
     return jsonify({
         'token': plain_token,
         'user': user.to_dict(),
+        'permissions': load_user_permissions(user),
         'must_change_password': user.must_change_password,
         'expires_at': session.expires_at.isoformat(),
     })
@@ -140,9 +142,11 @@ def login_2fa():
 
     _audit('login_2fa', user=user, target_type='session', target_id=session.id)
 
+    from shared.rbac import load_user_permissions
     return jsonify({
         'token': plain_token,
         'user': user.to_dict(),
+        'permissions': load_user_permissions(user),
         'must_change_password': user.must_change_password,
         'expires_at': session.expires_at.isoformat(),
     })

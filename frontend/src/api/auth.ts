@@ -17,6 +17,7 @@ interface UserPayload {
 export interface LoginResponse {
   token: string;
   user: UserPayload;
+  permissions?: Record<string, 'full' | 'read' | 'none'>;
   must_change_password: boolean;
   requires_2fa?: boolean;
   user_id?: number;

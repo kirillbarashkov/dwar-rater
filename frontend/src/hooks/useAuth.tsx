@@ -59,7 +59,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       last_login_at: null,
       created_at: null,
     };
-    setSession(result.token, u);
+    if (result.permissions) {
+      setPermissions(result.permissions);
+      setSession(result.token, u, result.permissions);
+    } else {
+      setSession(result.token, u);
+    }
     setUser(u);
     return { must_change_password: result.must_change_password };
   }, []);
@@ -73,7 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       last_login_at: null,
       created_at: null,
     };
-    setSession(result.token, u);
+    if (result.permissions) {
+      setPermissions(result.permissions);
+      setSession(result.token, u, result.permissions);
+    } else {
+      setSession(result.token, u);
+    }
     setUser(u);
   }, []);
 
@@ -121,8 +131,7 @@ export function useAuth(): AuthContextType {
 }
 
 export function usePermission(feature: string, action: string): 'full' | 'read' | 'none' {
-  const { permissions, user } = useAuth();
-  if (user?.role === 'admin') return 'full';
+  const { permissions } = useAuth();
   const key = `${feature}:${action}`;
   return permissions[key] ?? 'none';
 }
