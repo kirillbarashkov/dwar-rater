@@ -1,5 +1,5 @@
-# v1.0.12
+# v1.0.13
 
-## Исправления
-- fix: unify source-selector styling and import missing CSS
+## Новое
+- feat: track tab UX overhaul — navigation fix, hero frame, labeled selectors
 
