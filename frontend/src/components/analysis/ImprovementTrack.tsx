@@ -162,7 +162,7 @@ function DiffView({ steps, source, target }: {
 }
 
 export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps) {
-  const [targetType, setTargetType] = useState<TargetType>('scenario');
+  const [targetType, setTargetType] = useState<TargetType>('character');
   const [scenarios, setScenarios] = useState<ScenarioSummary[]>([]);
   const [snapshots, setSnapshots] = useState<{ id: number; name: string; added_at: string }[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<number | null>(null);
@@ -170,8 +170,11 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
   const [targetUrl, setTargetUrl] = useState('');
   const [forceRefresh, setForceRefresh] = useState(false);
 
+  // Scenario analysis is temporarily unavailable in the backend
+  const scenarioAvailable = false;
+
   // Source selection: current analysis / saved snapshot / live URL
-  const [sourceMode, setSourceMode] = useState<'current' | 'snapshot' | 'url'>('current');
+  const [sourceMode, setSourceMode] = useState<'current' | 'snapshot' | 'url'>('url');
   const [sourceSnapshots, setSourceSnapshots] = useState<Snapshot[]>([]);
   const [sourceSnapshotId, setSourceSnapshotId] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
@@ -333,27 +336,6 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
         ? selectedSnapshot === null
         : selectedScenario === null;
 
-  if (!character) {
-    return (
-      <div className="improvement-track">
-        <h3 className="it-title">Трек улучшений</h3>
-        <div className="it-empty-help">
-          <p className="it-help-heading">Трек — это пошаговый план прокачки вашего персонажа до цели.</p>
-          <p className="it-help-note">
-            <strong>Персонаж ещё не выбран.</strong> Введите ник в поле «Анализ персонажа» выше и нажмите
-            «Анализировать» — трек строится от текущих характеристик вашего персонажа. Пока анализа нет,
-            создать трек нельзя.
-          </p>
-          <ol className="it-help-steps">
-            <li>Введите ник персонажа в поле «Анализ персонажа» наверху страницы и нажмите «Анализировать».</li>
-            <li>Вернитесь на эту вкладку и выберите цель: персонаж по ссылке, сохранённый снапшот или сценарий.</li>
-            <li>Нажмите «Создать трек» — мы сравним вашего персонажа с целью и построим шаги по приоритету.</li>
-          </ol>
-        </div>
-      </div>
-    );
-  }
-
   if (!track) {
     return (
       <div className="improvement-track">
@@ -361,17 +343,14 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
         <div className="it-empty-help">
           <p className="it-help-heading">Трек — это пошаговый план прокачки вашего персонажа до цели.</p>
           <ol className="it-help-steps">
-            <li>Выберите цель: персонаж по ссылке с dwar.ru, сохранённый снапшот или готовый сценарий прокачки.</li>
-            <li>Нажмите «Создать трек» — мы сравним вашего персонажа с целью и построим шаги по приоритету.</li>
+            <li>Выберите вашего персонажа (источник): текущий анализ, снапшот или ссылка.</li>
+            <li>Выберите цель: персонаж по ссылке с dwar.ru или сохранённый снапшот.</li>
+            <li>Нажмите «Создать трек» — мы сравним персонажа с целью и построим шаги по приоритету.</li>
             <li>Отмечайте выполненные шаги или жмите «Пересчитать» после повторного анализа — прогресс обновится автоматически.</li>
           </ol>
-          <p className="it-help-note">
-            <strong>Нет персонажа для сравнения?</strong> Сначала введите ник в поле «Анализ персонажа» наверху
-            страницы и дождитесь результатов — трек строится от текущих характеристик вашего персонажа.
-          </p>
         </div>
         <div className="it-source-selector">
-          <div className="it-section-label">Ваш персонаж (источник):</div>
+          <div className="it-section-label">1. Ваш персонаж (источник):</div>
           <div className="it-source-modes">
             <label className={`it-smode ${sourceMode === 'current' ? 'active' : ''} ${!character && sourceMode === 'current' ? 'unavailable' : ''}`}>
               <input
@@ -379,8 +358,9 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
                 name="it-source"
                 checked={sourceMode === 'current'}
                 onChange={() => setSourceMode('current')}
+                disabled={!character}
               />
-              Текущий анализ{character ? `: ${character.name}` : ' (нет)'}
+              Текущий анализ
             </label>
             <label className={`it-smode ${sourceMode === 'snapshot' ? 'active' : ''}`}>
               <input
@@ -401,6 +381,25 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
               Ссылка
             </label>
           </div>
+          {sourceMode === 'current' && character && (
+            <div className="it-source-hero">
+              <span className="it-hero-icon">🧙</span>
+              <div className="it-hero-main">
+                <span className="it-hero-name">{character.name}</span>
+                <div className="it-hero-tags">
+                  {character.race && <span className="it-hero-tag">{character.race}</span>}
+                  {character.level && <span className="it-hero-tag">Ур. {character.level}</span>}
+                  {character.rank && <span className="it-hero-tag">⚔️ {character.rank}</span>}
+                  {character.clan && <span className="it-hero-tag">🛡️ {character.clan}</span>}
+                  {character.flashvars_extra?.online === '1' ? (
+                    <span className="it-hero-tag it-hero-online">● В сети</span>
+                  ) : (
+                    <span className="it-hero-tag it-hero-offline">○ Не в сети</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           {sourceMode === 'snapshot' && (
             <select
               className="it-select"
@@ -432,6 +431,7 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
         </div>
 
         <div className="it-target-selector">
+          <div className="it-section-label">2. Цель (кем стать):</div>
           <div className="it-target-modes">
             <label className={`it-mode ${targetType === 'character' ? 'active' : ''}`}>
               <input
@@ -451,12 +451,16 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
               />
               Снапшот
             </label>
-            <label className={`it-mode ${targetType === 'scenario' ? 'active' : ''}`}>
+            <label
+              className={`it-mode ${targetType === 'scenario' ? 'active' : ''}`}
+              title={scenarioAvailable ? undefined : 'Сценарный анализ временно недоступен'}
+            >
               <input
                 type="radio"
                 name="target-type"
                 checked={targetType === 'scenario'}
                 onChange={() => setTargetType('scenario')}
+                disabled={!scenarioAvailable}
               />
               Сценарий
             </label>
@@ -490,19 +494,23 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
             )
           )}
           {targetType === 'scenario' && (
-            scenarios.length === 0 ? (
-              <p className="it-placeholder">Сценарии прокачки пока не созданы</p>
+            scenarioAvailable ? (
+              scenarios.length === 0 ? (
+                <p className="it-placeholder">Сценарии прокачки пока не созданы</p>
+              ) : (
+                <select
+                  className="it-select"
+                  value={selectedScenario ?? ''}
+                  onChange={(e) => setSelectedScenario(Number(e.target.value))}
+                >
+                  <option value="" disabled>Выберите сценарий</option>
+                  {scenarios.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              )
             ) : (
-              <select
-                className="it-select"
-                value={selectedScenario ?? ''}
-                onChange={(e) => setSelectedScenario(Number(e.target.value))}
-              >
-                <option value="" disabled>Выберите сценарий</option>
-                {scenarios.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
+              <p className="it-placeholder">Сценарный анализ временно недоступен — выберите персонажа или снапшот</p>
             )
           )}
 
@@ -534,19 +542,26 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
     <div className="improvement-track">
       <div className="it-header">
         <h3 className="it-title">
-          Трек улучшений: {track.source_summary?.name || character.name} →{' '}
+          Трек улучшений: {track.source_summary?.name || character?.name || 'персонаж'} →{' '}
           {track.target_summary?.name || 'цель'}
         </h3>
         <span className="it-power-gap" title="Суммарный взвешенный разрыв мощности">
           gap: {track.power_gap}
         </span>
         <button
-          className="btn btn-ghost btn-sm it-reevaluate"
+          className="btn btn-primary btn-sm it-reevaluate"
           onClick={handleReEvaluate}
           disabled={isLoading}
           title="Сравнит вашего персонажа с зафиксированным таргетом и обновит статус шагов"
         >
-          ⟳ Пересчитать
+          {isLoading ? '⏳ Пересчёт...' : '⟳ Пересчитать'}
+        </button>
+        <button
+          className="btn btn-ghost btn-sm it-newtrack"
+          onClick={() => { setTrack(null); setResyncNotice(null); }}
+          title="Сбросить текущий трек и выбрать новый источник/цель"
+        >
+          ✚ Новый трек
         </button>
         <div className="it-progress">
           <div className="it-progress-bar">

@@ -89,13 +89,13 @@ export function Sidebar({
       } else if (willExpand && groupKey === 'analysis' && (isClanPage || isCharacterPage)) {
         navigate('/');
       } else if (willExpand && groupKey === 'track') {
-        navigate('/');
+        navigate('/?tab=track');
       }
       onTabChange?.(groupKey, children[0].key);
     } else if (groupKey === 'chat') {
       onToggleChat?.();
     } else if (groupKey === 'track') {
-      navigate('/');
+      navigate('/?tab=track');
     }
   };
 

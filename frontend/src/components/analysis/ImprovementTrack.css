@@ -537,3 +537,59 @@
   font-size: 0.8rem;
   color: var(--text-muted);
 }
+
+/* ===== v2.2: source hero frame + numbered sections ===== */
+.it-source-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-top: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.it-hero-icon {
+  font-size: 1.8rem;
+}
+
+.it-hero-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.it-hero-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.it-hero-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.it-hero-tag {
+  padding: 2px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.it-hero-online {
+  color: #3fb27f;
+  border-color: #3fb27f55;
+}
+
+.it-hero-offline {
+  color: var(--text-muted);
+}
+
+.it-newtrack {
+  white-space: nowrap;
+}

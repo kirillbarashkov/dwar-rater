@@ -137,6 +137,12 @@ function HomePage() {
       params.delete('analyze');
       window.history.replaceState({}, '', params.toString() ? `/?${params.toString()}` : '/');
     }
+    const tabParam = params.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+      params.delete('tab');
+      window.history.replaceState({}, '', params.toString() ? `/?${params.toString()}` : '/');
+    }
   }, []);
 
   useEffect(() => {
@@ -151,7 +157,8 @@ function HomePage() {
     if (result) {
       setCurrentResult(result);
       setLastAnalyzed(new Date());
-      setActiveTab('stats');
+      // Stay on the track tab if the user analyzes from there
+      setActiveTab((prev) => (prev === 'track' ? 'track' : 'stats'));
     }
   }, [result]);
 
@@ -172,7 +179,7 @@ function HomePage() {
     if (result) {
       setCurrentResult(result);
       setLastAnalyzed(new Date());
-      setActiveTab('stats');
+      setActiveTab((prev) => (prev === 'track' ? 'track' : 'stats'));
       const params = new URLSearchParams(window.location.search);
       if (params.has('analyze')) {
         params.delete('analyze');
@@ -184,7 +191,7 @@ function HomePage() {
   const handleLoadSnapshot = (data: Snapshot & Record<string, unknown>) => {
     setCurrentResult(data as unknown as AnalysisResult);
     setLastAnalyzed(new Date(data.analyzed_at as string));
-    setActiveTab('stats');
+    setActiveTab((prev) => (prev === 'track' ? 'track' : 'stats'));
   };
 
   const handleSaveSnapshot = async () => {
