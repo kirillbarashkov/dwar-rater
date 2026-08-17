@@ -2,8 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import type { ImprovementStep, TrackPhase, TargetType, CharacterSummary } from '../../types/track';
 import { generateTrack, updateStep, reEvaluateTrack } from '../../api/tracks';
 import { getCompareCharacters } from '../../api/compare';
+import { getSnapshots, getSnapshot } from '../../api/snapshots';
+import { analyzeCharacter } from '../../api/analyze';
 import type { AnalysisResult } from '../../types/character';
 import type { ScenarioSummary } from '../../types/scenario';
+import type { Snapshot } from '../../types/snapshot';
 import { getScenarios } from '../../api/scenarios';
 import './ImprovementTrack.css';
 
@@ -167,6 +170,12 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
   const [targetUrl, setTargetUrl] = useState('');
   const [forceRefresh, setForceRefresh] = useState(false);
 
+  // Source selection: current analysis / saved snapshot / live URL
+  const [sourceMode, setSourceMode] = useState<'current' | 'snapshot' | 'url'>('current');
+  const [sourceSnapshots, setSourceSnapshots] = useState<Snapshot[]>([]);
+  const [sourceSnapshotId, setSourceSnapshotId] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+
   const [track, setTrack] = useState<{
     id: number;
     steps: ImprovementStep[];
@@ -183,9 +192,14 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
 
   const loadTargets = async () => {
     try {
-      const [sc, sn] = await Promise.all([getScenarios(), getCompareCharacters()]);
+      const [sc, sn, snaps] = await Promise.all([
+        getScenarios(),
+        getCompareCharacters(),
+        getSnapshots({ page: 1, per_page: 100 }),
+      ]);
       setScenarios(sc);
       setSnapshots(sn.map((s) => ({ id: s.id, name: s.name, added_at: s.added_at })));
+      setSourceSnapshots(snaps.snapshots);
     } catch {
       // ignore
     }
@@ -194,6 +208,37 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
   useEffect(() => {
     loadTargets();
   }, []);
+
+  /** Resolve the source character dict according to sourceMode. */
+  const resolveSource = async (): Promise<Record<string, unknown> | null> => {
+    if (sourceMode === 'current') {
+      return (character as unknown as Record<string, unknown>) ?? null;
+    }
+    if (sourceMode === 'snapshot') {
+      if (!sourceSnapshotId) return null;
+      try {
+        const snap = await getSnapshot(Number(sourceSnapshotId));
+        return snap as unknown as Record<string, unknown>;
+      } catch {
+        return null;
+      }
+    }
+    // url mode
+    if (!sourceUrl.trim()) return null;
+    try {
+      const analyzed = await analyzeCharacter(sourceUrl.trim(), forceRefresh);
+      return analyzed as unknown as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  };
+
+  const sourceReady =
+    sourceMode === 'current'
+      ? !!character
+      : sourceMode === 'snapshot'
+        ? !!sourceSnapshotId
+        : !!sourceUrl.trim();
 
   const handleGenerate = async () => {
     const targetRef =
@@ -208,11 +253,14 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
           : targetUrl.trim();
     if (!targetRef) return;
 
+    const source = await resolveSource();
+    if (!source) return;
+
     setIsLoading(true);
     setResyncNotice(null);
     try {
       const result = await generateTrack({
-        source: character as unknown as Record<string, unknown>,
+        source,
         target_type: targetType,
         target_ref: targetRef,
         force_refresh: forceRefresh,
@@ -242,11 +290,16 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
     if (!track) return;
     setIsLoading(true);
     setResyncNotice(null);
+    const source = await resolveSource();
+    if (!source) {
+      setIsLoading(false);
+      return;
+    }
     try {
       const before = track.steps.filter((s) => s.completed).map((s) => s.id);
       const result = await reEvaluateTrack(
         track.id,
-        character as unknown as Record<string, unknown>,
+        source,
       );
       const after = result.steps.filter((s) => s.completed).map((s) => s.id);
       const autoDone = after.filter((id) => !before.includes(id)).length;
@@ -317,6 +370,67 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
             страницы и дождитесь результатов — трек строится от текущих характеристик вашего персонажа.
           </p>
         </div>
+        <div className="it-source-selector">
+          <div className="it-section-label">Ваш персонаж (источник):</div>
+          <div className="it-source-modes">
+            <label className={`it-smode ${sourceMode === 'current' ? 'active' : ''} ${!character && sourceMode === 'current' ? 'unavailable' : ''}`}>
+              <input
+                type="radio"
+                name="it-source"
+                checked={sourceMode === 'current'}
+                onChange={() => setSourceMode('current')}
+              />
+              Текущий анализ{character ? `: ${character.name}` : ' (нет)'}
+            </label>
+            <label className={`it-smode ${sourceMode === 'snapshot' ? 'active' : ''}`}>
+              <input
+                type="radio"
+                name="it-source"
+                checked={sourceMode === 'snapshot'}
+                onChange={() => setSourceMode('snapshot')}
+              />
+              Снапшот
+            </label>
+            <label className={`it-smode ${sourceMode === 'url' ? 'active' : ''}`}>
+              <input
+                type="radio"
+                name="it-source"
+                checked={sourceMode === 'url'}
+                onChange={() => setSourceMode('url')}
+              />
+              Ссылка
+            </label>
+          </div>
+          {sourceMode === 'snapshot' && (
+            <select
+              className="it-select"
+              value={sourceSnapshotId}
+              onChange={(e) => setSourceSnapshotId(e.target.value)}
+            >
+              <option value="">Выберите снапшот</option>
+              {sourceSnapshots.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nick || s.name} ({new Date(s.analyzed_at).toLocaleDateString('ru')})
+                </option>
+              ))}
+            </select>
+          )}
+          {sourceMode === 'url' && (
+            <input
+              type="text"
+              className="it-url-input"
+              placeholder="https://w1.dwar.ru/user_info.php?nick=ИмяПерсонажа"
+              value={sourceUrl}
+              onChange={(e) => setSourceUrl(e.target.value)}
+            />
+          )}
+          {sourceMode === 'current' && !character && (
+            <div className="it-source-warn">
+              Нет активного анализа — выберите снапшот, ссылку или проанализируйте персонажа выше.
+            </div>
+          )}
+        </div>
+
         <div className="it-target-selector">
           <div className="it-target-modes">
             <label className={`it-mode ${targetType === 'character' ? 'active' : ''}`}>
@@ -404,7 +518,7 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
           <button
             className="btn btn-primary btn-sm"
             onClick={handleGenerate}
-            disabled={isLoading || targetRefEmpty}
+            disabled={isLoading || targetRefEmpty || !sourceReady}
           >
             {isLoading ? 'Генерация...' : 'Создать трек'}
           </button>

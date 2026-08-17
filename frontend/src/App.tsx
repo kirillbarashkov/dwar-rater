@@ -239,6 +239,7 @@ function HomePage() {
               }}
               onClear={() => { setCurrentResult(null); setLastAnalyzed(null); }}
               onAddToCompare={handleAddToCompare}
+              onLoadSnapshot={handleLoadSnapshot}
               defaultExpanded={activeTab === 'stats'}
             />
           )}

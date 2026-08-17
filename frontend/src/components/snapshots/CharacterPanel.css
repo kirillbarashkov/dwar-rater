@@ -1,0 +1,55 @@
+
+/* ===== source mode switch (url / snapshot) ===== */
+.cph-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cph-source-modes {
+  display: flex;
+  gap: 8px;
+}
+
+.cph-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cph-mode input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.cph-mode.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.cph-snapshot-select {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cph-select {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
