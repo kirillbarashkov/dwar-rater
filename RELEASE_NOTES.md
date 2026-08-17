@@ -1,5 +1,5 @@
-# v1.0.10
+# v1.0.11
 
-## Исправления
-- fix: non-admin roles could not bind a character until page reload + admin tools
+## Новое
+- feat: analyze from snapshot + clear-field fix + track source selector
 
