@@ -1,5 +1,4 @@
-
-/* ===== source mode switch (url / snapshot) ===== */
+/* Source mode switch (url / snapshot) — unified with .it-mode style */
 .cph-left {
   display: flex;
   flex-direction: column;
@@ -14,16 +13,17 @@
 }
 
 .cph-mode {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   cursor: pointer;
-  user-select: none;
+  transition: border-color 0.2s ease, color 0.2s ease;
 }
 
 .cph-mode input {
@@ -34,7 +34,6 @@
 .cph-mode.active {
   border-color: var(--accent);
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .cph-snapshot-select {
@@ -46,10 +45,10 @@
 .cph-select {
   flex: 1;
   min-width: 200px;
-  padding: 8px 10px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-secondary);
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }

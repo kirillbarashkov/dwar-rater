@@ -5,6 +5,7 @@ import { getSnapshots } from '../../api/snapshots';
 import { Button } from '../ui/Button';
 import { SearchBar } from '../layout/SearchBar';
 import { CurrentCharacter } from './CurrentCharacter';
+import './CharacterPanel.css';
 
 interface CharacterPanelProps {
   character?: AnalysisResult;
