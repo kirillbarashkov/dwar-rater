@@ -8,7 +8,7 @@ import { getScenarios } from '../../api/scenarios';
 import './ImprovementTrack.css';
 
 interface ImprovementTrackPanelProps {
-  character: AnalysisResult;
+  character?: AnalysisResult | null;
 }
 
 const effortLabels: Record<string, string> = {
@@ -279,6 +279,27 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
       : targetType === 'snapshot'
         ? selectedSnapshot === null
         : selectedScenario === null;
+
+  if (!character) {
+    return (
+      <div className="improvement-track">
+        <h3 className="it-title">Трек улучшений</h3>
+        <div className="it-empty-help">
+          <p className="it-help-heading">Трек — это пошаговый план прокачки вашего персонажа до цели.</p>
+          <p className="it-help-note">
+            <strong>Персонаж ещё не выбран.</strong> Введите ник в поле «Анализ персонажа» выше и нажмите
+            «Анализировать» — трек строится от текущих характеристик вашего персонажа. Пока анализа нет,
+            создать трек нельзя.
+          </p>
+          <ol className="it-help-steps">
+            <li>Введите ник персонажа в поле «Анализ персонажа» наверху страницы и нажмите «Анализировать».</li>
+            <li>Вернитесь на эту вкладку и выберите цель: персонаж по ссылке, сохранённый снапшот или сценарий.</li>
+            <li>Нажмите «Создать трек» — мы сравним вашего персонажа с целью и построим шаги по приоритету.</li>
+          </ol>
+        </div>
+      </div>
+    );
+  }
 
   if (!track) {
     return (

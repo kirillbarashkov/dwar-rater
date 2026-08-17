@@ -70,6 +70,16 @@ function AnalysisResultDisplay({
     );
   }
 
+  if (activeTab === 'track') {
+    return (
+      <div className="analysis-result">
+        <div className="tab-panels">
+          <ImprovementTrackPanel character={result} />
+        </div>
+      </div>
+    );
+  }
+
   if (!result) return null;
 
   if (result.profile_closed) {
@@ -216,7 +226,7 @@ function HomePage() {
           onToggleChat={handleToggleChat}
         />
         <main className="main-content">
-          {activeTab !== 'history' && activeTab !== 'track' && activeTab !== 'compare' && activeTab !== 'closed' && (
+          {activeTab !== 'history' && activeTab !== 'compare' && activeTab !== 'closed' && (
             <CharacterPanel
               character={currentResult || undefined}
               lastAnalyzed={lastAnalyzed}
