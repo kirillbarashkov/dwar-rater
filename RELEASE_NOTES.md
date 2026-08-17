@@ -1,5 +1,5 @@
-# v1.0.7
+# v1.0.8
 
-## Исправления
-- fix: generate release notes on the VM before image build
+## Новое
+- feat: make Improvement Track tab independent of character analysis
 
