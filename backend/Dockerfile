@@ -26,6 +26,9 @@ ENV APP_VERSION=${APP_VERSION} \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
+# Release notes (optional file: absent in local builds — handled at runtime)
+COPY RELEASE_NOTES.md* ./
+
 COPY . .
 RUN chmod +x entrypoint.sh
 

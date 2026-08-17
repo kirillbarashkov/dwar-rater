@@ -19,6 +19,7 @@ export function Header() {
     git_hash: string;
     build_date: string;
     branch: string;
+    release_notes?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -59,6 +60,22 @@ export function Header() {
             <span className="version-tag">
               v{versionInfo?.version ?? import.meta.env.VITE_APP_VERSION}
             </span>
+            {versionInfo?.release_notes && (
+              <div className="version-notes">
+                <div className="version-notes-title">Что в этом релизе:</div>
+                {versionInfo.release_notes
+                  .split('\n')
+                  .filter((line) => line.trim().startsWith('-'))
+                  .slice(0, 12)
+                  .map((line, i) => (
+                    <div key={i} className="version-notes-line">
+                      {line.trim().replace(/^- (feat|fix)(\([^)]*\))?:\s*/i, (m) =>
+                        m.toLowerCase().startsWith('- feat') ? '🆕 ' : '🐞 '
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         )}
         <button

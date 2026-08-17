@@ -432,3 +432,39 @@
   padding: 2px 8px;
   border-radius: 3px;
 }
+
+/* ===== v2: empty-state help ===== */
+.it-empty-help {
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+}
+
+.it-help-heading {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.it-help-steps {
+  margin: 0 0 10px;
+  padding-left: 20px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.it-help-steps li {
+  margin-bottom: 4px;
+}
+
+.it-help-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}

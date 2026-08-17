@@ -98,29 +98,90 @@ def format_enchants(item):
     return enchants
 
 
+_STAR_MARKER_RE = re.compile(r'<U>(\d)★?</U>')
+_GREEN_SPAN_RE = re.compile(r'<SPAN[^>]*style="color:\s*green"', re.IGNORECASE)
+_ANY_TAG_RE = re.compile(r'<[^>]+>')
+_ANY_SPAN_RE = re.compile(r'<SPAN[^>]*>|</SPAN>', re.IGNORECASE)
+_TEXT_RE = re.compile(r'[А-Яа-яЁёA-Za-z0-9%]')
+
+
+def _first_text_pos(html_str):
+    """Position of the first text character that is OUTSIDE any tag."""
+    tag_spans = [(m.start(), m.end()) for m in _ANY_TAG_RE.finditer(html_str)]
+    for m in _TEXT_RE.finditer(html_str):
+        if not any(a <= m.start() < b for a, b in tag_spans):
+            return m.start()
+    return None
+
+
 def _parse_star_level(desc):
-    """Parse star level from item description.
+    """Parse the current star level from an item description.
 
-    Exotic items: current star has color:green, higher stars have color:808080
-    Legendary items: current star has color:red, higher stars have color:808080
+    dwar.ru markup (verified 2026-08 on live items, e.g. Поножи Агония 2★):
+    - The ACTIVE star's block carries a <SPAN style="color:green"> wrapper —
+      it either opens BEFORE the star marker (wrapping it) or right AFTER the
+      marker, before the block's first text character.
+    - Stat values inside star blocks use color:red/green SPANs inline —
+      those appear AFTER text and are NOT star-state indicators.
+    - Locked stars have plain blocks; legacy pages grayed them (808080) with
+      red for the current star — kept as a fallback.
 
-    Pattern: <U>N★</U> followed by color indicator
+    A star is active iff a green span is on the tag stack at its marker, or
+    a green wrapper opens between the marker and the block's first text.
     """
     if not desc:
         return 0
-    # Find all star markers with their color
-    matches = re.findall(r'<U>(\d)★?</U>.*?color:([#\w]+)', desc, re.DOTALL)
-    if not matches:
+
+    markers = list(_STAR_MARKER_RE.finditer(desc))
+    if not markers:
         return 0
 
-    # The current star level is the LAST one that has an active color (green or red)
-    # Higher levels have color:808080 (gray)
-    active_colors = {'green', 'red', '008000', 'ff0000'}
-    for num, color in reversed(matches):
-        if color.lower() in active_colors:
-            return int(num)
+    # green interval list via a span-stack walk
+    green_intervals = []
+    stack = []
+    for m in _ANY_SPAN_RE.finditer(desc):
+        if m.group(0) == '</SPAN>':
+            if stack:
+                open_match = stack.pop()
+                if open_match[1]:  # was green
+                    green_intervals.append((open_match[0], m.start()))
+        else:
+            stack.append((m.start(), bool(_GREEN_SPAN_RE.search(m.group(0)))))
 
-    # Fallback: if no active color found, return 0
+    def _in_green(pos):
+        return any(a <= pos < b for a, b in green_intervals)
+
+    blocks = []
+    for idx, m in enumerate(markers):
+        start = m.end()
+        end = markers[idx + 1].start() if idx + 1 < len(markers) else len(desc)
+        blocks.append((int(m.group(1)), start, desc[start:end]))
+
+    def _has_gray(block_html):
+        return re.search(r'color:\s*(?:808080|gray|grey)', block_html, re.IGNORECASE) is not None
+
+    active = []
+    for num, marker_end, block_html in blocks:
+        if _in_green(marker_end - 1):  # marker itself wrapped
+            active.append(num)
+            continue
+        ftp = _first_text_pos(block_html)
+        if ftp is not None:
+            g = _GREEN_SPAN_RE.search(block_html)
+            if g and g.start() < ftp:  # wrapper before first text
+                active.append(num)
+
+    if active:
+        return max(active)
+
+    # Legacy fallback: gray = locked, last non-gray = current
+    if any(_has_gray(b) for _, _, b in blocks):
+        current = 0
+        for num, _, block_html in blocks:
+            if not _has_gray(block_html):
+                current = max(current, num)
+        return current
+
     return 0
 
 

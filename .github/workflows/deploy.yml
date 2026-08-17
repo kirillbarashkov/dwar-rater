@@ -176,9 +176,38 @@ jobs:
           # Sync frontend package.json with the canonical VERSION (sync-point, do not hand-edit)
           jq --arg v "$NEW" '.version = $v' frontend/package.json > frontend/package.json.tmp \
             && mv frontend/package.json.tmp frontend/package.json
+          # Release notes: commits since the previous tag, grouped by type
+          PREV_TAG="v${OLD}"
+          {
+            echo "# v${NEW}"
+            echo ""
+            if git rev-parse "refs/tags/${PREV_TAG}" >/dev/null 2>&1; then
+              LOG=$(git log --no-merges --pretty=format:'%s' "${PREV_TAG}..HEAD" | grep -v '^chore(release)')
+              FEATS=$(echo "$LOG" | grep -i '^feat' || true)
+              FIXES=$(echo "$LOG" | grep -i '^fix' || true)
+              OTHER=$(echo "$LOG" | grep -iv '^\(feat\|fix\|chore(release)\)' || true)
+              if [ -n "$FEATS" ]; then
+                echo "## Новое"
+                echo "$FEATS" | while IFS= read -r line; do echo "- $line"; done
+                echo ""
+              fi
+              if [ -n "$FIXES" ]; then
+                echo "## Исправления"
+                echo "$FIXES" | while IFS= read -r line; do echo "- $line"; done
+                echo ""
+              fi
+              if [ -n "$OTHER" ]; then
+                echo "## Прочее"
+                echo "$OTHER" | while IFS= read -r line; do echo "- $line"; done
+                echo ""
+              fi
+            else
+              echo "- Релиз ${TAG}"
+            fi
+          } > RELEASE_NOTES.md
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add VERSION frontend/package.json
+          git add VERSION frontend/package.json RELEASE_NOTES.md
           git commit -m "chore(release): ${TAG} [skip ci]" || echo "Nothing to commit"
           git tag -a "${TAG}" -m "Release ${TAG} (auto-deployed from v${OLD}, bump: ${{ steps.bump.outputs.part }})"
           git push origin main --follow-tags

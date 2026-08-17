@@ -284,6 +284,18 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
     return (
       <div className="improvement-track">
         <h3 className="it-title">Трек улучшений</h3>
+        <div className="it-empty-help">
+          <p className="it-help-heading">Трек — это пошаговый план прокачки вашего персонажа до цели.</p>
+          <ol className="it-help-steps">
+            <li>Выберите цель: персонаж по ссылке с dwar.ru, сохранённый снапшот или готовый сценарий прокачки.</li>
+            <li>Нажмите «Создать трек» — мы сравним вашего персонажа с целью и построим шаги по приоритету.</li>
+            <li>Отмечайте выполненные шаги или жмите «Пересчитать» после повторного анализа — прогресс обновится автоматически.</li>
+          </ol>
+          <p className="it-help-note">
+            <strong>Нет персонажа для сравнения?</strong> Сначала введите ник в поле «Анализ персонажа» наверху
+            страницы и дождитесь результатов — трек строится от текущих характеристик вашего персонажа.
+          </p>
+        </div>
         <div className="it-target-selector">
           <div className="it-target-modes">
             <label className={`it-mode ${targetType === 'character' ? 'active' : ''}`}>

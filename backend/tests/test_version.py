@@ -52,7 +52,8 @@ class TestVersionEndpoint:
         resp = client.get('/api/version')
         assert resp.status_code == 200
         body = resp.get_json()
-        assert set(body.keys()) == {'version', 'git_hash', 'build_date', 'branch'}
+        assert set(body.keys()) == {'version', 'git_hash', 'build_date', 'branch', 'release_notes'}
+        assert isinstance(body['release_notes'], str)
 
     def test_bump_endpoint_removed(self, client, admin_headers):
         resp = client.post('/api/version/bump', headers=admin_headers,

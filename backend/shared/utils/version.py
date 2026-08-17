@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 
 
 VERSION_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'VERSION')
+RELEASE_NOTES_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'RELEASE_NOTES.md')
 
 
 def _run_git(*args):
@@ -94,6 +95,15 @@ def bump_version(part='patch'):
         f.write(new_version + '\n')
 
     return new_version
+
+
+def read_release_notes():
+    """Release notes markdown since the previous tag (bundled by CI), or ''."""
+    try:
+        with open(RELEASE_NOTES_FILE, 'r', encoding='utf-8') as f:
+            return f.read().strip()
+    except (FileNotFoundError, OSError):
+        return ''
 
 
 def get_version_info():
