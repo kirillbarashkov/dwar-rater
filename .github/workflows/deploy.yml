@@ -136,6 +136,24 @@ jobs:
           script: |
             cd ~/dwar-rater
             git pull origin main
+            # Release notes: generate from commits since the last deployed tag
+            # BEFORE building, so the file lands inside the backend image.
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            {
+              echo "# v${APP_VERSION}"
+              echo ""
+              if [ -n "$LAST_TAG" ]; then
+                LOG=$(git log --no-merges --pretty=format:'%s' "${LAST_TAG}..HEAD" | grep -v '^chore(release)' || true)
+                FEATS=$(echo "$LOG" | grep -i '^feat' || true)
+                FIXES=$(echo "$LOG" | grep -i '^fix' || true)
+                OTHER=$(echo "$LOG" | grep -iv '^\(feat\|fix\|chore(release)\)' || true)
+                if [ -n "$FEATS" ]; then echo "## Новое"; echo "$FEATS" | while IFS= read -r l; do echo "- $l"; done; echo ""; fi
+                if [ -n "$FIXES" ]; then echo "## Исправления"; echo "$FIXES" | while IFS= read -r l; do echo "- $l"; done; echo ""; fi
+                if [ -n "$OTHER" ]; then echo "## Прочее"; echo "$OTHER" | while IFS= read -r l; do echo "- $l"; done; echo ""; fi
+              else
+                echo "- Релиз v${APP_VERSION}"
+              fi
+            } > backend/RELEASE_NOTES.md
             # Build args reach docker-compose via env (${APP_VERSION:-dev} etc.)
             export APP_VERSION APP_GIT_HASH APP_BRANCH APP_BUILD_DATE
             docker compose -f docker-compose.prod.yml up -d --build
