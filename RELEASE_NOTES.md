@@ -1,5 +1,9 @@
-# v1.0.13
+# v1.0.14
 
 ## Новое
-- feat: track tab UX overhaul — navigation fix, hero frame, labeled selectors
+- feat: track UX wins — remembered source, reset confirmation, empty hint
+- feat: flexible date-range picker for treasury import
+
+## Исправления
+- fix: treasury range estimate crashed on empty end date
 
