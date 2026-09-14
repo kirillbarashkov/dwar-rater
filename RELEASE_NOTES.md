@@ -1,5 +1,5 @@
-# v1.0.16
+# v1.0.17
 
 ## Новое
-- feat: per-user rate limiting (A7) + migration 009
+- feat: User.role backed by role_id FK (A3) + migration 010
 
