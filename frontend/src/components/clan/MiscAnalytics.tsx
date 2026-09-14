@@ -1,12 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { TreasuryOperationData } from '../../types/clanInfo';
-import { parseDate, formatDateKey, isTaxOperation, isTalentOperation, type MemberStatus } from '../../utils/treasury';
-import { MemberStatusBadge } from './MemberStatusBadge';
+import { parseDate, formatDateKey, isTaxOperation, isTalentOperation } from '../../utils/treasury';
 import './MiscAnalytics.css';
 
 interface MiscAnalyticsProps {
   operations: TreasuryOperationData[];
-  memberStatusByNick?: Record<string, MemberStatus>;
 }
 
 type PeriodType = 'all' | 'today' | 'month' | 'range';
@@ -31,7 +29,7 @@ const INITIAL_FILTERS = {
   rangeEnd: '',
 };
 
-export function MiscAnalytics({ operations, memberStatusByNick }: MiscAnalyticsProps) {
+export function MiscAnalytics({ operations }: MiscAnalyticsProps) {
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
@@ -405,7 +403,7 @@ export function MiscAnalytics({ operations, memberStatusByNick }: MiscAnalyticsP
               paginated.map((op) => (
                 <tr key={op.id}>
                   <td className="misc-date">{op.date}</td>
-                  <td className="misc-nick">{op.nick}<MemberStatusBadge status={memberStatusByNick?.[op.nick.toLowerCase()]} /></td>
+                  <td className="misc-nick">{op.nick}</td>
                   <td className="misc-type">{op.operation_type}</td>
                   <td className="misc-object">{op.object_name}</td>
                   <td className={`misc-quantity ${op.quantity >= 0 ? 'positive' : 'negative'}`}>
