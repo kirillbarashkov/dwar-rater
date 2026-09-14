@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ImprovementStep, TrackPhase, TargetType, CharacterSummary } from '../../types/track';
 import { generateTrack, updateStep, reEvaluateTrack } from '../../api/tracks';
 import { getCompareCharacters } from '../../api/compare';
@@ -27,6 +27,18 @@ const phaseIcons: Record<string, string> = {
   stats: '📈',
   medals: '🎖',
 };
+
+const dwarProfileUrl = (nick?: string | null): string =>
+  nick ? `https://w1.dwar.ru/user_info.php?nick=${encodeURIComponent(nick)}` : '';
+
+function dwarProfileLink(nick?: string | null) {
+  if (!nick) return null;
+  return (
+    <a className="it-hero-link" href={dwarProfileUrl(nick)} target="_blank" rel="noopener noreferrer">
+      {nick}
+    </a>
+  );
+}
 
 function StepItem({ step, onToggle }: { step: ImprovementStep; onToggle: (id: string) => void }) {
   const priorityColors: Record<string, string> = {
@@ -192,6 +204,8 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
   const [showDiff, setShowDiff] = useState(false);
   const [resyncNotice, setResyncNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const lastSourceRef = useRef<Record<string, unknown> | null>(null);
+  const [showNewTrackConfirm, setShowNewTrackConfirm] = useState(false);
 
   const loadTargets = async () => {
     try {
@@ -258,6 +272,7 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
 
     const source = await resolveSource();
     if (!source) return;
+    lastSourceRef.current = source;
 
     setIsLoading(true);
     setResyncNotice(null);
@@ -293,9 +308,10 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
     if (!track) return;
     setIsLoading(true);
     setResyncNotice(null);
-    const source = await resolveSource();
+    const source = (await resolveSource()) ?? lastSourceRef.current;
     if (!source) {
       setIsLoading(false);
+      setResyncNotice('Не выбран источник — выберите персонажа/снапшот/ссылку или создайте трек заново');
       return;
     }
     try {
@@ -530,6 +546,11 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
           >
             {isLoading ? 'Генерация...' : 'Создать трек'}
           </button>
+          {(targetRefEmpty || !sourceReady) && (
+            <p className="it-empty-hint">
+              Выберите источник ({sourceReady ? '✓' : '—'}) и цель ({!targetRefEmpty ? '✓' : '—'}), чтобы создать трек.
+            </p>
+          )}
         </div>
       </div>
     );
@@ -542,8 +563,8 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
     <div className="improvement-track">
       <div className="it-header">
         <h3 className="it-title">
-          Трек улучшений: {track.source_summary?.name || character?.name || 'персонаж'} →{' '}
-          {track.target_summary?.name || 'цель'}
+          Трек улучшений: {dwarProfileLink(track.source_summary?.name) ?? (character?.name || 'персонаж')} →{' '}
+          {dwarProfileLink(track.target_summary?.name) ?? 'цель'}
         </h3>
         <span className="it-power-gap" title="Суммарный взвешенный разрыв мощности">
           gap: {track.power_gap}
@@ -558,7 +579,7 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
         </button>
         <button
           className="btn btn-ghost btn-sm it-newtrack"
-          onClick={() => { setTrack(null); setResyncNotice(null); }}
+          onClick={() => setShowNewTrackConfirm(true)}
           title="Сбросить текущий трек и выбрать новый источник/цель"
         >
           ✚ Новый трек
@@ -615,6 +636,27 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
       </button>
       {showDiff && (
         <DiffView steps={track.steps} source={track.source_summary} target={track.target_summary} />
+      )}
+
+      {showNewTrackConfirm && (
+        <div className="modal-overlay" onClick={() => setShowNewTrackConfirm(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Начать новый трек?</h3>
+            <p className="modal-hint">
+              Текущий трек будет скрыт (он остаётся в базе и снапшотах). Чтобы не потерять прогресс
+              шагов, создайте новый трек только когда готовы начать заново.
+            </p>
+            <div className="modal-actions">
+              <button className="btn btn-ghost" onClick={() => setShowNewTrackConfirm(false)}>Отмена</button>
+              <button
+                className="btn btn-primary"
+                onClick={() => { setShowNewTrackConfirm(false); setTrack(null); setResyncNotice(null); }}
+              >
+                Начать новый трек
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
