@@ -50,7 +50,10 @@ def list_users():
 
     query = User.query
     if role_filter:
-        query = query.filter_by(role=role_filter)
+        role_row = Role.query.filter_by(name=role_filter).first()
+        if not role_row:
+            return jsonify({'users': [], 'total': 0})
+        query = query.filter_by(role_id=role_row.id)
     if active_filter is not None:
         query = query.filter_by(is_active=active_filter.lower() == 'true')
 
@@ -141,7 +144,7 @@ def update_user(user_id):
 @require_permission('admin', 'write')
 def deactivate_user(user_id):
     user = User.query.get_or_404(user_id)
-    if user.role == 'admin' and User.query.filter_by(role='admin', is_active=True).count() <= 1:
+    if user.role == 'admin' and User.query.filter_by(role_id=(Role.query.filter_by(name='admin').first() or Role(id=-1)).id, is_active=True).count() <= 1:
         return jsonify({'error': 'Нельзя деактивировать последнего админа'}), 400
 
     user.is_active = False
@@ -363,7 +366,7 @@ def update_role_permissions(role_id):
     db.session.commit()
 
     # Invalidate sessions for all users with this role so permission changes take effect
-    user_ids = [u.id for u in User.query.filter_by(role=role.name).all()]
+    user_ids = [u.id for u in User.query.filter_by(role_id=role.id).all()]
     if user_ids:
         SessionToken.query.filter(SessionToken.user_id.in_(user_ids)).delete(synchronize_session=False)
         db.session.commit()

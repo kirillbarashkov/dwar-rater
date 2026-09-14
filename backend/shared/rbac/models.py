@@ -50,9 +50,9 @@ class Role(db.Model):
         }
 
     def get_users(self):
-        """Get users with this role (User.role is a string, not FK)."""
+        """Get users with this role (User.role_id FK)."""
         from shared.models.user import User
-        return User.query.filter_by(role=self.name)
+        return User.query.filter_by(role_id=self.id)
 
 
 class RolePermission(db.Model):

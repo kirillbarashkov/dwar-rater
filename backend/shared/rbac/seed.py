@@ -235,7 +235,7 @@ def seed_all(db):
             else:
                 h = bcrypt.hashpw(admin_pass.encode(), bcrypt.gensalt()).decode()
                 cur.execute(
-                    "INSERT INTO app_user (username, password_hash, role, is_active, must_change_password, created_at) VALUES (%s, %s, 'admin', true, false, NOW())",
+                    "INSERT INTO app_user (username, password_hash, role_id, is_active, must_change_password, created_at) VALUES (%s, %s, (SELECT id FROM role WHERE name = 'admin'), true, false, NOW())",
                     (admin_user, h)
                 )
                 # autocommit=True means INSERT is immediately committed

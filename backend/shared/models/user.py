@@ -7,7 +7,10 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(30), default='user')
+    # Source of truth for the role (was a free-form string, now an FK to role.id).
+    role_id = db.Column(
+        db.Integer, db.ForeignKey('role.id'), nullable=True, index=True
+    )
     is_active = db.Column(db.Boolean, default=True)
     last_login_at = db.Column(db.DateTime, nullable=True)
     totp_secret = db.Column(db.String(64), nullable=True)
@@ -16,10 +19,25 @@ class User(db.Model):
     character_url = db.Column(db.String(512), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    role_obj = db.relationship('Role', primaryjoin='User.role == foreign(Role.name)', lazy='select', uselist=False)
+    role_obj = db.relationship('Role', lazy='select', uselist=False)
     sessions = db.relationship('SessionToken', back_populates='user', lazy='dynamic')
     individual_permissions = db.relationship('UserPermission', back_populates='user', lazy='dynamic')
     audit_entries = db.relationship('AuditLog', back_populates='user', lazy='dynamic')
+
+    @property
+    def role(self):
+        """Role name, backed by the role_id FK (keeps legacy `.role` reads working)."""
+        return self.role_obj.name if self.role_obj else None
+
+    @role.setter
+    def role(self, value):
+        from shared.rbac.models import Role
+        if value is None:
+            self.role_obj = None
+        elif isinstance(value, Role):
+            self.role_obj = value
+        else:
+            self.role_obj = Role.query.filter_by(name=str(value)).first()
 
     def __repr__(self):
         return f'<User {self.username}>'
