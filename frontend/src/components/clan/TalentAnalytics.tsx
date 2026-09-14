@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import type { TreasuryOperationData, ClanMemberData } from '../../types/clanInfo';
-import { isTalentOperation, isTalentResource, getOriginalOwner } from '../../utils/treasury';
+import { isTalentOperation, isTalentResource, getOriginalOwner, type MemberStatus } from '../../utils/treasury';
+import { MemberStatusBadge } from './MemberStatusBadge';
 import './TalentAnalytics.css';
 
 interface TalentAnalyticsProps {
   operations: TreasuryOperationData[];
   members?: ClanMemberData[];
+  memberStatusByNick?: Record<string, MemberStatus>;
 }
 
 interface PlayerTalentSummary {
@@ -95,7 +97,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'clan_mkk', label: 'Клановые + МКК' },
 ];
 
-export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsProps) {
+export function TalentAnalytics({ operations, members = [], memberStatusByNick }: TalentAnalyticsProps) {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [activeTab, setActiveTab] = useState<TabKey>('universal');
@@ -441,7 +443,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
                   {sortedFilteredPlayers.map((p, idx) => (
                     <tr key={p.nick}>
                       <td className="talent-rank">{idx + 1}</td>
-                      <td className="talent-nick">{p.nick}</td>
+                      <td className="talent-nick">{p.nick}<MemberStatusBadge status={memberStatusByNick?.[p.nick.toLowerCase()]} /></td>
                       <td>{renderStatusBadge(p.status)}</td>
                       {activeGroup?.resources.map(res => {
                         const value = getResourceValue(p, res.key);
@@ -502,7 +504,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
               <tbody>
                 {sortedSubmittedPlayers.map(p => (
                   <tr key={p.nick}>
-                    <td className="talent-nick">{p.nick}</td>
+                    <td className="talent-nick">{p.nick}<MemberStatusBadge status={memberStatusByNick?.[p.nick.toLowerCase()]} /></td>
                     <td className="talent-submitted">
                       {Object.values(p.resources).reduce((s, v) => s + v, 0)}
                     </td>
@@ -554,7 +556,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
               <tbody>
                 {sortedNotSubmittedPlayers.map(p => (
                   <tr key={p.nick}>
-                    <td className="talent-nick">{p.nick}</td>
+                    <td className="talent-nick">{p.nick}<MemberStatusBadge status={memberStatusByNick?.[p.nick.toLowerCase()]} /></td>
                   </tr>
                 ))}
               </tbody>

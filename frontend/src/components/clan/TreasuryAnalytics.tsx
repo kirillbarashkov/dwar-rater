@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getTreasuryOperations, getClanMembers } from '../../api/clanInfo';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { getTreasuryOperations, getClanMembers, getLeftMembers } from '../../api/clanInfo';
 import type { TreasuryOperationData, ClanMemberData } from '../../types/clanInfo';
 import { usePermission } from '../../hooks/useAuth';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { buildMemberStatusByNick } from '../../utils/treasury';
 import { TaxAnalytics } from './TaxAnalytics';
 import { TalentAnalytics } from './TalentAnalytics';
 import { MiscAnalytics } from './MiscAnalytics';
@@ -24,21 +25,25 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
   const isAdmin = usePermission('clan_info', 'admin') === 'full';
   const [operations, setOperations] = useState<TreasuryOperationData[]>([]);
   const [members, setMembers] = useState<ClanMemberData[]>([]);
+  const [leftMembers, setLeftMembers] = useState<{ nick: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('tax');
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [opsData, membersData] = await Promise.all([
-        getTreasuryOperations(clanId),
-        getClanMembers(clanId).catch(() => []),
-      ]);
-      setOperations(opsData);
-      setMembers(membersData);
-    } catch {
-      setOperations([]);
-      setMembers([]);
+      const [opsData, membersData, leftData] = await Promise.all([
+              getTreasuryOperations(clanId),
+              getClanMembers(clanId).catch(() => []),
+              getLeftMembers(clanId).catch(() => []),
+            ]);
+            setOperations(opsData);
+            setMembers(membersData);
+            setLeftMembers(leftData);
+          } catch {
+            setOperations([]);
+            setMembers([]);
+            setLeftMembers([]);
     } finally {
       setIsLoading(false);
     }
@@ -47,6 +52,11 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const memberStatusByNick = useMemo(
+    () => buildMemberStatusByNick(members, leftMembers, operations.map((o) => o.nick)),
+    [members, leftMembers, operations],
+  );
 
   if (isLoading) return <LoadingSpinner />;
 
@@ -70,10 +80,10 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
 
       <div className="ta-tab-content">
         {activeTab === 'tax' && (
-          <TaxAnalytics operations={operations} members={members} clanId={clanId} isAdmin={isAdmin} onRefresh={loadData} />
-        )}
-        {activeTab === 'talent' && <TalentAnalytics operations={operations} members={members} />}
-        {activeTab === 'misc' && <MiscAnalytics operations={operations} />}
+                  <TaxAnalytics operations={operations} members={members} clanId={clanId} isAdmin={isAdmin} onRefresh={loadData} memberStatusByNick={memberStatusByNick} />
+                )}
+                {activeTab === 'talent' && <TalentAnalytics operations={operations} members={members} memberStatusByNick={memberStatusByNick} />}
+                {activeTab === 'misc' && <MiscAnalytics operations={operations} memberStatusByNick={memberStatusByNick} />}
       </div>
     </div>
   );

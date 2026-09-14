@@ -1,0 +1,22 @@
+.member-status {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.member-status-left {
+  background: rgba(255, 200, 87, 0.15);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+}
+
+.member-status-unknown {
+  background: rgba(255, 85, 85, 0.12);
+  border: 1px solid var(--red);
+  color: var(--red);
+}

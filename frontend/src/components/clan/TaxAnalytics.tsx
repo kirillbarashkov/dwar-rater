@@ -1,9 +1,10 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import type { TreasuryOperationData } from '../../types/clanInfo';
 import type { ClanMemberData } from '../../types/clanInfo';
-import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU } from '../../utils/treasury';
+import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU, type MemberStatus } from '../../utils/treasury';
 import { createTreasuryCompensation, updateTreasuryOperation, getLevelHistory } from '../../api/clanInfo';
 import './TaxAnalytics.css';
+import { MemberStatusBadge } from './MemberStatusBadge';
 
 interface TaxAnalyticsProps {
   operations: TreasuryOperationData[];
@@ -11,6 +12,7 @@ interface TaxAnalyticsProps {
   clanId?: number;
   isAdmin?: boolean;
   onRefresh?: () => void;
+  memberStatusByNick?: Record<string, MemberStatus>;
 }
 
 interface TaxPayment {
@@ -60,7 +62,7 @@ function getNormForLevel(level: number): number {
   return CLAN_TAX_NORM[level] || DEFAULT_NORM;
 }
 
-export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false, onRefresh }: TaxAnalyticsProps) {
+export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false, onRefresh, memberStatusByNick }: TaxAnalyticsProps) {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [editingCompensation, setEditingCompensation] = useState<{
@@ -800,7 +802,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                     {sortedFilteredPlayers.map((p, idx) => (
                       <tr key={p.nick}>
                         <td className="tax-rank">{idx + 1}</td>
-                        <td className="tax-nick">{p.nick}</td>
+                        <td className="tax-nick">{p.nick}<MemberStatusBadge status={memberStatusByNick?.[p.nick.toLowerCase()]} /></td>
                         <td>{p.playerLevel ?? '-'}</td>
                         {editingRow === p.nick ? (
                           <>
@@ -948,7 +950,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                   <tbody>
                     {sortedNotPaidPlayers.map(p => (
                       <tr key={p.nick}>
-                        <td className="tax-nick">{p.nick}</td>
+                        <td className="tax-nick">{p.nick}<MemberStatusBadge status={memberStatusByNick?.[p.nick.toLowerCase()]} /></td>
                         <td>{p.playerLevel ?? '-'}</td>
                         <td className="tax-debt">{p.normAmount}</td>
                       </tr>
@@ -997,7 +999,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                   <tbody>
                     {sortedCompensatedPlayers.map(p => (
                       <tr key={p.nick}>
-                        <td className="tax-nick">{p.nick}</td>
+                        <td className="tax-nick">{p.nick}<MemberStatusBadge status={memberStatusByNick?.[p.nick.toLowerCase()]} /></td>
                         <td>{p.playerLevel ?? '-'}</td>
                         <td className="tax-paid">{p.normAmount}</td>
                       </tr>
@@ -1044,7 +1046,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                   <tbody>
                     {sortedPaidDelayedPlayers.map(p => (
                       <tr key={p.nick}>
-                        <td className="tax-nick">{p.nick}</td>
+                        <td className="tax-nick">{p.nick}<MemberStatusBadge status={memberStatusByNick?.[p.nick.toLowerCase()]} /></td>
                         <td>{p.playerLevel ?? '-'}</td>
                         <td className="tax-paid">{p.totalPaid}</td>
                       </tr>

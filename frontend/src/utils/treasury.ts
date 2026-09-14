@@ -317,7 +317,33 @@ export function getOriginalOwner(
     return original ? original.nick : op.nick;
   }
   return op.nick;
-}
+  }
+
+  export type MemberStatus = 'active' | 'left' | 'unknown';
+
+  export const MEMBER_STATUS_LABEL: Record<MemberStatus, string> = {
+    active: '',
+    left: 'выбыл из клана',
+    unknown: 'нет в составе клана',
+  };
+
+  export function buildMemberStatusByNick(
+    active: { nick: string }[],
+    left: { nick: string }[],
+    nicks: (string | undefined)[]
+  ): Record<string, MemberStatus> {
+    const activeSet = new Set(active.map((m) => m.nick.toLowerCase()));
+    const leftSet = new Set(left.map((m) => m.nick.toLowerCase()));
+    const result: Record<string, MemberStatus> = {};
+    for (const nick of nicks) {
+      if (!nick) continue;
+      const key = nick.toLowerCase();
+      if (activeSet.has(key)) result[key] = 'active';
+      else if (leftSet.has(key)) result[key] = 'left';
+      else result[key] = 'unknown';
+    }
+    return result;
+  }
 
 
 export function displayToIso(display: string | null | undefined): string {
