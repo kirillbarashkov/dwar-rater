@@ -18,8 +18,8 @@ from shared.services.clan_parser import (
     fetch_level_events_streaming,
     estimate_pages_in_range,
     _date_str_to_comparable,
-    _date_str_to_comparable_with_time,
-    _parse_date_to_comparable,
+    _op_date_day,
+    _op_in_range,
 )
 from shared.services.data_logger import data_logger
 from shared.models import db
@@ -1352,8 +1352,8 @@ def auto_fetch_treasury_json(clan_id):
 
     loop_start = start_page if start_page is not None and start_page > 0 else 0
     loop_end = end_page if end_page is not None else 500
-    cutoff_comparable = _date_str_to_comparable_with_time(start_date)
-    end_comparable = _date_str_to_comparable_with_time(end_date) if end_date else None
+    cutoff_comparable = _date_str_to_comparable(start_date)
+    end_comparable = _date_str_to_comparable(end_date) if end_date else None
 
     data_logger.info(f"[TREASURY] Fetch loop: pages {loop_start} to {loop_end}")
 
@@ -1381,10 +1381,10 @@ def auto_fetch_treasury_json(clan_id):
             break
 
         latest_on_page = max(
-            (_parse_date_to_comparable(op["date"]) for op in page_ops), default=""
+            (_op_date_day(op["date"]) for op in page_ops), default=""
         )
         earliest_on_page = min(
-            (_parse_date_to_comparable(op["date"]) for op in page_ops), default=""
+            (_op_date_day(op["date"]) for op in page_ops), default=""
         )
 
         data_logger.info(
@@ -1400,20 +1400,11 @@ def auto_fetch_treasury_json(clan_id):
             break
 
         # Filter ops within [start_date, end_date]
-        if end_comparable is not None:
-            filtered = [
-                op
-                for op in page_ops
-                if cutoff_comparable
-                <= _parse_date_to_comparable(op["date"])
-                <= end_comparable
-            ]
-        else:
-            filtered = [
-                op
-                for op in page_ops
-                if _parse_date_to_comparable(op["date"]) >= cutoff_comparable
-            ]
+        filtered = [
+            op
+            for op in page_ops
+            if _op_in_range(_op_date_day(op["date"]), cutoff_comparable, end_comparable)
+        ]
         data_logger.info(f"[TREASURY] Page {page}: {len(filtered)} ops in range")
         all_operations.extend(filtered)
         pages_fetched += 1

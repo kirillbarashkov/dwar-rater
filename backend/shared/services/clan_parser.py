@@ -300,6 +300,36 @@ def _date_str_to_comparable_with_time(date_str):
     return ""
 
 
+def _op_date_day(op_date_str):
+    """Day-precision comparable 'YYYYMMDD' for an operation date with time."""
+    return _parse_date_to_comparable(op_date_str)[:8]
+
+
+def _range_days(start_date_str, end_date_str):
+    """Return (start_day, end_day_or_None) at day precision ('YYYYMMDD').
+
+    None end_day means "no upper bound" (the «от даты до текущей» flow).
+    """
+    start_day = _date_str_to_comparable(start_date_str)
+    end_day = _date_str_to_comparable(end_date_str) if end_date_str else None
+    return start_day, end_day
+
+
+def _op_in_range(op_day, start_day, end_day):
+    """Inclusive day-precision range check. None end_day = no upper bound.
+
+    Day precision (not time) is deliberate: an operation on the start or end
+    date must count regardless of its time-of-day.
+    """
+    if not op_day or not start_day:
+        return False
+    if op_day < start_day:
+        return False
+    if end_day is not None and op_day > end_day:
+        return False
+    return True
+
+
 def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500):
     """
     Binary search to estimate page count in a date range without downloading all pages.
@@ -330,23 +360,22 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
             "sample_dates": {},
         }
 
-    start_comparable = _date_str_to_comparable_with_time(start_date_str)
-    end_comparable = _date_str_to_comparable_with_time(end_date_str)
+    start_day, end_day = _range_days(start_date_str, end_date_str)
 
     data_logger.info(
-        f"[PARSER] Estimate: start={start_comparable}, end={end_comparable}"
+        f"[PARSER] Estimate: start={start_day}, end={end_day or 'now'}"
     )
 
-    # Check if page 0 has any data in range
+    # Check if page 0 has any data in range (day precision)
     latest_on_page_0 = max(
-        (_parse_date_to_comparable(op["date"]) for op in page_ops), default=""
+        (_op_date_day(op["date"]) for op in page_ops), default=""
     )
     earliest_on_page_0 = min(
-        (_parse_date_to_comparable(op["date"]) for op in page_ops), default=""
+        (_op_date_day(op["date"]) for op in page_ops), default=""
     )
 
     # If even the newest op is older than start_date → no data in range
-    if latest_on_page_0 and latest_on_page_0 < start_comparable:
+    if latest_on_page_0 and start_day and latest_on_page_0 < start_day:
         return {
             "start_page": 0,
             "end_page": 0,
@@ -358,10 +387,8 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
             },
         }
 
-    # Binary search: find the first page (newest) where earliest_on_page <= end_comparable
-    # This is the first page that could have data in the target range
     def find_start_boundary(low, high):
-        """Find first page where earliest_on_page <= end_comparable (page has data <= end_date)."""
+        """First page whose earliest op is <= end_day (page reaches the range)."""
         result = high
         while low <= high:
             mid = (low + high) // 2
@@ -374,10 +401,9 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
                     high = mid - 1
                     continue
                 mid_earliest = min(
-                    (_parse_date_to_comparable(op["date"]) for op in mid_ops),
-                    default="",
+                    (_op_date_day(op["date"]) for op in mid_ops), default=""
                 )
-                if mid_earliest and mid_earliest <= end_comparable:
+                if mid_earliest and mid_earliest <= end_day:
                     result = mid
                     high = mid - 1
                 else:
@@ -386,10 +412,8 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
                 break
         return result
 
-    # Binary search: find the last page (oldest) where latest_on_page >= start_comparable
-    # This is the last page that could have data in the target range
     def find_end_boundary(low, high):
-        """Find last page where latest_on_page >= start_comparable (page has data >= start_date)."""
+        """Last page whose latest op is >= start_day (page reaches the range)."""
         result = low
         while low <= high:
             mid = (low + high) // 2
@@ -402,10 +426,9 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
                     low = mid + 1
                     continue
                 mid_latest = max(
-                    (_parse_date_to_comparable(op["date"]) for op in mid_ops),
-                    default="",
+                    (_op_date_day(op["date"]) for op in mid_ops), default=""
                 )
-                if mid_latest and mid_latest >= start_comparable:
+                if mid_latest and mid_latest >= start_day:
                     result = mid
                     low = mid + 1
                 else:
@@ -414,10 +437,13 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
                 break
         return result
 
-    # Find boundaries
-    # newest_page: smallest page number with data <= end_date (newest boundary of range)
-    # oldest_page: largest page number with data >= start_date (oldest boundary of range)
-    newest_page = find_start_boundary(0, total_pages - 1)
+    # newest_page: smallest page number with data <= end_date (newest boundary).
+    # Without an end bound the newest page (0) is in range — searching would
+    # compare a day string against None and TypeError (prod bug 2026-09-13).
+    if end_day is None:
+        newest_page = 0
+    else:
+        newest_page = find_start_boundary(0, total_pages - 1)
     oldest_page = find_end_boundary(newest_page, total_pages - 1)
 
     # Ensure correct order: newest_page <= oldest_page
@@ -530,7 +556,7 @@ def fetch_all_pages_streaming(
 
     cutoff_comparable = _date_str_to_comparable(cutoff_date_str)
     end_comparable = (
-        _date_str_to_comparable_with_time(end_date_str) if end_date_str else None
+        _date_str_to_comparable(end_date_str) if end_date_str else None
     )
     all_operations = []
     start_time = time.time()
@@ -589,10 +615,10 @@ def fetch_all_pages_streaming(
         page_ops = parse_clan_treasury_operations(html)
         filtered_ops = []
         for op in page_ops:
-            op_comparable = _parse_date_to_comparable(op["date"])
-            if op_comparable >= cutoff_comparable:
-                if end_comparable is None or op_comparable <= end_comparable:
-                    filtered_ops.append(op)
+            if _op_in_range(
+                _op_date_day(op["date"]), cutoff_comparable, end_comparable
+            ):
+                filtered_ops.append(op)
         all_operations.extend(filtered_ops)
 
         yield (
@@ -608,7 +634,7 @@ def fetch_all_pages_streaming(
 
         # Check if page 0 already has all operations older than cutoff
         earliest_on_page_0 = min(
-            (_parse_date_to_comparable(op["date"]) for op in page_ops), default=""
+            (_op_date_day(op["date"]) for op in page_ops), default=""
         )
         if (
             earliest_on_page_0
@@ -666,10 +692,10 @@ def fetch_all_pages_streaming(
                 break
 
             earliest_on_page = min(
-                (_parse_date_to_comparable(op["date"]) for op in page_ops), default=""
+                (_op_date_day(op["date"]) for op in page_ops), default=""
             )
             latest_on_page = max(
-                (_parse_date_to_comparable(op["date"]) for op in page_ops), default=""
+                (_op_date_day(op["date"]) for op in page_ops), default=""
             )
 
             # EARLY EXIT: If the freshest op on this page is already older than end_date,
@@ -690,10 +716,10 @@ def fetch_all_pages_streaming(
             if earliest_on_page and earliest_on_page < cutoff_comparable:
                 filtered = []
                 for op in page_ops:
-                    op_comparable = _parse_date_to_comparable(op["date"])
-                    if op_comparable >= cutoff_comparable:
-                        if end_comparable is None or op_comparable <= end_comparable:
-                            filtered.append(op)
+                    if _op_in_range(
+                        _op_date_day(op["date"]), cutoff_comparable, end_comparable
+                    ):
+                        filtered.append(op)
                 all_operations.extend(filtered)
                 pages_fetched += 1
                 yield (
@@ -714,7 +740,9 @@ def fetch_all_pages_streaming(
                 filtered = [
                     op
                     for op in page_ops
-                    if _parse_date_to_comparable(op["date"]) <= end_comparable
+                    if _op_in_range(
+                        _op_date_day(op["date"]), cutoff_comparable, end_comparable
+                    )
                 ]
                 all_operations.extend(filtered)
                 pages_fetched += 1
