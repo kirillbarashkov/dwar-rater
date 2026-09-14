@@ -65,6 +65,27 @@ DEFAULT_COUNCIL_SLOTS = 4
 CLAN_MAX_PLAYERS = 70
 
 
+def _clip(value, limit, default=""):
+    """Coerce to str, strip and truncate to a DB column limit.
+
+    Scraped/imported values can exceed column widths (e.g. a long clan role),
+    which used to raise DataError (StringDataRightTruncation) at commit time and
+    surface as an opaque HTTP 500.
+    """
+    if value is None:
+        return default
+    text = value if isinstance(value, str) else str(value)
+    text = text.strip()
+    return text[:limit] if text else default
+
+
+def _as_int(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def build_clan_structure_from_members(clan_id, existing_structure=None):
     members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).all()
 
@@ -982,13 +1003,13 @@ def import_treasury_operations(clan_id):
 
     for i, op in enumerate(operations_data):
         try:
-            date = op.get("date", "")
-            nick = op.get("nick", "")
-            operation_type = op.get("operation_type", "")
-            object_name = op.get("object_name", "")
-            quantity = op.get("quantity", 0)
+            date = _clip(op.get("date"), 20)
+            nick = _clip(op.get("nick"), 100)
+            operation_type = _clip(op.get("operation_type"), 100)
+            object_name = _clip(op.get("object_name"), 200)
+            quantity = _as_int(op.get("quantity"), 0)
             compensation_flag = op.get("compensation_flag", False)
-            compensation_comment = op.get("compensation_comment", "")
+            compensation_comment = _clip(op.get("compensation_comment"), 500)
 
             if not date or not nick:
                 skip_reasons.append(f"op {i}: empty date or nick")
@@ -1052,7 +1073,21 @@ def import_treasury_operations(clan_id):
     if skip_reasons:
         data_logger.warning(f"[TREASURY] Skipped operations: {skip_reasons}")
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        data_logger.error(f"[TREASURY] Import commit failed: {e}")
+        return jsonify(
+            {
+                "success": False,
+                "imported": 0,
+                "updated": 0,
+                "skipped": skipped,
+                "errors": skip_reasons + [f"Ошибка записи в БД: {e}"],
+                "message": f"Не удалось сохранить операции: {e}",
+            }
+        ), 400
 
     final_count = TreasuryOperation.query.filter_by(clan_id=clan_id).count()
     data_logger.info(
@@ -1899,30 +1934,44 @@ def import_member_diff(clan_id):
                 continue
 
             existing = ClanMemberInfo.query.filter_by(
-                clan_id=clan_id, nick=nick, is_deleted=False
+                clan_id=clan_id, nick=nick
             ).first()
+            join_date = _clip(member_data.get("join_date"), 20) or today
             if existing:
-                # Update join_date if missing
-                if not existing.join_date and member_data.get("join_date"):
-                    existing.join_date = member_data["join_date"]
+                # Re-join of a previously left member: resurrect instead of
+                # inserting a second row for the same nick.
+                existing.is_deleted = False
+                existing.left_date = ""
+                existing.leave_reason = ""
+                if not existing.join_date:
+                    existing.join_date = join_date
                 if not existing.trial_until and member_data.get("trial_until"):
-                    existing.trial_until = member_data["trial_until"]
+                    existing.trial_until = _clip(member_data.get("trial_until"), 20)
                 data_logger.debug(
                     f"[MEMBERSHIP] Joined member {nick} already exists, updated join_date={existing.join_date}"
                 )
+                event = ClanMembershipEvent(
+                    clan_id=clan_id,
+                    nick=nick,
+                    event_type="joined",
+                    event_date=join_date,
+                    source="diff",
+                )
+                db.session.add(event)
+                joined_count += 1
                 continue
 
             member = ClanMemberInfo(
                 clan_id=clan_id,
                 nick=nick,
-                icon=member_data.get("icon", ""),
-                game_rank=member_data.get("game_rank", ""),
-                level=member_data.get("level", 1),
-                profession=member_data.get("profession", ""),
-                profession_level=member_data.get("profession_level", 0),
-                clan_role=member_data.get("clan_role", "Рыцарь Ордена"),
-                join_date=member_data.get("join_date", today),
-                trial_until=member_data.get("trial_until", ""),
+                icon=_clip(member_data.get("icon"), 10),
+                game_rank=_clip(member_data.get("game_rank"), 100),
+                level=_as_int(member_data.get("level"), 1),
+                profession=_clip(member_data.get("profession"), 100),
+                profession_level=_as_int(member_data.get("profession_level"), 0),
+                clan_role=_clip(member_data.get("clan_role"), 100) or "Рыцарь Ордена",
+                join_date=join_date,
+                trial_until=_clip(member_data.get("trial_until"), 20),
             )
             db.session.add(member)
 
@@ -1930,7 +1979,7 @@ def import_member_diff(clan_id):
                 clan_id=clan_id,
                 nick=nick,
                 event_type="joined",
-                event_date=member_data.get("join_date", today),
+                event_date=join_date,
                 source="diff",
             )
             db.session.add(event)
@@ -1955,23 +2004,38 @@ def import_member_diff(clan_id):
                 continue
 
             member.is_deleted = True
-            member.left_date = left_data.get("left_date", today)
-            member.leave_reason = left_data.get("leave_reason", "")
+            left_date = _clip(left_data.get("left_date"), 20) or today
+            leave_reason = _clip(left_data.get("leave_reason"), 200)
+            member.left_date = left_date
+            member.leave_reason = leave_reason
 
             event = ClanMembershipEvent(
                 clan_id=clan_id,
                 nick=nick,
                 event_type="left",
-                event_date=left_data.get("left_date", today),
+                event_date=left_date,
                 source="diff",
-                leave_reason=left_data.get("leave_reason", ""),
+                leave_reason=leave_reason,
             )
             db.session.add(event)
             left_count += 1
         except Exception as e:
             errors.append(f"Ошибка удаления {left_data.get('nick', '?')}: {str(e)}")
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        data_logger.error(f"[MEMBERSHIP] Diff import commit failed: {e}")
+        return jsonify(
+            {
+                "success": False,
+                "joined_count": 0,
+                "left_count": 0,
+                "errors": errors + [f"Ошибка записи в БД: {e}"],
+                "message": f"Не удалось сохранить изменения: {e}",
+            }
+        ), 400
 
     data_logger.info(
         f"[MEMBERSHIP] Diff import completed: joined={joined_count}, left={left_count}, errors={len(errors)}"
@@ -2011,9 +2075,9 @@ def import_history_events(clan_id):
 
     for event_data in events_list:
         try:
-            nick = event_data.get("nick", "").strip()
-            event_type = event_data.get("event_type", "")
-            event_date = event_data.get("event_date", "")
+            nick = _clip(event_data.get("nick"), 100)
+            event_type = _clip(event_data.get("event_type"), 10)
+            event_date = _clip(event_data.get("event_date"), 20)
 
             if not nick or not event_type or not event_date:
                 errors.append(
@@ -2038,7 +2102,7 @@ def import_history_events(clan_id):
                 event_type=event_type,
                 event_date=event_date,
                 source="history",
-                leave_reason=event_data.get("leave_reason", ""),
+                leave_reason=_clip(event_data.get("leave_reason"), 200),
             )
             db.session.add(event)
 
@@ -2056,7 +2120,7 @@ def import_history_events(clan_id):
                     member = ClanMemberInfo(
                         clan_id=clan_id,
                         nick=nick,
-                        level=event_data.get("level", 1),
+                        level=_as_int(event_data.get("level"), 1),
                         clan_role="Рыцарь Ордена",
                         join_date=event_date,
                     )
@@ -2075,7 +2139,20 @@ def import_history_events(clan_id):
         except Exception as e:
             errors.append(f"Ошибка обработки {event_data.get('nick', '?')}: {str(e)}")
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        data_logger.error(f"[MEMBERSHIP] History import commit failed: {e}")
+        return jsonify(
+            {
+                "success": False,
+                "processed_count": 0,
+                "skipped_count": skipped,
+                "errors": errors + [f"Ошибка записи в БД: {e}"],
+                "message": f"Не удалось сохранить историю: {e}",
+            }
+        ), 400
 
     data_logger.info(
         f"[MEMBERSHIP] History import completed: processed={processed}, skipped={skipped}, errors={len(errors)}"
