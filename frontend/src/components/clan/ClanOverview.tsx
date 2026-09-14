@@ -84,9 +84,19 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
     setIsSaving(true);
     setSaveError('');
     try {
-      const structureToSave = {
+      // Drop empty slots before sending: backend persists JSON as-is,
+      // so {nick:'', description:''} would re-appear on the next load.
+      const cleanDeputies = (editStructure.deputies || [])
+        .filter((d) => (d.nick || '').trim() !== '')
+        .map((d) => ({ nick: d.nick.trim(), description: d.description || 'Зам. Главы' }));
+      const cleanCouncil = (editStructure.council || [])
+        .filter((c) => (c.nick || '').trim() !== '')
+        .map((c) => ({ nick: c.nick.trim(), description: c.description || 'Совет ордена' }));
+      const structureToSave: ClanStructure = {
         ...editStructure,
-        council_slots: councilSlots,
+        deputies: cleanDeputies.length > 0 ? cleanDeputies : undefined,
+        council: cleanCouncil.length > 0 ? cleanCouncil : undefined,
+        council_slots: Math.max(councilSlots, cleanCouncil.length),
       };
       await updateClanInfo(clanId, { clan_structure: structureToSave });
       const refreshed = await getClanInfo(clanId);
@@ -117,6 +127,38 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
     setEditStructure({ ...editStructure, council });
   };
 
+  const removeCouncilSlot = (index: number) => {
+    const council = [...(editStructure.council || [])];
+    council.splice(index, 1);
+    setEditStructure({ ...editStructure, council });
+  };
+
+  const addCouncilSlot = () => {
+    const council = [...(editStructure.council || []), { nick: '', description: '' }];
+    setEditStructure({ ...editStructure, council });
+    setCouncilSlots(Math.max(councilSlots, council.length));
+  };
+
+  const updateDeputy = (index: number, nick: string) => {
+    const deputies = [...(editStructure.deputies || [])];
+    while (deputies.length <= index) {
+      deputies.push({ nick: '', description: '' });
+    }
+    deputies[index] = { ...deputies[index], nick };
+    setEditStructure({ ...editStructure, deputies });
+  };
+
+  const removeDeputy = (index: number) => {
+    const deputies = [...(editStructure.deputies || [])];
+    deputies.splice(index, 1);
+    setEditStructure({ ...editStructure, deputies });
+  };
+
+  const addDeputy = () => {
+    const deputies = [...(editStructure.deputies || []), { nick: '', description: '' }];
+    setEditStructure({ ...editStructure, deputies });
+  };
+
   const renderMemberSelect = (value: string, onChange: (nick: string) => void, placeholder: string) => (
     <select className="co-member-select" value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">{placeholder}</option>
@@ -141,16 +183,32 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
         </div>
       </div>
 
-      {structure.deputies && structure.deputies.length > 0 && (
-        <div className="co-edit-row">
-          <label className="co-edit-label">Зам. главы</label>
-          <div className="co-edit-value">
-            {structure.deputies.map((d, i) => (
-              <span key={i} className="co-edit-current">{d.nick}{i < structure.deputies!.length - 1 ? ', ' : ''}</span>
-            ))}
-          </div>
+      <div className="co-edit-row">
+        <label className="co-edit-label">Зам. главы</label>
+        <div className="co-edit-slots">
+          {(editStructure.deputies || []).map((d, i) => (
+            <div key={i} className="co-edit-slot">
+              <span className="co-slot-number">{i + 1}.</span>
+              {renderMemberSelect(
+                d.nick || '',
+                (nick) => updateDeputy(i, nick),
+                '— выбрать —',
+              )}
+              <button
+                type="button"
+                className="co-slot-remove"
+                onClick={() => removeDeputy(i)}
+                title="Удалить зама"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          <button type="button" className="co-slot-add" onClick={addDeputy}>
+            + добавить зама
+          </button>
         </div>
-      )}
+      </div>
 
       <div className="co-edit-row">
         <label className="co-edit-label">Совет клана ({councilSlots} мест)</label>
@@ -164,16 +222,27 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
               <option key={n} value={n}>{n}</option>
             ))}
           </select>
-          {Array.from({ length: councilSlots }).map((_, i) => (
+          {Array.from({ length: Math.max(councilSlots, (editStructure.council || []).length) }).map((_, i) => (
             <div key={i} className="co-edit-slot">
               <span className="co-slot-number">{i + 1}.</span>
               {renderMemberSelect(
                 editStructure.council?.[i]?.nick || '',
                 (nick) => updateCouncilSlot(i, nick),
-                '— выбрать —'
+                '— выбрать —',
               )}
+              <button
+                type="button"
+                className="co-slot-remove"
+                onClick={() => removeCouncilSlot(i)}
+                title="Удалить из совета"
+              >
+                ✕
+              </button>
             </div>
           ))}
+          <button type="button" className="co-slot-add" onClick={addCouncilSlot}>
+            + добавить место
+          </button>
         </div>
       </div>
 

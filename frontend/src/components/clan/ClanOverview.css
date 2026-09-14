@@ -493,6 +493,41 @@
   margin-bottom: 8px;
 }
 
+.co-slot-remove {
+  background: transparent;
+  border: 1px solid var(--red);
+  color: var(--red);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.co-slot-remove:hover {
+  background: var(--red);
+  color: white;
+}
+
+.co-slot-add {
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.co-slot-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .co-slot-number {
   color: var(--text-secondary);
   font-size: 0.85rem;
