@@ -1,5 +1,9 @@
-# v1.0.17
+# v1.0.18
 
 ## Новое
-- feat: User.role backed by role_id FK (A3) + migration 010
+- feat: treasury analytics flags characters missing from the clan roster
+
+## Исправления
+- fix: clan membership import 500 on overlong scraped fields
+- fix(ci): api-docs-check never ran on backend changes
 
