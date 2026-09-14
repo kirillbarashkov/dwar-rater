@@ -1,5 +1,5 @@
-# v1.0.15
+# v1.0.16
 
 ## Новое
-- feat: session management (U9) — admin view/revoke sessions
+- feat: per-user rate limiting (A7) + migration 009
 
