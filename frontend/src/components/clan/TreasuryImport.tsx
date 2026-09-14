@@ -9,7 +9,7 @@ import {
 import type { TreasuryOperationData, DateCoverage } from '../../types/clanInfo';
 import { Button } from '../ui/Button';
 import { BackupPicker } from './BackupPicker';
-import { parseTreasuryOperations, parseDate, TREASURY_CLAN_REPORT_URL, MONTHS_RU, type ParsedTreasuryOperation } from '../../utils/treasury';
+import { parseTreasuryOperations, parseDate, TREASURY_CLAN_REPORT_URL, MONTHS_RU, displayToIso, isoToDisplay, todayDisplay, shiftDisplayDays, type ParsedTreasuryOperation } from '../../utils/treasury';
 import { MembershipImportTab } from './MembershipImportTab';
 import './TreasuryImport.css';
 
@@ -214,6 +214,29 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
       }
     }).catch(() => setDateCoverage(null));
   }, [clanId]);
+
+  const startIso = displayToIso(selectedStartDate);
+  const endIso = displayToIso(selectedEndDate);
+  const rangeError = startIso && endIso && startIso > endIso
+    ? 'Дата «От» позже даты «До» — исправьте диапазон'
+    : '';
+
+  const applyRange = useCallback((start: string | null, end: string | null) => {
+    setSelectedStartDate(start);
+    setSelectedEndDate(end);
+    setPageEstimate(null);
+  }, []);
+
+  const presetRange = useCallback((preset: string) => {
+    const latest = dateCoverage?.latest_date || null;
+    const earliest = dateCoverage?.earliest_date || null;
+    if (preset === 'last-date') applyRange(latest, null);
+    else if (preset === 'today') applyRange(selectedStartDate, todayDisplay());
+    else if (preset === '7d') applyRange(shiftDisplayDays(-6), todayDisplay());
+    else if (preset === '30d') applyRange(shiftDisplayDays(-29), todayDisplay());
+    else if (preset === 'all') applyRange(earliest, latest);
+    else if (preset === 'clear') applyRange(null, null);
+  }, [applyRange, dateCoverage, selectedStartDate]);
 
   useEffect(() => {
     getTreasuryCookiesStatus(clanId).then(setCookieStatus).catch(() => setCookieStatus({ has_cookies: false, is_valid: false }));
@@ -661,7 +684,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                                       </button>
                                       {isMonthExpanded && (
                                         <div className="coverage-days">
-                                           {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                                           {Array.from({ length: new Date(parseInt(year, 10), parseInt(month, 10), 0).getDate() }, (_, i) => i + 1).map((day) => {
                                              const dayStr = day.toString().padStart(2, '0');
                                              const hasData = monthData.days.includes(dayStr);
                                              const dateKey = `${dayStr}.${month}.${year}`;
@@ -671,10 +694,11 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                                                <div
                                                  key={day}
                                                  className={`coverage-day ${hasData ? 'has-data' : ''} ${isSelectedStart ? 'selected-start' : ''} ${isSelectedEnd ? 'selected-end' : ''}`}
-                                                 onClick={() => hasData && setSelectedStartDate(dateKey)}
+                                                 title={hasData ? `${dateKey} — ЛКМ: «От», ПКМ: «До»` : `${dateKey} — данных нет`}
+                                                 onClick={() => hasData && applyRange(dateKey, selectedEndDate)}
                                                  onContextMenu={(e) => {
                                                    e.preventDefault();
-                                                   if (hasData) setSelectedEndDate(dateKey);
+                                                   if (hasData) applyRange(selectedStartDate, dateKey);
                                                  }}
                                                >
                                                  {day}
@@ -692,19 +716,45 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                         );
                       })}
                      </div>
-                      {(selectedStartDate || selectedEndDate) && (
-                        <div className="coverage-selected">
-                          Диапазон импорта: <strong>{selectedStartDate || 'начало'}</strong> — <strong>{selectedEndDate || 'текущая дата'}</strong>
-                          <span className="coverage-hint">(ЛКМ — дата старта, ПКМ — дата окончания)</span>
-                          <Button type="button" variant="ghost" size="small" onClick={() => {
-                            const now = new Date();
-                            const today = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()}`;
-                            setSelectedEndDate(today);
-                          }}>
-                            Сегодня
-                          </Button>
+                      <div className="coverage-range-controls">
+                        <div className="coverage-range-fields">
+                          <label className="coverage-range-field">
+                            <span className="coverage-range-label">От</span>
+                            <input
+                              type="date"
+                              className="coverage-range-input"
+                              value={startIso}
+                              max={endIso || undefined}
+                              onChange={(e) => applyRange(isoToDisplay(e.target.value) || null, selectedEndDate)}
+                            />
+                          </label>
+                          <label className="coverage-range-field">
+                            <span className="coverage-range-label">До</span>
+                            <input
+                              type="date"
+                              className="coverage-range-input"
+                              value={endIso}
+                              min={startIso || undefined}
+                              onChange={(e) => applyRange(selectedStartDate, isoToDisplay(e.target.value) || null)}
+                            />
+                          </label>
+                          <span className="coverage-range-resolved">
+                            {selectedStartDate || 'начало'} — {selectedEndDate || 'текущая дата'}
+                          </span>
                         </div>
-                      )}
+                        <div className="coverage-range-presets">
+                          <button type="button" className="coverage-preset" onClick={() => presetRange('last-date')}>От последней даты</button>
+                          <button type="button" className="coverage-preset" onClick={() => presetRange('today')}>Сегодня</button>
+                          <button type="button" className="coverage-preset" onClick={() => presetRange('7d')}>7 дней</button>
+                          <button type="button" className="coverage-preset" onClick={() => presetRange('30d')}>30 дней</button>
+                          <button type="button" className="coverage-preset" onClick={() => presetRange('all')}>Всё покрытие</button>
+                          <button type="button" className="coverage-preset" onClick={() => presetRange('clear')}>Очистить</button>
+                        </div>
+                        <span className="coverage-hint">
+                          Выберите даты в полях «От»/«До», пресетом или кликом по дню в календаре. Пустое «До» — сбор по текущую дату.
+                        </span>
+                        {rangeError && <div className="coverage-range-error">{rangeError}</div>}
+                      </div>
                   </>
                 ) : (
                   <div className="coverage-empty">
@@ -724,7 +774,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                   {autoFetchOps.length === 0 && !isAutoFetching && fetchProgress.phase !== 'error' && (
                     <>
                       {!pageEstimate && !isEstimating && (
-                        <Button variant="primary" onClick={estimatePages}>
+                        <Button variant="primary" onClick={estimatePages} disabled={!!rangeError}>
                           Оценить количество страниц
                         </Button>
                       )}

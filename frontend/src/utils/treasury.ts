@@ -318,3 +318,29 @@ export function getOriginalOwner(
   }
   return op.nick;
 }
+
+
+export function displayToIso(display: string | null | undefined): string {
+  if (!display) return '';
+  const m = display.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (!m) return '';
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+export function isoToDisplay(iso: string): string {
+  if (!iso) return '';
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  return `${m[3]}.${m[2]}.${m[1]}`;
+}
+
+export function todayDisplay(): string {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+}
+
+export function shiftDisplayDays(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+}
