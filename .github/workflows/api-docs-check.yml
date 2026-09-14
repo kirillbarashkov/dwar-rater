@@ -3,12 +3,18 @@ name: API Docs Check
 on:
   pull_request:
     paths:
-      - 'backend/routes/**'
+      - 'backend/features/**'
+      - 'backend/shared/**'
+      - 'backend/app.py'
+      - 'backend/test_app.py'
       - 'backend/docs/openapi.yaml'
   push:
     branches: [main]
     paths:
-      - 'backend/routes/**'
+      - 'backend/features/**'
+      - 'backend/shared/**'
+      - 'backend/app.py'
+      - 'backend/test_app.py'
       - 'backend/docs/openapi.yaml'
 
 jobs:
