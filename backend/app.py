@@ -100,7 +100,7 @@ def create_app():
             return
         if request.method == 'OPTIONS':
             return
-        if not check_rate_limit(Config.RATE_LIMIT_MAX, Config.RATE_LIMIT_WINDOW):
+        if not check_rate_limit(Config.RATE_LIMIT_MAX, Config.RATE_LIMIT_WINDOW, user_id=(getattr(g, 'current_user', None).id if getattr(g, 'current_user', None) else None)):
             response = jsonify({'error': 'Слишком много запросов. Подождите.'})
             response.status_code = 429
             return response
