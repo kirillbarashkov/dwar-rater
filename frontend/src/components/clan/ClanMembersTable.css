@@ -187,6 +187,25 @@
 .cm-role {
   color: var(--text-secondary);
   font-size: 0.85rem;
+  white-space: pre-line;
+}
+
+.cm-role-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cm-role-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  width: max-content;
+  max-width: 100%;
 }
 
 .cm-join {
@@ -201,6 +220,9 @@
 .cm-trial-badge {
   color: var(--gold);
   font-weight: 600;
+  display: inline-block;
+  margin-left: 8px;
+  white-space: nowrap;
 }
 
 .cm-empty,

@@ -41,6 +41,25 @@ function getEffectiveJoinDate(member: ClanMemberData): string {
   return '';
 }
 
+function splitRoles(raw: string): string[] {
+  // dwar.ru sometimes stores multiple roles separated by "\n" in a single
+  // clan_role field (one member, several historical/active positions).
+  return (raw || '').split(/\r?\n/).map((r) => r.trim()).filter(Boolean);
+}
+
+function RoleChips({ raw }: { raw: string }) {
+  const roles = splitRoles(raw);
+  if (roles.length === 0) return null;
+  if (roles.length === 1) return <>{roles[0]}</>;
+  return (
+    <div className="cm-role-chips">
+      {roles.map((r, i) => (
+        <span key={`${r}-${i}`} className="cm-role-chip">{r}</span>
+      ))}
+    </div>
+  );
+}
+
 interface ClanMembersTableProps {
   clanId: number;
 }
@@ -114,13 +133,14 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   };
 
   const uniqueRoles = useMemo(() => {
-    const roles = new Set(members.map((m) => m.clan_role));
+    const roles = new Set<string>();
+    for (const m of members) for (const r of splitRoles(m.clan_role)) roles.add(r);
     return Array.from(roles).sort();
   }, [members]);
 
   const filtered = useMemo(() => {
     let result = members.filter((m) => {
-      if (roleFilter && m.clan_role !== roleFilter) return false;
+      if (roleFilter && !splitRoles(m.clan_role).includes(roleFilter)) return false;
       if (search && !m.nick.toLowerCase().includes(search.toLowerCase())) return false;
       if (levelFilter && m.level !== parseInt(levelFilter)) return false;
       return true;
@@ -442,7 +462,7 @@ const handleAnalyze = (nick: string) => {
                   </span>
                 )}
               </td>
-              <td className="cm-role">{m.clan_role}</td>
+              <td className="cm-role"><RoleChips raw={m.clan_role} /></td>
               <td className="cm-join">
                 {(() => {
                   const showTrial = m.trial_until && !isTrialExpired(m.trial_until);
