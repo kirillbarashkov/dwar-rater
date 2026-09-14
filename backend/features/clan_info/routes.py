@@ -478,6 +478,38 @@ def import_clan_members(clan_id):
     errors = []
     skipped = 0
 
+    # Same single-leader invariant as in /diff-import: pre-scan the batch
+    # for "Глава Ордена" and refuse if the union with DB active leaders
+    # would have more than one distinct nick. (See lines around 1912.)
+    HEAD_ROLE = "Глава Ордена"
+    batch_leaders: set[str] = set()
+    for m in members_data:
+        if (m.get("clan_role") or "").strip() == HEAD_ROLE:
+            n = (m.get("nick") or "").strip()
+            if n:
+                batch_leaders.add(n.lower())
+    if batch_leaders:
+        existing_leaders = (
+            ClanMemberInfo.query.filter_by(
+                clan_id=clan_id, is_deleted=False, clan_role=HEAD_ROLE
+            ).with_entities(ClanMemberInfo.nick).all()
+        )
+        db_leaders = {n[0].lower() for n in existing_leaders if n[0]}
+        all_leaders = db_leaders | batch_leaders
+        if len(all_leaders) > 1:
+            return jsonify(
+                {
+                    "success": 0,
+                    "skipped": 0,
+                    "failed": 0,
+                    "errors": [
+                        "Несколько глав клана: "
+                        + ", ".join(sorted(all_leaders))
+                        + ". Оставьте одного."
+                    ],
+                }
+            ), 400
+
     for i, member_data in enumerate(members_data):
         try:
             nick = member_data.get("nick", "").strip()
@@ -1911,6 +1943,45 @@ def import_member_diff(clan_id):
     data = request.json
     joined_list = data.get("joined", [])
     left_list = data.get("left", [])
+
+    # Enforce "exactly one Глава Ордена per active roster" at import time.
+    # Without this, a single bad import can mark many members as leader.
+    # Existing leaders are accepted as-is; new leaders require no other
+    # active leader in the same import batch and no other active leader
+    # already in the DB. The check is batch-aware: we count leaders in
+    # joined_list first, then any remaining conflicts fail the import.
+    HEAD_ROLE = "Глава Ордена"
+    batch_leaders: set[str] = set()
+    for m in joined_list:
+        nr = (m.get("clan_role") or "").strip()
+        if nr == HEAD_ROLE:
+            nick = (m.get("nick") or "").strip()
+            if nick:
+                batch_leaders.add(nick.lower())
+    if batch_leaders:
+        existing_leaders = (
+            ClanMemberInfo.query.filter_by(
+                clan_id=clan_id, is_deleted=False, clan_role=HEAD_ROLE
+            ).with_entities(ClanMemberInfo.nick).all()
+        )
+        db_leaders = {n[0].lower() for n in existing_leaders if n[0]}
+        # A new leader in the batch is allowed iff it is the only leader
+        # in (DB ∪ batch) — i.e. exactly one distinct nick across both.
+        all_leaders = db_leaders | batch_leaders
+        if len(all_leaders) > 1:
+            return jsonify(
+                {
+                    "success": False,
+                    "joined_count": 0,
+                    "left_count": 0,
+                    "errors": [
+                        "Несколько глав клана: "
+                        + ", ".join(sorted(all_leaders))
+                        + ". Оставьте одного."
+                    ],
+                    "message": "Импорт отклонён: несколько глав в одном клане.",
+                }
+            ), 400
 
     data_logger.info(
         f"[MEMBERSHIP] Diff import for clan {clan_id}: joined={len(joined_list)}, left={len(left_list)}"

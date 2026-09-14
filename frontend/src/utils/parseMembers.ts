@@ -182,9 +182,16 @@ function parseClanStructure(text: string): ClanStructure | undefined {
 }
 
 const CLAN_ROLES = [
-  'Глава Ордена', 'Зам. Главы', 'Совесть', 'Рыцарь Ордена', 'Леди Ордена',
-  'ГардеМаринкА', 'Фея на метле', 'Лентяй', 'Пельмешка', 'Dead\'ok',
-  'Воевода', '9-ть жЫзней)', 'УлитЫчка)', 'РудольФ', 'Сосиска',
+  // Order matters for substring matching: longer phrases must come first
+  // so "Леди Ордена" is not captured as "Рыцарь Ордена" and
+  // "Совет ордена" is not captured as "Зам. Главы". The actual match
+  // (findClanRole) uses a word-boundary regex and sorts by length DESC
+  // at runtime, so this list is mostly the source of truth for known roles.
+  'Глава Ордена', 'Зам. Главы', 'Совет ордена', 'Новобранец',
+  'Леди Ордена', 'Рыцарь Ордена',
+  'Отпуск', 'КазЕнь', 'Гизмо',
+  'ГардеМаринкА', 'Фея на метле', 'Пельмешка', 'Dead\'ok',
+  'УлитЫчка)', '9-ть жЫзней)', 'РудольФ', 'Сосиска', 'Лентяй', 'Воевода',
 ];
 
 function normalizeLevel(level: number | string | undefined): number {
@@ -205,13 +212,21 @@ function extractLevel(text: string): number {
 }
 
 function findClanRole(text: string): string {
-  const upperText = text.toLowerCase();
+  // Match roles by whole tokens (non-letter/digit boundaries) so longer
+  // phrases like "Леди Ордена" or "Совет ордена" are not captured as
+  // "Рыцарь Ордена" or "Зам. Главы". Case-insensitive.
+  //
+  // For multi-role text ("Зам. Главы\nСовет ордена\n...") we want the
+  // LAST match: dwar.ru lists positions with the most-recent first, and
+  // import artifacts concatenate them in that order, so the last token in
+  // the cell is the player's current role.
+  const lower = text.toLowerCase();
+  const matches: string[] = [];
   for (const role of CLAN_ROLES) {
-    if (upperText.includes(role.toLowerCase())) {
-      return role;
-    }
+    const re = new RegExp(`(^|[^\\p{L}\\d])${role.toLowerCase()}([^\\p{L}\\d]|$)`, 'gu');
+    if (re.test(lower)) matches.push(role);
   }
-  return '';
+  return matches.length ? matches[matches.length - 1] : '';
 }
 
 function findProfession(text: string): { profession: string; level: number } {

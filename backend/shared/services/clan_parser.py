@@ -946,8 +946,20 @@ def parse_clan_members_from_management(html, clan_id):
             rank_match = re.search(r'title="([^"]+)"[^>]*align="absmiddle"', cell0)
         game_rank = rank_match.group(1) if rank_match else ""
 
-        # Extract clan role from cell 1
-        clan_role = clean_html(cells[1]).strip() if len(cells) > 1 else ""
+        # Extract clan role from cell 1.
+        # Real dwar.ru management pages have a *single* role string in this
+        # cell (e.g. "Глава Ордена", "Рыцарь Ордена"). If the cell has
+        # multi-role text joined with "\n" (an artifact of pasting the
+        # clan overview page) we keep only the last non-empty role, which
+        # is the player's current position. Anything longer than a real
+        # role name is treated as noise and dropped.
+        cell1_raw = re.sub(r"<br\s*/?>", "\n", cells[1]) if len(cells) > 1 else ""
+        cell1 = clean_html(cell1_raw).strip()
+        if cell1:
+            parts_in_cell = [p.strip() for p in cell1.split("\n") if p.strip()]
+            clan_role = parts_in_cell[-1] if parts_in_cell else ""
+        else:
+            clan_role = ""
 
         # Extract join_date / trial_until from cell 4
         # Replace <br/> with space before stripping HTML — dwar.ru splits text across <br/>
