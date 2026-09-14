@@ -175,6 +175,68 @@ def admin_unbind_character(user_id):
     return jsonify({'status': 'unbound', 'user': user.to_dict()})
 
 
+# ── Sessions ─────────────────────────────────────────────────────────────
+
+def _current_session_id():
+    s = getattr(g, 'current_session', None)
+    return s.id if s else None
+
+
+@admin_bp.route('/api/admin/users/<int:user_id>/sessions', methods=['GET'])
+@require_permission('admin', 'read')
+def list_user_sessions(user_id):
+    """List non-expired sessions of a user, flagging the caller's current one."""
+    user = User.query.get_or_404(user_id)
+    current_id = _current_session_id()
+    sessions = [s for s in user.sessions if not s.is_expired]
+    payload = [
+        {
+            'id': s.id,
+            'created_at': s.created_at.isoformat() if s.created_at else None,
+            'expires_at': s.expires_at.isoformat(),
+            'current': s.id == current_id,
+        }
+        for s in sorted(sessions, key=lambda s: s.created_at or datetime.min, reverse=True)
+    ]
+    return jsonify({'username': user.username, 'sessions': payload, 'total': len(payload)})
+
+
+@admin_bp.route('/api/admin/users/<int:user_id>/sessions/others', methods=['DELETE'])
+@require_permission('admin', 'write')
+def revoke_user_other_sessions(user_id):
+    """Revoke all sessions of a user except the caller's current one."""
+    user = User.query.get_or_404(user_id)
+    current_id = _current_session_id()
+    to_delete = [s for s in user.sessions if not s.is_expired and s.id != current_id]
+    ids = [s.id for s in to_delete]
+    for s in to_delete:
+        db.session.delete(s)
+    db.session.commit()
+    _audit(
+        'admin_revoke_sessions', target_type='user', target_id=user.id,
+        old={'sessions': ids}, new={'count': len(ids)},
+    )
+    return jsonify({'revoked': len(ids), 'session_ids': ids})
+
+
+@admin_bp.route('/api/admin/users/<int:user_id>/sessions/<int:session_id>', methods=['DELETE'])
+@require_permission('admin', 'write')
+def revoke_user_session(user_id, session_id):
+    """Revoke a single session of a user (forces logout)."""
+    user = User.query.get_or_404(user_id)
+    session = SessionToken.query.filter_by(id=session_id, user_id=user.id).first()
+    if not session:
+        return jsonify({'error': 'Сессия не найдена'}), 404
+    is_current = session.id == _current_session_id()
+    db.session.delete(session)
+    db.session.commit()
+    _audit(
+        'admin_revoke_session', target_type='user', target_id=user.id,
+        old={'session': session_id}, new={'current': is_current},
+    )
+    return jsonify({'status': 'revoked', 'session_id': session_id, 'was_current': is_current})
+
+
 # ── Sync from clan ──────────────────────────────────────────────────────
 
 @admin_bp.route('/api/admin/users/sync', methods=['POST'])

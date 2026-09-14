@@ -152,6 +152,43 @@ def login_2fa():
     })
 
 
+@auth_bp.route('/api/auth/sessions', methods=['GET'])
+def list_my_sessions():
+    """List the current user's active sessions (1-session-per-user model)."""
+    if not getattr(g, 'current_user', None):
+        return jsonify({'error': 'Требуется авторизация'}), 401
+    current_id = _current_session_id()
+    sessions = [s for s in g.current_user.sessions if not s.is_expired]
+    payload = [
+        {
+            'id': s.id,
+            'created_at': s.created_at.isoformat() if s.created_at else None,
+            'expires_at': s.expires_at.isoformat(),
+            'current': s.id == current_id,
+        }
+        for s in sorted(sessions, key=lambda s: s.created_at or datetime.min, reverse=True)
+    ]
+    return jsonify({'sessions': payload, 'total': len(payload)})
+
+
+@auth_bp.route('/api/auth/sessions/<int:session_id>', methods=['DELETE'])
+def revoke_my_session(session_id):
+    """Revoke one of the current user's sessions (revoking the current one logs out)."""
+    if not getattr(g, 'current_user', None):
+        return jsonify({'error': 'Требуется авторизация'}), 401
+    session = SessionToken.query.filter_by(id=session_id, user_id=g.current_user.id).first()
+    if not session:
+        return jsonify({'error': 'Сессия не найдена'}), 404
+    db.session.delete(session)
+    db.session.commit()
+    return jsonify({'status': 'revoked', 'session_id': session_id})
+
+
+def _current_session_id():
+    s = getattr(g, 'current_session', None)
+    return s.id if s else None
+
+
 @auth_bp.route('/api/auth/logout', methods=['POST'])
 def logout():
     token = request.headers.get('Authorization', '').replace('Bearer ', '')

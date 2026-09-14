@@ -87,6 +87,7 @@ def create_app():
             session = SessionToken.find_by_token(token)
             if session and not session.is_expired:
                 g.current_user = session.user
+                g.current_session = session
                 g.user_perms = load_user_permissions(session.user)
                 return
             # Token invalid or expired

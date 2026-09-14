@@ -27,6 +27,7 @@ export function UserTable() {
   const [permsTarget, setPermsTarget] = useState<User | null>(null);
   const [resetTarget, setResetTarget] = useState<User | null>(null);
   const [unbindTarget, setUnbindTarget] = useState<User | null>(null);
+  const [sessionsTarget, setSessionsTarget] = useState<User | null>(null);
 
   const handleResetPassword = async (password: string) => {
     if (!resetTarget) return;
@@ -217,9 +218,12 @@ export function UserTable() {
                   <button className="btn btn-secondary btn-sm" onClick={() => setPermsTarget(u)}>
                     Права
                   </button>
-                  <button className="btn btn-secondary btn-sm" onClick={() => setResetTarget(u)}>
-                    Сброс пароля
-                  </button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setSessionsTarget(u)}>
+                                      Сессии
+                                    </button>
+                                    <button className="btn btn-secondary btn-sm" onClick={() => setResetTarget(u)}>
+                                      Сброс пароля
+                                    </button>
                   {u.character_nick && (
                     <button className="btn btn-danger btn-sm" onClick={() => setUnbindTarget(u)}>
                       Отвязать
@@ -266,13 +270,17 @@ export function UserTable() {
       )}
 
       {permsTarget && (
-        <UserPermissionsModal
-          userId={permsTarget.id}
-          username={permsTarget.username}
-          isOpen={true}
-          onClose={() => setPermsTarget(null)}
-        />
-      )}
+              <UserPermissionsModal
+                userId={permsTarget.id}
+                username={permsTarget.username}
+                isOpen={true}
+                onClose={() => setPermsTarget(null)}
+              />
+            )}
+
+            {sessionsTarget && (
+              <SessionsModal user={sessionsTarget} onClose={() => setSessionsTarget(null)} />
+            )}
     </div>
   );
 }
@@ -325,14 +333,106 @@ function ResetPasswordModal({
         <div className="modal-actions">
           <button className="btn btn-ghost" onClick={onClose}>Отмена</button>
           <button
-            className="btn btn-primary"
-            disabled={password.length < 8}
-            onClick={() => onConfirm(password)}
-          >
-            Сбросить пароль
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+                      className="btn btn-primary"
+                      disabled={password.length < 8}
+                      onClick={() => onConfirm(password)}
+                    >
+                      Сбросить пароль
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          interface SessionItem {
+            id: number;
+            created_at: string | null;
+            expires_at: string;
+            current: boolean;
+          }
+
+          function SessionsModal({ user, onClose }: { user: User; onClose: () => void }) {
+            const [sessions, setSessions] = useState<SessionItem[]>([]);
+            const [loading, setLoading] = useState(true);
+            const [err, setErr] = useState('');
+
+            const load = useCallback(async () => {
+              setLoading(true);
+              setErr('');
+              try {
+                const res = await apiClient.get(`/api/admin/users/${user.id}/sessions`);
+                setSessions((res.data?.sessions as SessionItem[]) || []);
+              } catch {
+                setErr('Не удалось загрузить сессии');
+              } finally {
+                setLoading(false);
+              }
+            }, [user.id]);
+
+            useEffect(() => { load(); }, [load]);
+
+            const revokeOne = async (sid: number) => {
+              try {
+                await apiClient.delete(`/api/admin/users/${user.id}/sessions/${sid}`);
+                showToast('Сессия завершена');
+                load();
+              } catch {
+                showToast('Не удалось завершить сессию');
+              }
+            };
+
+            const revokeOthers = async () => {
+              try {
+                await apiClient.delete(`/api/admin/users/${user.id}/sessions/others`);
+                showToast('Остальные сессии завершены');
+                load();
+              } catch {
+                showToast('Не удалось завершить сессии');
+              }
+            };
+
+            const fmt = (iso?: string | null) => (iso ? new Date(iso).toLocaleString('ru') : '—');
+
+            return (
+              <div className="modal-overlay" onClick={onClose}>
+                <div className="modal" onClick={(e) => e.stopPropagation()}>
+                  <h3>Сессии — {user.username}</h3>
+                  <p className="modal-hint">
+                    Активные сессии пользователя. Завершите постороннюю или подозрительную сессию,
+                    чтобы принудительно выйти (пароль не меняется).
+                  </p>
+                  {loading ? (
+                    <p className="modal-hint">Загрузка...</p>
+                  ) : err ? (
+                    <p className="modal-hint">{err}</p>
+                  ) : sessions.length === 0 ? (
+                    <p className="modal-hint">Нет активных сессий</p>
+                  ) : (
+                    <>
+                      <div className="sessions-list">
+                        {sessions.map((s) => (
+                          <div className="session-row" key={s.id}>
+                            <div className="session-meta">
+                              <span className="session-date">Создана: {fmt(s.created_at)}</span>
+                              <span className="session-date">Истекает: {fmt(s.expires_at)}</span>
+                              {s.current && <span className="status-badge active">Текущая</span>}
+                            </div>
+                            <button className="btn btn-danger btn-sm" onClick={() => revokeOne(s.id)}>
+                              Завершить
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="modal-actions">
+                        <button className="btn btn-secondary" onClick={revokeOthers}>
+                          Завершить остальные
+                        </button>
+                        <button className="btn btn-primary" onClick={onClose}>Закрыть</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          }
