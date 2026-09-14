@@ -87,12 +87,19 @@ def _as_int(value, default=0):
 
 
 def build_clan_structure_from_members(clan_id, existing_structure=None):
+    """Compute the canonical clan structure.
+
+    NOTE: deputies/council/commander come from ``existing_structure``
+    (the JSON blob the user saved in the editor), NOT from
+    ``clan_member_info.clan_role``. A member's in-game role
+    ("Зам. Главы", "Совет ордена") is independent from whether they
+    are picked into the clan structure. The leader is the only role
+    that stays sourced from the roster (there must be exactly one
+    Глава Ордена, validated here).
+    """
     members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).all()
 
     leaders = [m for m in members if m.clan_role == LEADER_ROLE]
-    deputies = [m for m in members if m.clan_role == DEPUTY_ROLE]
-    council = [m for m in members if m.clan_role == COUNCIL_ROLE]
-    commanders = [m for m in members if m.clan_role == COMMANDER_ROLE]
 
     if len(leaders) > 1:
         leader_nicks = [m.nick for m in leaders]
@@ -109,39 +116,41 @@ def build_clan_structure_from_members(clan_id, existing_structure=None):
             "description": leaders[0].clan_role,
         }
 
-    if deputies:
-        structure["deputies"] = [
-            {"nick": d.nick, "description": d.clan_role} for d in deputies
-        ]
-
-    if council:
-        structure["council"] = [
-            {"nick": c.nick, "description": c.clan_role} for c in council
-        ]
-
-    if commanders:
-        structure["commander"] = {
-            "nick": commanders[0].nick,
-            "description": commanders[0].clan_role,
-        }
-
+    # Start with whatever the user has saved in the structure JSON.
+    saved_deputies = []
+    saved_council = []
+    saved_commander = None
     if existing_structure:
-        if "council" in existing_structure and "council" not in structure:
-            valid_council = []
-            for c in existing_structure["council"]:
-                nick = c.get("nick", "")
-                if any(m.nick == nick for m in members):
-                    valid_council.append(c)
-            if valid_council:
-                structure["council"] = valid_council
+        saved_deputies = list(existing_structure.get("deputies") or [])
+        saved_council = list(existing_structure.get("council") or [])
+        saved_commander = existing_structure.get("commander")
 
-        if "commander" in existing_structure and "commander" not in structure:
-            cmd_nick = existing_structure["commander"].get("nick", "")
-            if cmd_nick and any(m.nick == cmd_nick for m in members):
-                structure["commander"] = existing_structure["commander"]
+    # Filter saved entries against the current roster (drop people who left).
+    active_nicks = {m.nick for m in members}
 
-        if "council_slots" in existing_structure:
-            structure["council_slots"] = existing_structure["council_slots"]
+    if saved_deputies:
+        structure["deputies"] = [
+            {"nick": d.get("nick", ""), "description": d.get("description", "Зам. Главы")}
+            for d in saved_deputies
+            if d.get("nick") in active_nicks
+        ]
+        if not structure["deputies"]:
+            structure.pop("deputies", None)
+
+    if saved_council:
+        structure["council"] = [
+            {"nick": c.get("nick", ""), "description": c.get("description", "Совет ордена")}
+            for c in saved_council
+            if c.get("nick") in active_nicks
+        ]
+        if not structure["council"]:
+            structure.pop("council", None)
+
+    if saved_commander and saved_commander.get("nick") in active_nicks:
+        structure["commander"] = {
+            "nick": saved_commander["nick"],
+            "description": saved_commander.get("description", ""),
+        }
 
     other_count = len(
         [
@@ -153,6 +162,8 @@ def build_clan_structure_from_members(clan_id, existing_structure=None):
     )
     structure["has_members"] = other_count > 0
 
+    if existing_structure and "council_slots" in existing_structure:
+        structure["council_slots"] = existing_structure["council_slots"]
     if "council_slots" not in structure:
         structure["council_slots"] = DEFAULT_COUNCIL_SLOTS
 
