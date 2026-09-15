@@ -86,6 +86,40 @@ def _as_int(value, default=0):
         return default
 
 
+def _build_ui_structure_role_map(structure):
+    """Build a {lowercased nick -> role_label} map from clan_structure.
+
+    The result is served to the UI as the separate ``ui_structure_role``
+    attribute of a member. Structural roles are assigned in the
+    "Структура клана" editor and take priority over the imported
+    ``clan_role`` (which mirrors the in-game rank from dwar.ru).
+
+    Returned keys are lowercased because nicks are stored in mixed case.
+    """
+    if not structure:
+        return {}
+    mapping = {}
+    leader = structure.get("leader") or {}
+    if leader.get("nick"):
+        mapping[leader["nick"].strip().lower()] = (
+            leader.get("description") or "Глава Ордена"
+        ).strip()
+    for entry in structure.get("deputies") or []:
+        nick = (entry.get("nick") or "").strip()
+        if nick:
+            mapping[nick.lower()] = (entry.get("description") or "Зам. Главы").strip()
+    for entry in structure.get("council") or []:
+        nick = (entry.get("nick") or "").strip()
+        if nick:
+            mapping[nick.lower()] = (entry.get("description") or "Совет ордена").strip()
+    commander = structure.get("commander") or {}
+    if commander.get("nick"):
+        mapping[commander["nick"].strip().lower()] = (
+            commander.get("description") or "Воевода"
+        ).strip()
+    return mapping
+
+
 def build_clan_structure_from_members(clan_id, existing_structure=None):
     """Compute the canonical clan structure.
 
@@ -334,6 +368,14 @@ def update_clan_info(clan_id):
 @require_permission("clan_info", "read")
 def get_clan_members(clan_id):
     members = ClanMemberInfo.query.filter_by(clan_id=clan_id, is_deleted=False).all()
+
+    # ui_structure_role: role the user assigned in "Структура клана".
+    # It is a separate, app-side attribute (ui_ prefix) and takes priority
+    # over clan_role in the UI. None for members outside the structure.
+    cached = ClanInfo.query.filter_by(clan_id=clan_id).first()
+    structure = cached.get_clan_structure() if cached else None
+    ui_roles = _build_ui_structure_role_map(structure)
+
     return jsonify(
         [
             {
@@ -345,6 +387,7 @@ def get_clan_members(clan_id):
                 "profession": m.profession,
                 "profession_level": m.profession_level,
                 "clan_role": m.clan_role,
+                "ui_structure_role": ui_roles.get((m.nick or "").strip().lower()),
                 "join_date": m.join_date,
                 "trial_until": m.trial_until,
             }

@@ -8,6 +8,8 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { effectiveRole, splitRoles, hasStructuralRole } from '../../utils/clanRoleDisplay';
+import { RoleChips } from './RoleChips';
 import './ClanMembersTable.css';
 
 function parseDate(str: string): Date | null {
@@ -39,25 +41,6 @@ function getEffectiveJoinDate(member: ClanMemberData): string {
     }
   }
   return '';
-}
-
-function splitRoles(raw: string): string[] {
-  // dwar.ru sometimes stores multiple roles separated by "\n" in a single
-  // clan_role field (one member, several historical/active positions).
-  return (raw || '').split(/\r?\n/).map((r) => r.trim()).filter(Boolean);
-}
-
-function RoleChips({ raw }: { raw: string }) {
-  const roles = splitRoles(raw);
-  if (roles.length === 0) return null;
-  if (roles.length === 1) return <>{roles[0]}</>;
-  return (
-    <div className="cm-role-chips">
-      {roles.map((r, i) => (
-        <span key={`${r}-${i}`} className="cm-role-chip">{r}</span>
-      ))}
-    </div>
-  );
 }
 
 interface ClanMembersTableProps {
@@ -134,13 +117,13 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
 
   const uniqueRoles = useMemo(() => {
     const roles = new Set<string>();
-    for (const m of members) for (const r of splitRoles(m.clan_role)) roles.add(r);
+    for (const m of members) for (const r of splitRoles(effectiveRole(m))) roles.add(r);
     return Array.from(roles).sort();
   }, [members]);
 
   const filtered = useMemo(() => {
     let result = members.filter((m) => {
-      if (roleFilter && !splitRoles(m.clan_role).includes(roleFilter)) return false;
+      if (roleFilter && !splitRoles(effectiveRole(m)).includes(roleFilter)) return false;
       if (search && !m.nick.toLowerCase().includes(search.toLowerCase())) return false;
       if (levelFilter && m.level !== parseInt(levelFilter)) return false;
       return true;
@@ -148,6 +131,16 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
 
 if (sortConfig.key) {
       result = [...result].sort((a, b) => {
+        // The "clan role" column should sort by what the user configured
+        // in "Структура клана", falling back to the in-game role.
+        const aRole = effectiveRole(a) || a.clan_role;
+        const bRole = effectiveRole(b) || b.clan_role;
+        if (sortConfig.key === 'clan_role') {
+          if (aRole == null || bRole == null) return 0;
+          return sortConfig.dir === 'asc'
+            ? String(aRole).localeCompare(String(bRole))
+            : String(bRole).localeCompare(String(aRole));
+        }
         const aVal = a[sortConfig.key as keyof ClanMemberData];
         const bVal = b[sortConfig.key as keyof ClanMemberData];
         if (aVal == null || bVal == null) return 0;
@@ -438,7 +431,8 @@ const handleAnalyze = (nick: string) => {
             <th className="cm-sortable" onClick={() => handleSort('nick')}>
               Ник {sortConfig.key === 'nick' && (sortConfig.dir === 'asc' ? '↑' : '↓')}
             </th>
-            <th className="cm-sortable" onClick={() => handleSort('clan_role')}>
+            <th className="cm-sortable" onClick={() => handleSort('clan_role')}
+              title="Приоритет: звание из «Структуры клана» (выделено цветом), иначе — клановое звание из игры">
               Клановое звание {sortConfig.key === 'clan_role' && (sortConfig.dir === 'asc' ? '↑' : '↓')}
             </th>
             <th className="cm-sortable" onClick={() => handleSort('join_date')}>
@@ -462,7 +456,9 @@ const handleAnalyze = (nick: string) => {
                   </span>
                 )}
               </td>
-              <td className="cm-role"><RoleChips raw={m.clan_role} /></td>
+              <td className="cm-role">
+                <RoleChips raw={effectiveRole(m)} structural={hasStructuralRole(m)} />
+              </td>
               <td className="cm-join">
                 {(() => {
                   const showTrial = m.trial_until && !isTrialExpired(m.trial_until);

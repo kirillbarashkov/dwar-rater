@@ -196,6 +196,18 @@
   gap: 2px;
 }
 
+.cm-role-empty {
+  color: var(--text-tertiary, var(--text-secondary));
+  opacity: 0.5;
+}
+
+/* Role assigned in "Структура клана" (ui_structure_role) — takes priority
+   over the imported clan_role, so make it visually distinct. */
+.cm-role-chip-structural {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .cm-role-chip {
   display: inline-block;
   padding: 1px 6px;

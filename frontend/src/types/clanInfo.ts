@@ -49,6 +49,12 @@ export interface ClanMemberData {
   profession: string;
   profession_level: number;
   clan_role: string;
+  /**
+   * Role assigned in "Структура клана" (ui_ prefix = app-side, not from
+   * dwar.ru). null when the member is not part of the structure — in that
+   * case the UI falls back to clan_role.
+   */
+  ui_structure_role?: string | null;
   join_date: string;
   trial_until: string;
   is_deleted?: boolean;
