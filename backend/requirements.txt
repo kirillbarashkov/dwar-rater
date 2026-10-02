@@ -1,6 +1,12 @@
 flask>=3.0
 requests>=2.31
 flask-sqlalchemy>=3.1
+# SQLAlchemy 2.1 changed the default driver for postgresql:// to psycopg (v3),
+# which this project does not install — we use psycopg2-binary. Without the
+# upper bound CI resolves 2.1.x from PyPI and every DB test dies with
+# "ModuleNotFoundError: No module named 'psycopg'". Pin until the driver is
+# migrated deliberately.
+sqlalchemy>=2.0,<2.1
 gunicorn>=21.0
 flask-cors>=6.0.2
 pytest>=7.0
