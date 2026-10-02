@@ -408,7 +408,9 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     setIsImporting(true);
     setMessage(null);
     try {
-      const result = await importTreasuryOperations(clanId, autoFetchOps);
+      // replaceRange: re-importing the same period must replace it, not append
+      // to it (duplicate rows inflated the treasury before).
+      const result = await importTreasuryOperations(clanId, autoFetchOps, false, true);
       if (result.success) {
         setImportResult(result);
         setMessage({

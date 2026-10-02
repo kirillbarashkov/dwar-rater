@@ -94,9 +94,20 @@ export async function importTreasuryOperations(
     object_name: string;
     quantity: number;
   }>,
-  replace: boolean = false
+  replace: boolean = false,
+  /**
+   * Replace the day span covered by `operations` instead of appending to it.
+   * Used by the auto-collect flow so a repeated import of the same range cannot
+   * double the treasury; the paste-a-page flow keeps appending because a page
+   * covers only part of a day.
+   */
+  replaceRange: boolean = false
 ): Promise<{ success: boolean; imported: number; updated: number; skipped: number; message: string }> {
-  const response = await apiClient.post(`/api/clan/${clanId}/treasury/import`, { operations, replace });
+  const response = await apiClient.post(`/api/clan/${clanId}/treasury/import`, {
+    operations,
+    replace,
+    replace_range: replaceRange,
+  });
   return response.data;
 }
 

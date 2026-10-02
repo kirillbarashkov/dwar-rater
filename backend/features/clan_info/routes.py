@@ -1130,6 +1130,38 @@ def create_treasury_compensation(clan_id):
     ), 201
 
 
+def _replace_operations_in_range(clan_id, operations_data):
+    """Delete the clan's operations inside the day span of an incoming batch.
+
+    Idempotency without value-based dedupe: dwar legitimately repeats identical
+    rows (the same payment listed twice on a page), so "skip a row that already
+    exists" would silently drop real operations. The span is derived from the
+    batch itself, so re-importing the same range replaces it instead of
+    doubling it, while periods outside the batch are never touched.
+    """
+    day_keys = [_date_str_to_comparable(op.get("date") or "") for op in operations_data]
+    valid = sorted(key for key in day_keys if key)
+    if not valid:
+        return 0
+    low, high = valid[0], valid[-1]
+    existing = (
+        TreasuryOperation.query.filter_by(clan_id=clan_id)
+        .with_entities(TreasuryOperation.id, TreasuryOperation.date)
+        .all()
+    )
+    doomed = [
+        row_id
+        for row_id, date in existing
+        if low <= _date_str_to_comparable(date or "") <= high
+    ]
+    for start in range(0, len(doomed), 500):
+        chunk = doomed[start : start + 500]
+        TreasuryOperation.query.filter(TreasuryOperation.id.in_(chunk)).delete(
+            synchronize_session=False
+        )
+    return len(doomed)
+
+
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/import", methods=["POST"])
 @require_permission("clan_info", "admin")
 def import_treasury_operations(clan_id):
@@ -1144,19 +1176,47 @@ def import_treasury_operations(clan_id):
     data = request.json
     operations_data = data.get("operations", [])
     replace = data.get("replace", False)
+    replace_range = bool(data.get("replace_range", False))
 
     data_logger.info(
-        f"[TREASURY] Importing {len(operations_data)} operations for clan {clan_id} (replace={replace})"
+        f"[TREASURY] Importing {len(operations_data)} operations for clan {clan_id} "
+        f"(replace={replace}, replace_range={replace_range})"
     )
 
     if replace:
         TreasuryOperation.query.filter_by(clan_id=clan_id).delete()
         data_logger.info(f"[TREASURY] Cleared existing operations for clan {clan_id}")
+    elif replace_range:
+        # Re-importing the same range used to append and double the treasury.
+        if not operations_data:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "empty_import",
+                        "message": "Нечего импортировать: пустой набор операций, "
+                        "существующие данные не изменены.",
+                    }
+                ),
+                400,
+            )
+        removed = _replace_operations_in_range(clan_id, operations_data)
+        data_logger.info(
+            f"[TREASURY] Range replace for clan {clan_id}: removed {removed} "
+            "operations inside the imported span"
+        )
 
     imported = 0
     updated = 0
     skipped = 0
     skip_reasons = []
+
+    # With a full replace the stored rows were just cleared, so the batch is
+    # authoritative and every row is inserted as-is. The per-row dedupe below
+    # matches on (date, nick, type, object) and would collapse the identical
+    # rows dwar legitimately repeats (the same payment listed twice), silently
+    # dropping real operations.
+    authoritative = bool(replace or replace_range)
 
     data_logger.info(
         f"[TREASURY] Processing {len(operations_data)} operations from frontend"
@@ -1177,13 +1237,15 @@ def import_treasury_operations(clan_id):
                 skipped += 1
                 continue
 
-            existing = TreasuryOperation.query.filter_by(
-                clan_id=clan_id,
-                date=date,
-                nick=nick,
-                operation_type=operation_type,
-                object_name=object_name,
-            ).first()
+            existing = None
+            if not authoritative:
+                existing = TreasuryOperation.query.filter_by(
+                    clan_id=clan_id,
+                    date=date,
+                    nick=nick,
+                    operation_type=operation_type,
+                    object_name=object_name,
+                ).first()
 
             if existing:
                 if existing.quantity == quantity:
