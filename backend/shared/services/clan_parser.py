@@ -176,7 +176,13 @@ def parse_clan_treasury_operations(html):
     operations = []
     skipped_rows = []
 
-    rows = re.findall(r'<tr(?:\s+class="bg_l")?>(.*?)</tr>', html, re.DOTALL)
+    # dwar.ru renders the report as 20 operations per page in two alternating
+    # row flavours: <tr class="bg_l"> and <tr class=""> (older pages used a
+    # bare <tr>). Matching only "bg_l"/bare rows silently dropped every second
+    # operation — including tax payments — with no skip warning, because the
+    # regex never saw those rows at all. Match any row and let the validation
+    # below discard layout/chrome rows.
+    rows = re.findall(r"<tr[^>]*>(.*?)</tr>", html, re.DOTALL)
     data_logger.info(f"[PARSER] Found {len(rows)} table rows in HTML")
 
     for i, row_html in enumerate(rows):

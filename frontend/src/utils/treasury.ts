@@ -11,7 +11,10 @@ export interface ParsedTreasuryOperation {
 export function parseTreasuryOperations(html: string): ParsedTreasuryOperation[] {
   const operations: ParsedTreasuryOperation[] = [];
 
-  const rowRegex = /<tr\s*class="[^"]*">(.*?)<\/tr>/gs;
+  // dwar.ru alternates <tr class="bg_l"> and <tr class=""> (older pages used
+  // a bare <tr>). Requiring a class attribute dropped every bare row; mirror
+  // the backend parser and match any row, filtering chrome by content below.
+  const rowRegex = /<tr[^>]*>(.*?)<\/tr>/gs;
   const dateRegex = /(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})/;
   const nickRegex = /userToTag\(\s*'([^']+)'\s*\)/;
 
@@ -42,9 +45,13 @@ export function parseTreasuryOperations(html: string): ParsedTreasuryOperation[]
     if (!dateMatch) continue;
     const date = dateMatch[1];
 
+    // The nick normally comes from userToTag(...); fall back to the visible
+    // text of the cell so a differently rendered row is not dropped silently.
     const nickMatch = nickRegex.exec(cells[1]);
-    if (!nickMatch) continue;
-    const nick = nickMatch[1];
+    const nick = nickMatch
+      ? nickMatch[1]
+      : cleanHtml(cells[1]).replace(/\s*\[\d+\]\s*$/, '').trim();
+    if (!nick) continue;
 
     const operation_type = cleanHtml(cells[2]);
     const objectName = cleanHtml(cells[3]);
@@ -53,25 +60,24 @@ export function parseTreasuryOperations(html: string): ParsedTreasuryOperation[]
     const cell5Style = cellStyles[4] || '';
     const cleanCell5 = cleanHtml(cell5Content);
 
-    const isGreen = /color:\s*green/i.test(cell5Style);
-    const isRed = /color:\s*red/i.test(cell5Style);
+    // dwar puts the colour on an inner <span> inside the cell, not on the
+    // <td> itself — checking only the td's own style zeroed every amount.
+    const colourSource = `${cell5Content} ${cell5Style}`;
+    const hasColour = /color:\s*(green|red)/i.test(colourSource);
+    const isRed = /color:\s*red/i.test(colourSource);
 
-    let quantity = 0;
-    const direction = isGreen ? 1 : isRed ? -1 : 1;
-
-    if (isGreen || isRed) {
-      const numMatch = cleanCell5.match(/(-?\d+)/);
-      if (numMatch) {
-        quantity = Math.abs(parseInt(numMatch[1], 10));
-      }
-    }
+    const numMatch = cleanCell5.match(/(-?\d+)/);
+    const quantity = numMatch
+      ? (hasColour ? Math.abs(parseInt(numMatch[1], 10)) : parseInt(numMatch[1], 10)) *
+        (isRed ? -1 : 1)
+      : 0;
 
     operations.push({
       date,
       nick,
       operation_type,
       object_name: objectName,
-      quantity: quantity * direction,
+      quantity,
     });
   }
 
