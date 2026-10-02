@@ -30,6 +30,7 @@ from shared.models.clan_info import (
     ClanCookie,
     ClanMembershipEvent,
     ClanLevelChangeEvent,
+    TreasurySourceWindow,
 )
 from shared.rbac import require_permission, feature, Permission as PermDef
 
@@ -118,6 +119,76 @@ def _build_ui_structure_role_map(structure):
             commander.get("description") or "Воевода"
         ).strip()
     return mapping
+
+
+def _day_to_display(day_comparable):
+    """'YYYYMMDD…' -> 'DD.MM.YYYY' (best effort)."""
+    d = (day_comparable or "").strip()
+    if len(d) < 8 or not d[:8].isdigit():
+        return ""
+    return f"{d[6:8]}.{d[4:6]}.{d[0:4]}"
+
+
+def get_source_window(clan_id):
+    """Learned boundary of the treasury history dwar still serves."""
+    return TreasurySourceWindow.query.filter_by(clan_id=clan_id).first()
+
+
+def remember_source_window(clan_id, oldest_date, total_pages=0):
+    """Persist the oldest operation date the source actually returned.
+
+    dwar purges operations after roughly six months without saying so; the
+    app learns the boundary from real attempts (no probing) and only ever
+    moves it FORWARD, so a stale observation cannot un-freeze a period that
+    has already expired upstream.
+    """
+    if not oldest_date:
+        return None
+    new_day = _date_str_to_comparable(oldest_date)
+    if not new_day:
+        return None
+    row = TreasurySourceWindow.query.filter_by(clan_id=clan_id).first()
+    if row is None:
+        row = TreasurySourceWindow(
+            clan_id=clan_id, oldest_date=oldest_date, total_pages=total_pages or 0
+        )
+        db.session.add(row)
+    else:
+        current = _date_str_to_comparable(row.oldest_date)
+        if current and new_day <= current:
+            return row
+        row.oldest_date = oldest_date
+        if total_pages:
+            row.total_pages = total_pages
+    try:
+        db.session.commit()
+        data_logger.info(
+            f"[TREASURY] Source window for clan {clan_id}: data available from {oldest_date}"
+        )
+    except Exception:
+        db.session.rollback()
+        data_logger.warning("[TREASURY] Could not persist source window")
+    return row
+
+
+def _source_unavailable(boundary):
+    """Standard payload for a range that predates the source's history."""
+    tail = (
+        f" — доступны операции начиная с {boundary}."
+        if boundary
+        else "."
+    )
+    return (
+        {
+            "success": False,
+            "error": "range_unavailable",
+            "oldest_available_date": boundary or None,
+            "message": (
+                "В источнике (dwar) нет данных за этот период: он хранит только"
+                f" последние ~6 месяцев{tail}"
+            ),
+        }
+    )
 
 
 def build_clan_structure_from_members(clan_id, existing_structure=None):
@@ -1242,6 +1313,8 @@ def get_treasury_date_coverage(clan_id):
     earliest = min(all_dates) if all_dates else None
     latest = max(all_dates) if all_dates else None
 
+    window = get_source_window(clan_id)
+
     return jsonify(
         {
             "years": sorted_coverage,
@@ -1249,6 +1322,19 @@ def get_treasury_date_coverage(clan_id):
             "total_operations": total_ops,
             "earliest_date": earliest,
             "latest_date": latest,
+            # Boundary of the history dwar still serves. None until an import
+            # attempt has reached the end of the report (no probing).
+            "source_window": (
+                {
+                    "oldest_available_date": window.oldest_date,
+                    "total_pages": window.total_pages,
+                    "learned_at": (
+                        window.learned_at.isoformat() if window.learned_at else None
+                    ),
+                }
+                if window and window.oldest_date
+                else None
+            ),
         }
     )
 
@@ -1476,6 +1562,22 @@ def auto_fetch_treasury_json(clan_id):
     cutoff_comparable = _date_str_to_comparable(start_date)
     end_comparable = _date_str_to_comparable(end_date) if end_date else None
 
+    # Never walk past the learned boundary: the pages there are empty and the
+    # caller would get an unexplained "0 operations, success" result.
+    window = get_source_window(clan_id)
+    boundary = (window.oldest_date or "") if window else ""
+    boundary_day = _date_str_to_comparable(boundary)
+    range_trimmed = False
+    if boundary_day and cutoff_comparable and cutoff_comparable < boundary_day:
+        if end_comparable and end_comparable < boundary_day:
+            return jsonify(_source_unavailable(boundary))
+        cutoff_comparable = boundary_day
+        start_date = boundary
+        range_trimmed = True
+        data_logger.info(
+            f"[TREASURY] Fetch start trimmed to {boundary} (learned boundary)"
+        )
+
     data_logger.info(f"[TREASURY] Fetch loop: pages {loop_start} to {loop_end}")
 
     for page in range(loop_start, loop_end):
@@ -1535,7 +1637,16 @@ def auto_fetch_treasury_json(clan_id):
             "success": True,
             "operations": all_operations,
             "pages_fetched": pages_fetched,
-            "message": f"Собрано {len(all_operations)} операций со {pages_fetched} страниц",
+            "trimmed": range_trimmed,
+            "oldest_available_date": boundary or None,
+            "message": (
+                f"Собрано {len(all_operations)} операций со {pages_fetched} страниц"
+                + (
+                    f" (начало обрезано до {boundary}: более ранние данные в источнике удалены)"
+                    if range_trimmed and boundary
+                    else ""
+                )
+            ),
         }
     )
 
@@ -1661,6 +1772,26 @@ def estimate_treasury_pages(clan_id):
             key, value = part.split("=", 1)
             session.cookies.set(key.strip(), unquote(value.strip()))
 
+    # A range older than the learned boundary cannot be served: dwars report
+    # simply ends there. Answer plainly instead of returning "1 page" that
+    # later yields an empty, unexplained import.
+    requested_start_date = start_date
+    window = get_source_window(clan_id)
+    boundary = (window.oldest_date or "") if window else ""
+    boundary_day = _date_str_to_comparable(boundary)
+    requested_start_day = _date_str_to_comparable(start_date)
+    end_comparable_req = _date_str_to_comparable(end_date) if end_date else ""
+    trimmed = False
+
+    if boundary_day and requested_start_day and requested_start_day < boundary_day:
+        if end_comparable_req and end_comparable_req < boundary_day:
+            return jsonify(_source_unavailable(boundary))
+        start_date = boundary
+        trimmed = True
+        data_logger.info(
+            f"[TREASURY] Estimate start trimmed to {boundary} (learned boundary)"
+        )
+
     result = estimate_pages_in_range(session, start_date, end_date)
 
     if "error" in result:
@@ -1672,15 +1803,43 @@ def estimate_treasury_pages(clan_id):
             }
         )
 
+    # Learn / refresh the boundary from what the report actually contains.
+    sample_dates = result.get("sample_dates") or {}
+    report_oldest_day = (sample_dates.get("oldest_page_earliest") or "")[:8]
+    report_oldest_date = _day_to_display(report_oldest_day)
+    if report_oldest_date:
+        if not boundary_day or report_oldest_day > boundary_day:
+            remember_source_window(
+                clan_id, report_oldest_date, result.get("total_pages")
+            )
+            boundary, boundary_day = report_oldest_date, report_oldest_day
+        if requested_start_day and requested_start_day < report_oldest_day:
+            trimmed = True
+
+    estimated = result.get("estimated_pages", 0)
+    if estimated <= 0:
+        return jsonify(_source_unavailable(boundary))
+
     return jsonify(
         {
             "success": True,
             "start_page": result["start_page"],
             "end_page": result["end_page"],
-            "estimated_pages": result["estimated_pages"],
+            "estimated_pages": estimated,
             "total_pages": result["total_pages"],
-            "sample_dates": result["sample_dates"],
-            "message": f"~{result['estimated_pages']} страниц в диапазоне {start_date}–{end_date or 'сейчас'}",
+            "sample_dates": sample_dates,
+            "requested_start_date": requested_start_date,
+            "effective_start_date": start_date,
+            "trimmed": trimmed,
+            "oldest_available_date": boundary or None,
+            "message": (
+                f"~{estimated} страниц в диапазоне {start_date}–{end_date or 'сейчас'}"
+                + (
+                    f" (начало обрезано до {boundary}: более ранние данные в источнике удалены)"
+                    if trimmed and boundary
+                    else ""
+                )
+            ),
         }
     )
 

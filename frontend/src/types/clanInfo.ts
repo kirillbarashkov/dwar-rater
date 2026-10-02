@@ -76,6 +76,13 @@ export interface LeftMemberData {
   leave_reason: string;
 }
 
+/** Boundary of the treasury history dwar still serves (learned, not probed). */
+export interface SourceWindow {
+  oldest_available_date: string;
+  total_pages: number;
+  learned_at: string | null;
+}
+
 export interface DateCoverage {
   years: Record<string, {
     months: Record<string, {
@@ -88,6 +95,7 @@ export interface DateCoverage {
   total_operations: number;
   earliest_date: string | null;
   latest_date: string | null;
+  source_window?: SourceWindow | null;
 }
 
 export interface TreasuryOperationData {

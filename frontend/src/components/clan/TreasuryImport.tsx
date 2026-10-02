@@ -195,6 +195,10 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     end_page: number;
     total_pages: number;
     sample_dates: Record<string, string>;
+    trimmed?: boolean;
+    oldest_available_date?: string | null;
+    requested_start_date?: string;
+    effective_start_date?: string;
   } | null>(null);
   const [isEstimating, setIsEstimating] = useState(false);
   const pageEstimateRef = useRef<typeof pageEstimate>(null);
@@ -217,9 +221,23 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
 
   const startIso = displayToIso(selectedStartDate);
   const endIso = displayToIso(selectedEndDate);
+
+  // dwar purges treasury history after roughly six months. `sourceWindow` is
+  // the boundary the backend LEARNED from real import attempts; before it is
+  // known nothing is frozen (no probing, by design).
+  const sourceBoundaryDisplay = dateCoverage?.source_window?.oldest_available_date || null;
+  const sourceBoundaryIso = displayToIso(sourceBoundaryDisplay);
+  const isOutOfSource = (iso: string | null | undefined): boolean =>
+    !!sourceBoundaryIso && !!iso && iso < sourceBoundaryIso;
+  const sourceStaleHint = sourceBoundaryDisplay
+    ? `dwar хранит только последние ~6 месяцев: данные доступны начиная с ${sourceBoundaryDisplay}. Обновить более ранний период из игры нельзя — доступен только просмотр уже сохранённого.`
+    : 'dwar хранит только последние ~6 месяцев. Обновить этот период из игры нельзя — доступен только просмотр уже сохранённого.';
+
   const rangeError = startIso && endIso && startIso > endIso
     ? 'Дата «От» позже даты «До» — исправьте диапазон'
-    : '';
+    : isOutOfSource(startIso)
+      ? `Обновление из dwar доступно с ${sourceBoundaryDisplay}: за более ранние периоды данные в источнике удалены.`
+      : '';
 
   const applyRange = useCallback((start: string | null, end: string | null) => {
     setSelectedStartDate(start);
@@ -234,7 +252,17 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     else if (preset === 'today') applyRange(selectedStartDate, todayDisplay());
     else if (preset === '7d') applyRange(shiftDisplayDays(-6), todayDisplay());
     else if (preset === '30d') applyRange(shiftDisplayDays(-29), todayDisplay());
-    else if (preset === 'all') applyRange(earliest, latest);
+    else if (preset === 'all') {
+      // Never preselect a period the source can no longer serve. The boundary
+      // is read from dateCoverage (already a dependency) so the callback never
+      // closes over a value that changes on every render.
+      const boundary = dateCoverage?.source_window?.oldest_available_date || null;
+      const boundaryIso = displayToIso(boundary);
+      const earliestIso = displayToIso(earliest);
+      const firstAvailable =
+        boundaryIso && earliestIso && earliestIso < boundaryIso ? boundary : earliest;
+      applyRange(firstAvailable, latest);
+    }
     else if (preset === 'clear') applyRange(null, null);
   }, [applyRange, dateCoverage, selectedStartDate]);
 
@@ -342,7 +370,17 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
           end_page: data.end_page,
           total_pages: data.total_pages,
           sample_dates: data.sample_dates,
+          trimmed: data.trimmed,
+          oldest_available_date: data.oldest_available_date,
+          requested_start_date: data.requested_start_date,
+          effective_start_date: data.effective_start_date,
         });
+        if (data.trimmed && data.oldest_available_date) {
+          setMessage({
+            type: 'success',
+            text: `Начало обрезано до ${data.oldest_available_date}: более ранние данные удалены в источнике (dwar хранит ~6 месяцев).`,
+          });
+        }
       } else {
         setMessage({ type: 'error', text: data.message || data.error || 'Ошибка оценки' });
       }
@@ -644,6 +682,12 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                         <span>{dateCoverage.earliest_date} — {dateCoverage.latest_date}</span>
                       )}
                     </div>
+                    {sourceBoundaryDisplay && (
+                      <div className="coverage-source-window" title={sourceStaleHint}>
+                        Обновление из dwar доступно с <strong>{sourceBoundaryDisplay}</strong>.
+                        Более ранние периоды можно только просматривать.
+                      </div>
+                    )}
                     <div className="coverage-tree">
                       {Object.entries(dateCoverage.years).map(([year, yearData]) => {
                         const yearKey = year;
@@ -668,6 +712,8 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                                   const monthKey = `${yearKey}-${month}`;
                                   const isMonthExpanded = expandedMonths.has(monthKey);
                                   const monthName = MONTHS_RU[parseInt(month, 10)] || month;
+                                  const monthIsStale = !!sourceBoundaryIso
+                                    && `${yearKey}-${month}` < `${sourceBoundaryIso.slice(0, 4)}-${sourceBoundaryIso.slice(5, 7)}`;
                                   return (
                                     <div key={monthKey} className="coverage-month">
                                       <button
@@ -681,6 +727,11 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                                         <span className="coverage-toggle">{isMonthExpanded ? '▾' : '▸'}</span>
                                         <span>{monthName}</span>
                                         <span className="coverage-month-count">{monthData.total_ops} операций</span>
+                                        {monthIsStale && (
+                                          <span className="coverage-month-stale" title={sourceStaleHint}>
+                                            Удалено в источнике
+                                          </span>
+                                        )}
                                       </button>
                                       {isMonthExpanded && (
                                         <div className="coverage-days">
@@ -690,15 +741,21 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                                              const dateKey = `${dayStr}.${month}.${year}`;
                                              const isSelectedStart = selectedStartDate === dateKey;
                                              const isSelectedEnd = selectedEndDate === dateKey;
+                                             const dayStale = isOutOfSource(displayToIso(dateKey));
+                                             const dayTitle = dayStale
+                                               ? `${dateKey} — данные удалены в источнике, обновление невозможно`
+                                               : hasData
+                                                 ? `${dateKey} — ЛКМ: «От», ПКМ: «До»`
+                                                 : `${dateKey} — данных нет`;
                                              return (
                                                <div
                                                  key={day}
-                                                 className={`coverage-day ${hasData ? 'has-data' : ''} ${isSelectedStart ? 'selected-start' : ''} ${isSelectedEnd ? 'selected-end' : ''}`}
-                                                 title={hasData ? `${dateKey} — ЛКМ: «От», ПКМ: «До»` : `${dateKey} — данных нет`}
-                                                 onClick={() => hasData && applyRange(dateKey, selectedEndDate)}
+                                                 className={`coverage-day ${hasData ? 'has-data' : ''} ${dayStale ? 'stale-source' : ''} ${isSelectedStart ? 'selected-start' : ''} ${isSelectedEnd ? 'selected-end' : ''}`}
+                                                 title={dayTitle}
+                                                 onClick={() => hasData && !dayStale && applyRange(dateKey, selectedEndDate)}
                                                  onContextMenu={(e) => {
                                                    e.preventDefault();
-                                                   if (hasData) applyRange(selectedStartDate, dateKey);
+                                                   if (hasData && !dayStale) applyRange(selectedStartDate, dateKey);
                                                  }}
                                                >
                                                  {day}
@@ -725,6 +782,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                               className="coverage-range-input"
                               value={startIso}
                               max={endIso || undefined}
+                              min={sourceBoundaryIso || undefined}
                               onChange={(e) => applyRange(isoToDisplay(e.target.value) || null, selectedEndDate)}
                             />
                           </label>
@@ -795,6 +853,11 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                           <p className="estimate-summary">
                             Найдено <strong>~{pageEstimate.estimated_pages} страниц</strong> из {pageEstimate.total_pages} в выбранном диапазоне.
                           </p>
+                          {pageEstimate.trimmed && pageEstimate.oldest_available_date && (
+                            <p className="estimate-summary estimate-summary-warn">
+                              Начало обрезано до {pageEstimate.oldest_available_date}: более ранние периоды в источнике удалены.
+                            </p>
+                          )}
                           <div className="estimate-details">
                             <span>Страницы: {pageEstimate.start_page} → {pageEstimate.end_page}</span>
                           </div>

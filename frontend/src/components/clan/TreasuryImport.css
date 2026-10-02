@@ -1138,3 +1138,39 @@
   color: var(--red);
   font-size: 13px;
 }
+
+
+/* Источник (dwar) хранит только последние ~6 месяцев: периоды старше
+   выученной границы нельзя обновить, их можно только просматривать. */
+.coverage-source-window {
+  margin: 8px 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--warning, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.coverage-month-stale {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  cursor: help;
+}
+
+.coverage-day.stale-source {
+  opacity: 0.45;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.estimate-summary-warn {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}

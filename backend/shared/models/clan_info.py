@@ -120,6 +120,37 @@ class ClanCookie(db.Model):
         return f'<ClanCookie clan_id={self.clan_id} valid={self.is_valid}>'
 
 
+class TreasurySourceWindow(db.Model):
+    """Oldest treasury operation date dwar still serves for a clan.
+
+    dwar purges operations after roughly six months and never says so — the
+    report simply ends. The boundary is LEARNED from import attempts, never
+    probed: when the estimate walks to the end of the report while the
+    requested start date is still older, the oldest date actually seen is
+    stored here.
+
+    Consumers:
+      - the import UI tags periods older than this and freezes their
+        selection, so nobody waits for data that cannot arrive;
+      - the estimate / auto-fetch routes answer with an explicit error
+        instead of an empty but "successful" result.
+    """
+
+    __tablename__ = 'treasury_source_window'
+    id = db.Column(db.Integer, primary_key=True)
+    clan_id = db.Column(db.Integer, nullable=False, unique=True, index=True)
+    # DD.MM.YYYY of the oldest operation the source returned.
+    oldest_date = db.Column(db.String(20), default='')
+    # Total pages the report had when the boundary was learned.
+    total_pages = db.Column(db.Integer, default=0)
+    learned_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    def __repr__(self):
+        return f'<TreasurySourceWindow clan={self.clan_id} oldest={self.oldest_date}>'
+
+
 class ClanLevelChangeEvent(db.Model):
     __tablename__ = 'clan_level_change_events'
     id = db.Column(db.Integer, primary_key=True)
