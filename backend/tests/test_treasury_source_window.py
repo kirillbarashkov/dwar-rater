@@ -112,7 +112,27 @@ def test_estimate_trims_partially_available_range(app, client, admin_headers, mo
 def test_estimate_learns_boundary_from_saturating_run(app, client, admin_headers, monkeypatch):
     from features.clan_info import routes as routes
 
-    monkeypatch.setattr(routes, "estimate_pages_in_range", _saturating_estimate)
+    calls = []
+
+    def _fake(session, start, end, *a, **k):
+        calls.append(start)
+        if len(calls) == 1:
+            # First pass: the search saturates at the report's end and answers
+            # with a single page from another month ("1 страница").
+            return {
+                "start_page": 441,
+                "end_page": 441,
+                "estimated_pages": 1,
+                "total_pages": 442,
+                "sample_dates": {
+                    "page_0_latest": "20261002",
+                    "oldest_page_earliest": "202604050702",
+                },
+            }
+        # Re-run against the learned boundary must describe the real range.
+        return _saturating_estimate()
+
+    monkeypatch.setattr(routes, "estimate_pages_in_range", _fake)
 
     resp = client.post(
         f"/api/clan/{CLAN}/treasury/estimate",
@@ -123,6 +143,9 @@ def test_estimate_learns_boundary_from_saturating_run(app, client, admin_headers
     assert body["success"] is True, body
     assert body["trimmed"] is True
     assert body["oldest_available_date"] == BOUNDARY
+    # the bogus single-page answer must be replaced by the re-estimated range
+    assert body["estimated_pages"] == 442, body
+    assert len(calls) == 2 and calls[1] == BOUNDARY, calls
 
     with app.app_context():
         row = TreasurySourceWindow.query.filter_by(clan_id=CLAN).first()

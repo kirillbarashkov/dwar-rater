@@ -1807,14 +1807,32 @@ def estimate_treasury_pages(clan_id):
     sample_dates = result.get("sample_dates") or {}
     report_oldest_day = (sample_dates.get("oldest_page_earliest") or "")[:8]
     report_oldest_date = _day_to_display(report_oldest_day)
-    if report_oldest_date:
-        if not boundary_day or report_oldest_day > boundary_day:
-            remember_source_window(
-                clan_id, report_oldest_date, result.get("total_pages")
+    if report_oldest_date and (not boundary_day or report_oldest_day > boundary_day):
+        remember_source_window(clan_id, report_oldest_date, result.get("total_pages"))
+        boundary, boundary_day = report_oldest_date, report_oldest_day
+
+    # If the requested start predates the boundary just learned, the page range
+    # above describes a period the source no longer has. Redo the estimate
+    # against the boundary so the caller receives a range it can import —
+    # otherwise the answer is honest ("data starts later") but useless.
+    if boundary_day and requested_start_day and requested_start_day < boundary_day:
+        if end_comparable_req and end_comparable_req < boundary_day:
+            return jsonify(_source_unavailable(boundary))
+        trimmed = True
+        start_date = boundary
+        data_logger.info(
+            f"[TREASURY] Re-estimating from learned boundary {boundary}"
+        )
+        result = estimate_pages_in_range(session, start_date, end_date)
+        if "error" in result:
+            return jsonify(
+                {
+                    "success": False,
+                    "error": result["error"],
+                    "message": result.get("message", ""),
+                }
             )
-            boundary, boundary_day = report_oldest_date, report_oldest_day
-        if requested_start_day and requested_start_day < report_oldest_day:
-            trimmed = True
+        sample_dates = result.get("sample_dates") or {}
 
     estimated = result.get("estimated_pages", 0)
     if estimated <= 0:
