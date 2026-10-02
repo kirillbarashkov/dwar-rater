@@ -131,6 +131,18 @@ function buildCookieString(values: Record<string, string>): string {
     .join('; ');
 }
 
+/** Chronological order for the coverage tree.
+ *
+ * Months arrive as a JSON object keyed "01".."12". Flask serialises object
+ * keys sorted, so the payload is already ordered — but the browser re-orders
+ * integer-like keys ("10", "11", "12") ahead of "01".."09" while leaving the
+ * rest in insertion order, which rendered October above January. Never trust
+ * object key order; sort by number.
+ */
+function byNumericKey<T>(a: [string, T], b: [string, T]): number {
+  return Number(a[0]) - Number(b[0]);
+}
+
 function CookieField({
   field,
   value,
@@ -689,7 +701,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                       </div>
                     )}
                     <div className="coverage-tree">
-                      {Object.entries(dateCoverage.years).map(([year, yearData]) => {
+                      {Object.entries(dateCoverage.years).sort(byNumericKey).map(([year, yearData]) => {
                         const yearKey = year;
                         const isYearExpanded = expandedYears.has(yearKey);
                         return (
@@ -708,7 +720,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                             </button>
                             {isYearExpanded && (
                               <div className="coverage-months">
-                                {Object.entries(yearData.months).map(([month, monthData]) => {
+                                {Object.entries(yearData.months).sort(byNumericKey).map(([month, monthData]) => {
                                   const monthKey = `${yearKey}-${month}`;
                                   const isMonthExpanded = expandedMonths.has(monthKey);
                                   const monthName = MONTHS_RU[parseInt(month, 10)] || month;
