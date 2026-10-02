@@ -111,10 +111,16 @@ jobs:
             SOURCE="workflow input"
           else
             # The release level is agreed with the operator BEFORE the push and
-            # declared in the message of the LAST commit of the push:
-            # [bump:patch] / [bump:minor] / [bump:major]. The highest declared
-            # level wins; without any marker patch is assumed and warned about.
-            MSG=$(git log -1 --pretty=%B 2>/dev/null || true)
+            # declared in the SUBJECT (first line) of the LAST commit of the
+            # push: [bump:patch] / [bump:minor] / [bump:major]. The highest
+            # declared marker wins; without any marker patch is assumed and
+            # warned about.
+            #
+            # Subject only — on purpose: a commit body that documents the
+            # markers ("use [bump:minor] or [bump:major]") must not declare a
+            # level. Reading the whole body once shipped v2.0.0 for a push that
+            # declared [bump:patch].
+            MSG=$(git log -1 --pretty=%s 2>/dev/null || true)
             if grep -qiE '\[bump:patch\]' <<<"${MSG}"; then
               PART="patch"; SOURCE="commit marker [bump:patch]"
             fi
