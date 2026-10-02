@@ -1,8 +1,5 @@
-# v2.0.1
+# v2.0.2
 
 ## Исправления
-- fix(ui-delivery): stop browsers serving a stale index.html [bump:patch]
-
-## Прочее
-- ci(release): read the bump marker from the commit subject, not the body
+- fix(treasury): learn the source boundary only from a saturated search [bump:patch]
 
