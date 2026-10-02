@@ -273,9 +273,16 @@ def parse_clan_treasury_operations(html):
         f"[PARSER] Parsed {len(operations)} operations, skipped {len(skipped_rows)} rows"
     )
     if skipped_rows:
+        # Log every reason: the previous `skipped_rows[:10]` cut hid the 11th
+        # row's reason, which is exactly the one that matters when a page looks
+        # "clean" but lost data.
+        from collections import Counter as _Counter
+
+        reasons = _Counter(row.get("reason", "?") for row in skipped_rows)
         data_logger.warning(
-            f"[PARSER] Skipped {len(skipped_rows)} rows: {skipped_rows[:10]}"
+            f"[PARSER] Skipped {len(skipped_rows)} rows, reasons: {dict(reasons)}"
         )
+        data_logger.debug(f"[PARSER] Skipped row details: {skipped_rows}")
     return operations
 
 

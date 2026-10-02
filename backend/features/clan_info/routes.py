@@ -1310,8 +1310,13 @@ def get_treasury_date_coverage(clan_id):
             "total_ops": year_data["total_ops"],
         }
 
-    earliest = min(all_dates) if all_dates else None
-    latest = max(all_dates) if all_dates else None
+    # 'DD.MM.YYYY' strings do not sort chronologically (min() picked a
+    # January date as "earliest" while December was reported as "latest").
+    if all_dates:
+        ordered_dates = sorted(all_dates, key=_date_str_to_comparable)
+        earliest, latest = ordered_dates[0], ordered_dates[-1]
+    else:
+        earliest = latest = None
 
     window = get_source_window(clan_id)
 
@@ -1580,6 +1585,12 @@ def auto_fetch_treasury_json(clan_id):
 
     data_logger.info(f"[TREASURY] Fetch loop: pages {loop_start} to {loop_end}")
 
+    # A page that parses to zero operations used to end the walk silently: the
+    # caller got success:true, a short list and no explanation. Record WHY the
+    # walk stopped and say it out loud in the response.
+    empty_page = None
+    tiny_answer_page = None
+
     for page in range(loop_start, loop_end):
         try:
             html, session = fetch_clan_treasury_report(session=session, page=page)
@@ -1599,8 +1610,22 @@ def auto_fetch_treasury_json(clan_id):
                 }
             )
 
+        # A real report page is ~40-95 KB; a stub means the source answered
+        # with something that is not a report (dead session, maintenance).
+        if len(html) < 1000:
+            tiny_answer_page = page
+            data_logger.warning(
+                f"[TREASURY] Page {page}: suspiciously small answer "
+                f"({len(html)} chars), stopping"
+            )
+            break
+
         page_ops = parse_clan_treasury_operations(html)
         if not page_ops:
+            empty_page = page
+            data_logger.warning(
+                f"[TREASURY] Page {page}: no operations parsed, stopping"
+            )
             break
 
         latest_on_page = max(
@@ -1632,21 +1657,44 @@ def auto_fetch_treasury_json(clan_id):
         all_operations.extend(filtered)
         pages_fetched += 1
 
+    # A page short of the last requested one means the walk was cut short —
+    # the report simply ending is the only harmless case.
+    stopped_early = False
+    warning = None
+    if tiny_answer_page is not None:
+        stopped_early = True
+        warning = (
+            f"Источник вернул пустой ответ на странице {tiny_answer_page} — сбор прерван, "
+            "данные могут быть неполными. Повторите сбор."
+        )
+    elif empty_page is not None and empty_page < loop_end - 1:
+        stopped_early = True
+        warning = (
+            f"Страница {empty_page} не содержит операций — сбор прерван раньше конца "
+            "диапазона, данные могут быть неполными. Повторите сбор."
+        )
+
+    message = (
+        f"Собрано {len(all_operations)} операций со {pages_fetched} страниц"
+        + (
+            f" (начало обрезано до {boundary}: более ранние данные в источнике удалены)"
+            if range_trimmed and boundary
+            else ""
+        )
+    )
+    if warning:
+        message = f"{message}. {warning}"
+
     return jsonify(
         {
             "success": True,
             "operations": all_operations,
             "pages_fetched": pages_fetched,
             "trimmed": range_trimmed,
+            "stopped_early": stopped_early,
+            "warning": warning,
             "oldest_available_date": boundary or None,
-            "message": (
-                f"Собрано {len(all_operations)} операций со {pages_fetched} страниц"
-                + (
-                    f" (начало обрезано до {boundary}: более ранние данные в источнике удалены)"
-                    if range_trimmed and boundary
-                    else ""
-                )
-            ),
+            "message": message,
         }
     )
 
