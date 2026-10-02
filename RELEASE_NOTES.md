@@ -1,5 +1,5 @@
-# v2.0.2
+# v2.0.3
 
 ## Исправления
-- fix(treasury): learn the source boundary only from a saturated search [bump:patch]
+- fix(treasury): make the import idempotent without dropping real rows [bump:patch]
 
