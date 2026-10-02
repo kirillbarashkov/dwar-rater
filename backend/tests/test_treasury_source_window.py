@@ -103,7 +103,11 @@ def test_estimate_trims_partially_available_range(app, client, admin_headers, mo
     )
     body = resp.get_json()
     assert body["success"] is True, body
-    assert seen and seen[0][0] == BOUNDARY, seen
+    # The request is older than the stored boundary, so the source is probed
+    # with the ORIGINAL start first (a saturated answer may correct a boundary
+    # that is too new) and the range is trimmed only afterwards.
+    assert seen and seen[0][0] == "01.01.2026", seen
+    assert seen[-1][0] == BOUNDARY, seen
     assert body["trimmed"] is True
     assert body["requested_start_date"] == "01.01.2026"
     assert body["effective_start_date"] == BOUNDARY
@@ -198,16 +202,19 @@ def test_fetch_refuses_range_older_than_window_without_touching_dwar(
     assert body["oldest_available_date"] == BOUNDARY
 
 
-def test_boundary_only_moves_forward(app):
+def test_boundary_storage_is_last_write_wins(app):
+    """The setter writes through: the saturation guard lives in the caller.
+
+    Forward-only storage made a wrong (too-new) boundary permanent, freezing
+    every older period, so correction has to be possible.
+    """
     from features.clan_info import routes as routes
 
     with app.app_context():
+        routes.remember_source_window(CLAN, "30.09.2026", 442)
         routes.remember_source_window(CLAN, BOUNDARY, 442)
-        # An older observation (e.g. a stale request) must not un-freeze April.
-        routes.remember_source_window(CLAN, "01.01.2026", 900)
         row = TreasurySourceWindow.query.filter_by(clan_id=CLAN).first()
         assert row.oldest_date == BOUNDARY
-        # A newer boundary (dwar purged further) is accepted.
         routes.remember_source_window(CLAN, "01.05.2026", 500)
         db.session.refresh(row)
         assert row.oldest_date == "01.05.2026"
@@ -226,3 +233,59 @@ def test_date_coverage_exposes_source_window(app, client, admin_headers):
     assert body["source_window"] is not None, body
     assert body["source_window"]["oldest_available_date"] == BOUNDARY
     assert "learned_at" in body["source_window"]
+
+
+def test_narrow_recent_range_does_not_learn_a_boundary(app, client, admin_headers, monkeypatch):
+    """A single-day estimate for a recent date must not move the boundary.
+
+    Regression: `oldest_page_earliest` is the oldest op in the *requested*
+    range, so learning it made the window jump to 30.09.2026 and refuse every
+    older period.
+    """
+    from features.clan_info import routes as routes
+
+    def _recent(session, start, end, *a, **k):
+        return {
+            "start_page": 48,
+            "end_page": 51,  # not the report's last page (441)
+            "estimated_pages": 4,
+            "total_pages": 442,
+            "sample_dates": {
+                "page_0_latest": "20261002",
+                "oldest_page_earliest": "202609082047",
+            },
+        }
+
+    monkeypatch.setattr(routes, "estimate_pages_in_range", _recent)
+
+    resp = client.post(
+        f"/api/clan/{CLAN}/treasury/estimate",
+        headers=admin_headers,
+        json={"start_date": "09.09.2026", "end_date": "09.09.2026"},
+    )
+    assert resp.status_code == 200
+    with app.app_context():
+        assert TreasurySourceWindow.query.filter_by(clan_id=CLAN).first() is None
+
+
+def test_saturated_run_corrects_a_boundary_that_is_too_new(app, client, admin_headers, monkeypatch):
+    """A saturated run reports the truth, so it may move the boundary back."""
+    from features.clan_info import routes as routes
+
+    with app.app_context():
+        db.session.add(
+            TreasurySourceWindow(clan_id=CLAN, oldest_date="30.09.2026", total_pages=442)
+        )
+        db.session.commit()
+
+    monkeypatch.setattr(routes, "estimate_pages_in_range", _saturating_estimate)
+
+    resp = client.post(
+        f"/api/clan/{CLAN}/treasury/estimate",
+        headers=admin_headers,
+        json={"start_date": "01.01.2025", "end_date": "31.10.2026"},
+    )
+    assert resp.status_code == 200
+    with app.app_context():
+        row = TreasurySourceWindow.query.filter_by(clan_id=CLAN).first()
+        assert row is not None and row.oldest_date == BOUNDARY

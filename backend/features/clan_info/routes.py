@@ -137,10 +137,15 @@ def get_source_window(clan_id):
 def remember_source_window(clan_id, oldest_date, total_pages=0):
     """Persist the oldest operation date the source actually returned.
 
-    dwar purges operations after roughly six months without saying so; the
-    app learns the boundary from real attempts (no probing) and only ever
-    moves it FORWARD, so a stale observation cannot un-freeze a period that
-    has already expired upstream.
+    dwar purges operations after roughly six months without saying so; the app
+    learns the boundary from real attempts (no probing). Only SATURATED
+    observations reach here — the caller checks that the request was older than
+    everything the report holds — so the value is the true end of the history
+    and is written through in either direction.
+
+    It must be able to move back: a too-new boundary (learned by a bug, as
+    happened with single-day estimates) otherwise froze every older period for
+    good, because the boundary is what the UI freezes periods against.
     """
     if not oldest_date:
         return None
@@ -154,8 +159,7 @@ def remember_source_window(clan_id, oldest_date, total_pages=0):
         )
         db.session.add(row)
     else:
-        current = _date_str_to_comparable(row.oldest_date)
-        if current and new_day <= current:
+        if _date_str_to_comparable(row.oldest_date) == new_day and not total_pages:
             return row
         row.oldest_date = oldest_date
         if total_pages:
@@ -1833,11 +1837,17 @@ def estimate_treasury_pages(clan_id):
 
     if boundary_day and requested_start_day and requested_start_day < boundary_day:
         if end_comparable_req and end_comparable_req < boundary_day:
+            # Entirely older than the learned window: answer without bothering
+            # the source.
             return jsonify(_source_unavailable(boundary))
-        start_date = boundary
-        trimmed = True
+        # Partially older than the boundary. The boundary is LEARNED state and
+        # can be wrong (a too-new value once froze every older period), so ask
+        # the source with the ORIGINAL start first: a saturated answer reports
+        # the true end of the history and corrects the boundary below, and only
+        # then is the start trimmed.
         data_logger.info(
-            f"[TREASURY] Estimate start trimmed to {boundary} (learned boundary)"
+            f"[TREASURY] Requested start {start_date} predates boundary {boundary}: "
+            "probing the source before trimming"
         )
 
     result = estimate_pages_in_range(session, start_date, end_date)
@@ -1851,11 +1861,30 @@ def estimate_treasury_pages(clan_id):
             }
         )
 
-    # Learn / refresh the boundary from what the report actually contains.
+    # Learn / refresh the boundary from what the report actually contains —
+    # but ONLY from a saturated search. `oldest_page_earliest` is the oldest
+    # operation *inside the requested range*; for a narrow recent range that is
+    # simply the range's own start, and learning it froze the window at
+    # 30.09.2026 after single-day estimates (the boundary only moved forward,
+    # so every older period became un-importable).
+    #
+    # Saturated means: the caller asked for something older than everything the
+    # report holds (requested start < the oldest date found) AND the binary
+    # search parked on the report's last page. Such a run reports the true end
+    # of the history, so it may also correct a boundary that is too new.
     sample_dates = result.get("sample_dates") or {}
     report_oldest_day = (sample_dates.get("oldest_page_earliest") or "")[:8]
     report_oldest_date = _day_to_display(report_oldest_day)
-    if report_oldest_date and (not boundary_day or report_oldest_day > boundary_day):
+    total_pages = result.get("total_pages") or 0
+    last_page = (total_pages - 1) if total_pages else None
+    saturated = (
+        bool(report_oldest_day)
+        and bool(requested_start_day)
+        and requested_start_day < report_oldest_day
+        and last_page is not None
+        and result.get("end_page") == last_page
+    )
+    if saturated and report_oldest_day != boundary_day:
         remember_source_window(clan_id, report_oldest_date, result.get("total_pages"))
         boundary, boundary_day = report_oldest_date, report_oldest_day
 
