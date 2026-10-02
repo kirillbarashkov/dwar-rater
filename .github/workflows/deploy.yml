@@ -83,22 +83,66 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check the release counter is in sync
+        run: |
+          CUR=$(tr -d '[:space:]' < VERSION)
+          LATEST=$(git ls-remote --tags --refs origin 'refs/tags/v*' \
+            | sed 's#.*refs/tags/v##' | sort -V | tail -1)
+          echo "VERSION=${CUR} | latest released tag: v${LATEST:-none}"
+          if [ -z "${LATEST}" ]; then
+            echo "No release tags yet, nothing to compare."
+            exit 0
+          fi
+          NEWEST=$(printf '%s\n%s\n' "${CUR}" "${LATEST}" | sort -V | tail -1)
+          if [ "${NEWEST}" != "${CUR}" ]; then
+            echo "::error::VERSION (${CUR}) is older than the latest released tag (v${LATEST})."
+            echo "::error::The release step is idempotent: an existing tag is skipped silently, so this run would freeze the release counter at v${NEWEST} forever."
+            echo "::error::Fix: pull the release commit (git pull --rebase origin main) so VERSION matches v${LATEST}, or bring VERSION (and frontend/package.json) up to ${LATEST} by hand, then push again."
+            exit 1
+          fi
+
       - name: Determine bump part
         id: bump
         run: |
           PART="patch"
+          SOURCE="default (patch)"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             PART="${{ github.event.inputs.bump_part }}"
+            SOURCE="workflow input"
           else
+            # The release level is agreed with the operator BEFORE the push and
+            # declared in the message of the LAST commit of the push:
+            # [bump:patch] / [bump:minor] / [bump:major]. The highest declared
+            # level wins; without any marker patch is assumed and warned about.
+            MSG=$(git log -1 --pretty=%B 2>/dev/null || true)
+            if grep -qiE '\[bump:patch\]' <<<"${MSG}"; then
+              PART="patch"; SOURCE="commit marker [bump:patch]"
+            fi
+            if grep -qiE '\[bump:minor\]' <<<"${MSG}"; then
+              PART="minor"; SOURCE="commit marker [bump:minor]"
+            fi
+            if grep -qiE '\[bump:major\]' <<<"${MSG}"; then
+              PART="major"; SOURCE="commit marker [bump:major]"
+            fi
             # PR-label driven: bump:major / bump:minor on the merged PR containing this sha
             LABELS=$(curl -sf -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Accept: application/vnd.github.groot-preview+json" \
               "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
               | jq -r '.[0].labels[].name' 2>/dev/null || true)
-            if echo "$LABELS" | grep -qx 'bump:major'; then PART="major"; fi
-            if echo "$LABELS" | grep -qx 'bump:minor'; then PART="minor"; fi
+            if echo "$LABELS" | grep -qx 'bump:major'; then PART="major"; SOURCE="PR label bump:major"; fi
+            if echo "$LABELS" | grep -qx 'bump:minor'; then PART="minor"; SOURCE="PR label bump:minor"; fi
           fi
           echo "part=$PART" >> "$GITHUB_OUTPUT"
+          echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
+          echo "Release level: $PART ($SOURCE)"
+          {
+            echo "### Release level: \`$PART\`"
+            echo ""
+            echo "Chosen by: $SOURCE"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${PART}" = "patch" ] && [ "${SOURCE}" = "default (patch)" ]; then
+            echo "::warning::No release level given (no [bump:minor]/[bump:major] marker, no PR label) — assuming patch. Agree the level with the operator before pushing."
+          fi
 
       - name: Compute release version
         id: ver
