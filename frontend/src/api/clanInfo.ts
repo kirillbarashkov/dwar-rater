@@ -6,8 +6,9 @@ import type {
   LeftMemberData,
   MembershipEvent,
   TaxCarryoverData,
-  TaxCarryoverMonth,
-  TreasuryJournalResponse,
+    TaxCarryoverMonth,
+    TaxLedgerResponse,
+    TreasuryJournalResponse,
 } from '../types/clanInfo';
 
 export async function getClanInfo(clanId: number): Promise<ClanInfoData> {
@@ -319,6 +320,19 @@ export async function getTaxCarryovers(
   const response = await apiClient.get(`/api/clan/${clanId}/tax-carryover`, {
     params: { month, year },
   });
+  return response.data;
+}
+
+export async function getTaxLedger(
+  clanId: number,
+  params: {
+    from_month: number;
+    from_year: number;
+    to_month: number;
+    to_year: number;
+  }
+): Promise<TaxLedgerResponse> {
+  const response = await apiClient.get(`/api/clan/${clanId}/tax-ledger`, { params });
   return response.data;
 }
 

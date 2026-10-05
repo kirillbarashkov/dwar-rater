@@ -434,11 +434,12 @@ def compute_member_ledger(
             },
         )
         bucket["level"] = cell["level"] or bucket["level"]
-        bucket["months"].append(cell)
         if index < start_index:
-            # Lookback months feed the chain only; they are not part of the window.
+            # Lookback months feed the chain only; they are not part of the window
+            # and must not show up in the per-month breakdown.
             bucket["carried_out_final"] = cell["carried_out"]
             continue
+        bucket["months"].append(_window_cell(cell))
         bucket["norm_total"] += cell["norm"]
         bucket["paid_total"] += cell["paid"]
         bucket["compensation_total"] += cell["compensation"]
@@ -461,7 +462,27 @@ def compute_member_ledger(
     return {"rows": rows, "totals": _ledger_totals(rows)}
 
 
-def _ledger_totals(rows: Sequence[Mapping[str, Any]]) -> list:
+def _window_cell(cell: Mapping[str, Any]) -> dict:
+    """A month of the window, shaped for the UI.
+
+    Projects only the public fields (the chain cells also carry internals such as
+    the review decision) and adds the month's own debt, computed with the same
+    rule the row total uses: what the norm was not covered by.
+    """
+    covered = cell["paid"] + cell["compensation"] + cell["carried_in"]
+    return {
+        "month": cell["month"],
+        "year": cell["year"],
+        "norm": cell["norm"],
+        "paid": cell["paid"],
+        "compensation": cell["compensation"],
+        "carried_in": cell["carried_in"],
+        "carried_out": cell["carried_out"],
+        "debt": max(0, cell["norm"] - covered),
+    }
+
+
+def _ledger_totals(rows: Sequence[Mapping[str, Any]]) -> dict:
     keys = (
         "norm_total",
         "paid_total",
@@ -471,4 +492,4 @@ def _ledger_totals(rows: Sequence[Mapping[str, Any]]) -> list:
         "debt",
         "balance",
     )
-    return [{key: sum(_as_int(row.get(key)) for row in rows) for key in keys}]
+    return {key: sum(_as_int(row.get(key)) for row in rows) for key in keys}

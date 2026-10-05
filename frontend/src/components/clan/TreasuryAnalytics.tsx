@@ -4,6 +4,7 @@ import type { TreasuryOperationData, ClanMemberData, ReasonCode } from '../../ty
 import { usePermission } from '../../hooks/useAuth';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { TaxAnalytics } from './TaxAnalytics';
+import { TaxLedger } from './TaxLedger';
 import { TalentAnalytics } from './TalentAnalytics';
 import { MiscAnalytics } from './MiscAnalytics';
 import { TreasuryJournal } from './TreasuryJournal';
@@ -13,10 +14,11 @@ interface TreasuryAnalyticsProps {
   clanId: number;
 }
 
-type TabType = 'tax' | 'talent' | 'misc' | 'journal';
+type TabType = 'tax' | 'ledger' | 'talent' | 'misc' | 'journal';
 
 const TABS: { key: TabType; label: string }[] = [
   { key: 'tax', label: 'Налоги' },
+  { key: 'ledger', label: 'Сальдо' },
   { key: 'talent', label: 'Ресурсы талантов' },
   { key: 'misc', label: 'Прочее' },
   { key: 'journal', label: 'Журнал' },
@@ -96,6 +98,7 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
       </nav>
 
       <div className="ta-tab-content">
+        {activeTab === 'ledger' && <TaxLedger clanId={clanId} />}
         {activeTab === 'tax' && (
           <TaxAnalytics
             operations={operations}

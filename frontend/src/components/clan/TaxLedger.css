@@ -1,0 +1,209 @@
+/* Лицевой счёт участников.
+   Declarations mirror the .tc- and .tax- patterns used in this tab verbatim
+   (same radius, borders, badge shapes, button sizes) — copy, don't invent. */
+
+.tl-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-left: 3px solid var(--border);
+}
+
+.tl-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.tl-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+}
+
+.tl-muted {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.tl-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tl-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tl-select,
+.tl-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.tl-input {
+  width: 68px;
+}
+
+.tl-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.tl-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.tl-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tl-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.tl-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius);
+  color: #ef4444;
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.tl-empty {
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 14px 4px;
+}
+
+.tl-table-wrap {
+  overflow-x: auto;
+}
+
+.tl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.tl-table th,
+.tl-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.tl-table th {
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tl-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-row {
+  cursor: pointer;
+}
+
+.tl-row:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.03));
+}
+
+.tl-nick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.tl-caret {
+  color: var(--text-secondary);
+  font-size: 10px;
+  width: 10px;
+}
+
+.tl-credit {
+  color: #22c55e;
+}
+
+.tl-debt {
+  color: #ef4444;
+}
+
+.tl-balance {
+  font-weight: 600;
+}
+
+.tl-totals td {
+  border-top: 2px solid var(--border);
+  border-bottom: none;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tl-months-row > td {
+  background: var(--bg-tertiary, rgba(255, 255, 255, 0.02));
+  padding: 8px 16px;
+}
+
+.tl-months {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.tl-months th,
+.tl-months td {
+  padding: 3px 8px;
+  color: var(--text-secondary);
+  border-bottom: 1px dashed var(--border);
+}
+
+.tl-months th {
+  font-weight: 500;
+}
+
+.tl-note {
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin: 10px 0 0;
+  line-height: 1.5;
+}

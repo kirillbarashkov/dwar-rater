@@ -179,6 +179,59 @@ export interface TaxCarryoverMonth {
   pending_total: number;
 }
 
+/** One month of a member's account — a cell of the engine's month chain. */
+export interface TaxLedgerMonth {
+  month: number;
+  year: number;
+  norm: number;
+  paid: number;
+  compensation: number;
+  carried_in: number;
+  carried_out: number;
+  debt: number;
+}
+
+/**
+ * Лицевой счёт участника: the member's months plus totals over the window.
+ * Computed from the same chain as the carry-over proposals, so `carried_out_final`
+ * is exactly what the engine proposes to carry out of the window's last month.
+ */
+export interface TaxLedgerRow {
+  nick: string;
+  level: number;
+  months: TaxLedgerMonth[];
+  norm_total: number;
+  paid_total: number;
+  compensation_total: number;
+  carried_in_total: number;
+  carried_out_final: number;
+  debt: number;
+  balance: number;
+}
+
+export interface TaxLedgerTotals {
+  norm_total: number;
+  paid_total: number;
+  compensation_total: number;
+  carried_in_total: number;
+  carried_out_final: number;
+  debt: number;
+  balance: number;
+}
+
+export interface TaxLedgerResponse {
+  clan_id: number;
+  from_month: number;
+  from_year: number;
+  to_month: number;
+  to_year: number;
+  is_closed: boolean;
+  rows: TaxLedgerRow[];
+  totals: TaxLedgerTotals;
+  /** `no_operations` when the clan has nothing to show inside the window. */
+  reason?: string;
+}
+
 /** Fields the treasury journal stores in an audit entry's old/new payload. */
 export interface JournalValue {
   nick?: string;

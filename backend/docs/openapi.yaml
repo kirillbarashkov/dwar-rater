@@ -1434,6 +1434,103 @@ paths:
         "409":
           description: The operation changed after this correction
 
+  /api/clan/{clan_id}/tax-ledger:
+    get:
+      summary: Member ledger (лицевой счёт) over a period
+      description: >-
+        Per-member account for a window: norm charged, tax actually paid,
+        «зачёт» waivers, the credit carried in from the previous month, the
+        credit carried out of the window and the outstanding debt, plus a
+        per-month breakdown. Computed from the same month chain as the
+        carry-over proposals, so a member's carried credit always matches the
+        amount the engine proposes for that month. Defaults to January of the
+        current year through the current month.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: from_month
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: from_year
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: to_month
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: to_year
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Member ledger for the window
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clan_id:
+                    type: integer
+                  from_month:
+                    type: integer
+                  from_year:
+                    type: integer
+                  to_month:
+                    type: integer
+                  to_year:
+                    type: integer
+                  is_closed:
+                    type: boolean
+                  reason:
+                    type: string
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        nick:
+                          type: string
+                        level:
+                          type: integer
+                        months:
+                          type: array
+                          items:
+                            type: object
+                        norm_total:
+                          type: integer
+                        paid_total:
+                          type: integer
+                        compensation_total:
+                          type: integer
+                        carried_in_total:
+                          type: integer
+                        carried_out_final:
+                          type: integer
+                        debt:
+                          type: integer
+                        balance:
+                          type: integer
+                  totals:
+                    type: object
+        "400":
+          description: Invalid month/year or the period start is after its end
+
   /api/clan/{clan_id}/tax-carryover:
     get:
       summary: Tax overpayment carry-overs of a month

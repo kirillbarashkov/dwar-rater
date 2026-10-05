@@ -39,6 +39,7 @@ from shared.services.tax_engine import (
     STATUS_CONFIRMED,
     STATUS_PENDING,
     compute_carryovers,
+    compute_member_ledger,
     is_month_closed,
     prev_ym,
 )
@@ -1311,6 +1312,61 @@ def _compute_tax_carryovers(clan_id, month, year, today=None):
         year,
         today=today,
     )
+
+
+def _compute_tax_ledger(clan_id, from_month, from_year, to_month, to_year, today=None):
+    operations, members, level_events = _tax_engine_inputs(clan_id)
+    return compute_member_ledger(
+        operations,
+        members,
+        level_events,
+        _tax_carryover_decisions(clan_id),
+        from_month,
+        from_year,
+        to_month,
+        to_year,
+        today=today,
+    )
+
+
+@clan_info_bp.route("/api/clan/<int:clan_id>/tax-ledger", methods=["GET"])
+@require_permission("clan_info", "read")
+def get_tax_ledger(clan_id):
+    """Лицевой счёт: per-member account over a window, plus the window totals.
+
+    A read-only view over the SAME chain the carry-over proposals use, so the
+    credit shown for a member is exactly what the engine proposes for that
+    month — the two screens can never disagree. Defaults to the current year.
+    """
+    today = date.today()
+    to_month = _as_int(request.args.get("to_month"), today.month)
+    to_year = _as_int(request.args.get("to_year"), today.year)
+    from_month = _as_int(request.args.get("from_month"), 1)
+    from_year = _as_int(request.args.get("from_year"), to_year)
+    if (
+        not (1 <= from_month <= 12)
+        or not (1 <= to_month <= 12)
+        or from_year < 2000
+        or to_year < 2000
+    ):
+        return jsonify({"error": "Некорректный месяц/год"}), 400
+    if (from_year, from_month) > (to_year, to_month):
+        return jsonify({"error": "Начало периода позже его конца"}), 400
+
+    result = _compute_tax_ledger(
+        clan_id, from_month, from_year, to_month, to_year, today
+    )
+    result.update(
+        {
+            "clan_id": clan_id,
+            "from_month": from_month,
+            "from_year": from_year,
+            "to_month": to_month,
+            "to_year": to_year,
+            "is_closed": is_month_closed(to_month, to_year, today),
+        }
+    )
+    return jsonify(result)
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/tax-carryover", methods=["GET"])
