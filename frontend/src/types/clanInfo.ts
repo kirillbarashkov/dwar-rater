@@ -178,3 +178,56 @@ export interface TaxCarryoverMonth {
   pending_count: number;
   pending_total: number;
 }
+
+/** Fields the treasury journal stores in an audit entry's old/new payload. */
+export interface JournalValue {
+  nick?: string;
+  date?: string;
+  operation_type?: string;
+  object_name?: string;
+  quantity?: number;
+  compensation_flag?: boolean;
+  compensation_comment?: string;
+  reason?: string;
+  status?: string;
+  amount?: number;
+  month?: number;
+  year?: number;
+  norm_amount?: number;
+  months?: number[];
+  count?: number;
+  imported?: number;
+  updated?: number;
+  skipped?: number;
+  filename?: string;
+  value?: unknown;
+  [key: string]: unknown;
+}
+
+export interface TreasuryJournalEntry {
+  id: number;
+  action: string;
+  username: string;
+  target_type: string | null;
+  target_id: number | null;
+  created_at: string | null;
+  reason: string | null;
+  nick: string | null;
+  old: JournalValue | null;
+  new: JournalValue | null;
+  revertable: boolean;
+}
+
+export interface ReasonCode {
+  code: string;
+  label: string;
+}
+
+export interface TreasuryJournalResponse {
+  entries: TreasuryJournalEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+  reason_codes: ReasonCode[];
+  actions: string[];
+}

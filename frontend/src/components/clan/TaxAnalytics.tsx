@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import type { TreasuryOperationData, TaxCarryoverMonth } from '../../types/clanInfo';
+import type { TreasuryOperationData, TaxCarryoverMonth, ReasonCode } from '../../types/clanInfo';
 import type { ClanMemberData } from '../../types/clanInfo';
 import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU } from '../../utils/treasury';
 import {
@@ -23,6 +23,8 @@ interface TaxAnalyticsProps {
   canManage?: boolean;
   /** True when the user holds treasury:approve (carry-over decisions). */
   canApprove?: boolean;
+  /** Reason codes served by the API (treasury journal) for correction dropdowns. */
+  reasonCodes?: ReasonCode[];
   onRefresh?: () => void;
 }
 
@@ -75,7 +77,7 @@ function getNormForLevel(level: number): number {
   return CLAN_TAX_NORM[level] || DEFAULT_NORM;
 }
 
-export function TaxAnalytics({ operations, members = [], clanId, canManage = false, canApprove = false, onRefresh }: TaxAnalyticsProps) {
+export function TaxAnalytics({ operations, members = [], clanId, canManage = false, canApprove = false, reasonCodes = [], onRefresh }: TaxAnalyticsProps) {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [editingCompensation, setEditingCompensation] = useState<{
@@ -100,6 +102,7 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<{ quantity: number; compensationFlag: boolean; compensationComment: string } | null>(null);
+  const [editReason, setEditReason] = useState('');
   const [levelHistory, setLevelHistory] = useState<Record<string, Array<{ date: string; old_level: number; new_level: number }>>>({});
 
   useEffect(() => {
@@ -708,6 +711,7 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
 
   const startInlineEdit = (player: PlayerTaxSummary) => {
     setEditingRow(player.nick);
+    setEditReason('');
     setEditingData({
       quantity: player.totalPaid,
       compensationFlag: player.status === 'compensated',
@@ -729,6 +733,7 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
         quantity: editingData.quantity,
         compensation_flag: editingData.compensationFlag,
         compensation_comment: editingData.compensationComment,
+        reason: editReason || undefined,
       });
 
       setEditingRow(null);
@@ -1002,6 +1007,17 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
                           )}
                           {editingRow === p.nick && (
                             <>
+                              <select
+                                className="tax-edit-input tax-edit-reason"
+                                value={editReason}
+                                onChange={(e) => setEditReason(e.target.value)}
+                                title="Причина правки — попадёт в журнал корректировок"
+                              >
+                                <option value="">Причина…</option>
+                                {reasonCodes.map((r) => (
+                                  <option key={r.code} value={r.code}>{r.label}</option>
+                                ))}
+                              </select>
                               <button
                                 className="tax-save-btn"
                                 onClick={() => saveInlineEdit(p)}

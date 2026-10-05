@@ -139,6 +139,10 @@ class AuditLog(db.Model):
     action = db.Column(db.String(50), nullable=False)
     target_type = db.Column(db.String(30), nullable=True)
     target_id = db.Column(db.Integer, nullable=True)
+    # Which clan the entry belongs to. NULL for entries written before the
+    # column existed and for non-clan actions; the clan treasury journal
+    # filters on it.
+    clan_id = db.Column(db.Integer, nullable=True, index=True)
     old_value = db.Column(db.Text, nullable=True)
     new_value = db.Column(db.Text, nullable=True)
     ip_address = db.Column(db.String(45), nullable=True)
@@ -154,6 +158,7 @@ class AuditLog(db.Model):
             'action': self.action,
             'target_type': self.target_type,
             'target_id': self.target_id,
+            'clan_id': self.clan_id,
             'old_value': self.old_value,
             'new_value': self.new_value,
             'ip_address': self.ip_address,

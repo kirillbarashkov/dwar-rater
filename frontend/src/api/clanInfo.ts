@@ -7,6 +7,7 @@ import type {
   MembershipEvent,
   TaxCarryoverData,
   TaxCarryoverMonth,
+  TreasuryJournalResponse,
 } from '../types/clanInfo';
 
 export async function getClanInfo(clanId: number): Promise<ClanInfoData> {
@@ -189,7 +190,7 @@ export async function updateTreasuryCompensation(
 export async function updateTreasuryOperation(
   clanId: number,
   operationId: number,
-  data: { quantity?: number; compensation_flag?: boolean; compensation_comment?: string }
+  data: { quantity?: number; compensation_flag?: boolean; compensation_comment?: string; reason?: string }
 ): Promise<TreasuryOperationData> {
   const response = await apiClient.put(`/api/clan/${clanId}/treasury/${operationId}`, data);
   return response.data;
@@ -357,5 +358,25 @@ export async function bulkReviewTaxCarryovers(
     action,
     comment: comment ?? '',
   });
+  return response.data;
+}
+
+export async function getTreasuryJournal(
+  clanId: number,
+  params: { limit?: number; offset?: number; action?: string; nick?: string } = {}
+): Promise<TreasuryJournalResponse> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury/journal`, { params });
+  return response.data;
+}
+
+export async function revertTreasuryJournalEntry(
+  clanId: number,
+  entryId: number,
+  reason?: string
+): Promise<{ success: boolean; operation_id: number; restored: Record<string, unknown> }> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/journal/${entryId}/revert`,
+    { reason: reason ?? '' }
+  );
   return response.data;
 }

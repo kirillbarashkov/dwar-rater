@@ -126,9 +126,12 @@ def test_treasurer_can_correct_operation(app, client):
         op = TreasuryOperation.query.get(op_id)
         assert op.quantity == 250
         assert op.compensation_comment == 'исправлено казначеем'
-        entry = AuditLog.query.filter_by(action='treasury_operation_update').first()
+        # Filter by target: the suite shares one database and other modules
+        # write the same action, so `.first()` alone is order-dependent.
+        entry = AuditLog.query.filter_by(
+            action='treasury_operation_update', target_id=op_id
+        ).first()
         assert entry is not None
-        assert entry.target_id == op_id
 
 
 def test_plain_user_cannot_correct_operation(app, client):

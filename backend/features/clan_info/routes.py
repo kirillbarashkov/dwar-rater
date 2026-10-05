@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, g
 from datetime import datetime, date
+import json
 import requests
 from shared.services.clan_parser import (
     fetch_clan_page,
@@ -72,6 +73,11 @@ register_feature(
     "treasury",
     [
         PermDef(
+            "read",
+            "Просмотр журнала казны",
+            "GET /api/clan/*/treasury/journal",
+        ),
+        PermDef(
             "write",
             "Корректировка операций казны",
             "PUT /api/clan/*/treasury/<id>, POST /api/clan/*/treasury/compensation",
@@ -120,11 +126,14 @@ def _as_int(value, default=0):
         return default
 
 
-def _audit(action, target_type=None, target_id=None, old=None, new=None):
+def _audit(action, target_type=None, target_id=None, old=None, new=None, clan_id=None, reason=None):
     """Write an audit entry for a clan/treasury mutation.
 
     Treasury corrections are manual reviewer decisions, so they must be
     attributable — mirror the helper used by features/admin/routes.py.
+    ``clan_id`` links the entry to a clan so the treasury journal can list it;
+    ``reason`` is a reason code from TREASURY_REASON_CODES, stored inside the
+    new value.
     """
     import json
 
@@ -137,12 +146,18 @@ def _audit(action, target_type=None, target_id=None, old=None, new=None):
             return None
         return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
 
+    if reason:
+        payload = dict(new) if isinstance(new, dict) else {"value": new}
+        payload["reason"] = reason
+        new = payload
+
     user = getattr(g, "current_user", None)
     entry = AuditLog(
         user_id=user.id if user else None,
         action=action,
         target_type=target_type,
         target_id=target_id,
+        clan_id=clan_id,
         old_value=_dump(old),
         new_value=_dump(new),
         ip_address=request.remote_addr,
@@ -1039,6 +1054,7 @@ def restore_treasury_backup(clan_id):
         "treasury_backup_restore",
         target_type="clan_treasury",
         target_id=clan_id,
+        clan_id=clan_id,
         new={"filename": filename, "imported": imported},
     )
 
@@ -1093,7 +1109,17 @@ def update_treasury_operation(clan_id, operation_id):
 
     data = request.json
 
+    reason = _clip(data.get("reason"), 60)
+
+    identity = {
+        "nick": operation.nick,
+        "date": operation.date,
+        "operation_type": operation.operation_type,
+        "object_name": operation.object_name,
+    }
+
     old_state = {
+        **identity,
         "quantity": operation.quantity,
         "compensation_flag": operation.compensation_flag,
         "compensation_comment": operation.compensation_comment,
@@ -1107,6 +1133,7 @@ def update_treasury_operation(clan_id, operation_id):
         operation.compensation_comment = _clip(data["compensation_comment"], 500)
 
     new_state = {
+        **identity,
         "quantity": operation.quantity,
         "compensation_flag": operation.compensation_flag,
         "compensation_comment": operation.compensation_comment,
@@ -1118,6 +1145,8 @@ def update_treasury_operation(clan_id, operation_id):
             target_id=operation.id,
             old=old_state,
             new=new_state,
+            clan_id=clan_id,
+            reason=reason,
         )
 
     db.session.commit()
@@ -1177,6 +1206,7 @@ def create_treasury_compensation(clan_id):
         "treasury_compensation_create",
         target_type="treasury_operation",
         target_id=created[0].id if created else None,
+        clan_id=clan_id,
         new={
             "nick": nick,
             "norm_amount": norm_amount,
@@ -1416,6 +1446,7 @@ def recompute_tax_carryovers(clan_id):
         "tax_carryover_recompute",
         target_type="tax_carryover",
         target_id=clan_id,
+        clan_id=clan_id,
         new={
             "month": month,
             "year": year,
@@ -1472,6 +1503,7 @@ def _review_tax_carryover(clan_id, carryover_id, status):
         f"tax_carryover_{status}",
         target_type="tax_carryover",
         target_id=row.id,
+        clan_id=clan_id,
         old={"status": STATUS_PENDING},
         new={
             "status": status,
@@ -1544,6 +1576,7 @@ def bulk_review_tax_carryovers(clan_id):
         f"tax_carryover_bulk_{action}",
         target_type="tax_carryover",
         target_id=clan_id,
+        clan_id=clan_id,
         new={
             "updated": len(updated_ids),
             "skipped": skipped_ids,
@@ -1559,6 +1592,201 @@ def bulk_review_tax_carryovers(clan_id):
             "updated_ids": updated_ids,
             "skipped_ids": skipped_ids,
             "missing_ids": missing_ids,
+        }
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Treasury journal («журнал корректировок»)
+# --------------------------------------------------------------------------- #
+
+# Reason codes a treasurer picks when correcting a record. Served to the UI
+# from here so the dropdown and the stored values cannot drift apart.
+TREASURY_REASON_CODES = [
+    {"code": "carryover_credit", "label": "Зачёт переплаты"},
+    {"code": "carryover_refund", "label": "Возврат переплаты"},
+    {"code": "level_surcharge", "label": "Доначисление (рост уровня)"},
+    {"code": "wrong_nick", "label": "Ошибочный ник"},
+    {"code": "duplicate", "label": "Дубль операции"},
+    {"code": "import_fix", "label": "Исправление импорта"},
+    {"code": "council_decision", "label": "Решение главы/совета"},
+    {"code": "other", "label": "Другое"},
+]
+
+# Everything a treasurer can do to the treasury, in journal order.
+TREASURY_JOURNAL_ACTIONS = [
+    "treasury_operation_update",
+    "treasury_compensation_create",
+    "treasury_import",
+    "treasury_backup_restore",
+    "treasury_journal_revert",
+    "tax_carryover_recompute",
+    "tax_carryover_confirmed",
+    "tax_carryover_cancelled",
+    "tax_carryover_bulk_confirm",
+    "tax_carryover_bulk_cancel",
+]
+
+
+def _audit_json(value):
+    """Audit values are JSON text (or a plain string for hand-written rows)."""
+    if not value:
+        return None
+    try:
+        parsed = json.loads(value)
+    except (TypeError, ValueError):
+        return {"value": value}
+    if isinstance(parsed, dict):
+        return parsed
+    return {"value": parsed}
+
+
+def _journal_entry(entry):
+    old = _audit_json(entry.old_value)
+    new = _audit_json(entry.new_value)
+    return {
+        "id": entry.id,
+        "action": entry.action,
+        "username": entry.user.username if entry.user else "system",
+        "target_type": entry.target_type,
+        "target_id": entry.target_id,
+        "created_at": entry.created_at.isoformat() if entry.created_at else None,
+        "reason": (new or {}).get("reason"),
+        "nick": (new or {}).get("nick") or (old or {}).get("nick"),
+        "old": old,
+        "new": new,
+        "revertable": entry.action == "treasury_operation_update",
+    }
+
+
+@clan_info_bp.route("/api/clan/<int:clan_id>/treasury/journal", methods=["GET"])
+@require_permission("treasury", "read")
+def get_treasury_journal(clan_id):
+    """Who corrected what in this clan's treasury, newest first."""
+    from shared.rbac.models import AuditLog
+
+    limit = min(max(_as_int(request.args.get("limit"), 50), 1), 200)
+    offset = max(_as_int(request.args.get("offset"), 0), 0)
+    action = (request.args.get("action") or "").strip()
+    nick = (request.args.get("nick") or "").strip().lower()
+
+    query = AuditLog.query.filter(
+        AuditLog.clan_id == clan_id,
+        AuditLog.action.in_(TREASURY_JOURNAL_ACTIONS),
+    )
+    if action:
+        query = query.filter(AuditLog.action == action)
+
+    total = query.count()
+    rows = query.order_by(AuditLog.id.desc()).offset(offset).limit(limit).all()
+    entries = [_journal_entry(row) for row in rows]
+    if nick:
+        entries = [e for e in entries if nick in (e.get("nick") or "").lower()]
+
+    return jsonify(
+        {
+            "entries": entries,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "reason_codes": TREASURY_REASON_CODES,
+            "actions": TREASURY_JOURNAL_ACTIONS,
+        }
+    )
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/journal/<int:entry_id>/revert", methods=["POST"]
+)
+@require_permission("treasury", "write")
+def revert_treasury_journal_entry(clan_id, entry_id):
+    """Undo a correction by writing the previous values back.
+
+    History is never deleted: the revert is itself a new journal entry. It is
+    refused when the operation changed after the original edit, so a revert
+    cannot silently drop a newer correction.
+    """
+    from shared.rbac.models import AuditLog
+
+    entry = AuditLog.query.filter_by(id=entry_id, clan_id=clan_id).first()
+    if not entry:
+        return jsonify({"error": "Запись журнала не найдена"}), 404
+    if entry.action != "treasury_operation_update":
+        return (
+            jsonify(
+                {
+                    "error": "not_revertable",
+                    "message": "Обратной записью откатываются только правки операций казны",
+                }
+            ),
+            400,
+        )
+
+    old = _audit_json(entry.old_value) or {}
+    new = _audit_json(entry.new_value) or {}
+
+    operation = TreasuryOperation.query.filter_by(
+        id=entry.target_id, clan_id=clan_id
+    ).first()
+    if not operation:
+        return (
+            jsonify(
+                {
+                    "error": "operation_missing",
+                    "message": "Операции больше нет (например, её снёс переимпорт периода)",
+                }
+            ),
+            404,
+        )
+
+    fields = ("quantity", "compensation_flag", "compensation_comment")
+    current = {field: getattr(operation, field) for field in fields}
+    expected = {field: new.get(field) for field in fields}
+    if current != expected:
+        return (
+            jsonify(
+                {
+                    "error": "operation_changed",
+                    "message": "Операцию изменили после этой правки — откат не применён, "
+                    "чтобы не потерять более поздние данные.",
+                    "current": current,
+                    "expected": expected,
+                }
+            ),
+            409,
+        )
+
+    for field in fields:
+        if field in old and old[field] is not None:
+            setattr(operation, field, old[field])
+
+    restored = {field: getattr(operation, field) for field in fields}
+    identity = {
+        "nick": operation.nick,
+        "date": operation.date,
+        "operation_type": operation.operation_type,
+        "object_name": operation.object_name,
+    }
+    data = request.get_json(silent=True) or {}
+    _audit(
+        "treasury_journal_revert",
+        target_type="treasury_operation",
+        target_id=operation.id,
+        old={**identity, **current},
+        new={**identity, **restored},
+        clan_id=clan_id,
+        reason=_clip(data.get("reason"), 60) or "revert",
+    )
+    db.session.commit()
+
+    data_logger.info(
+        f"[TREASURY] Journal entry {entry_id} reverted on operation {operation.id}"
+    )
+    return jsonify(
+        {
+            "success": True,
+            "operation_id": operation.id,
+            "restored": restored,
         }
     )
 
@@ -1725,6 +1953,7 @@ def import_treasury_operations(clan_id):
         "treasury_import",
         target_type="clan_treasury",
         target_id=clan_id,
+        clan_id=clan_id,
         new={
             "imported": imported,
             "updated": updated,

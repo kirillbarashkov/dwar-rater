@@ -1,0 +1,159 @@
+/* Journal of treasury corrections. Declarations mirror the .tax-*/.tc-* patterns
+   already used in this tab (same radius, borders, badge shapes, button sizes). */
+
+.tj-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.tj-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.tj-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tj-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tj-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.tj-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.tj-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tj-select,
+.tj-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  font-size: 13px;
+  min-width: 150px;
+}
+
+.tj-select:focus,
+.tj-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.tj-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.tj-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.tj-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tj-table th,
+.tj-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.tj-table th {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tj-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tj-when {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.tj-who {
+  font-weight: 500;
+}
+
+.tj-nick {
+  font-weight: 500;
+}
+
+.tj-change {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.tj-reason {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+
+.tj-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px;
+  font-size: 13px;
+}
+
+.tj-note {
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.tj-status {
+  font-size: 12px;
+  color: #22c55e;
+}

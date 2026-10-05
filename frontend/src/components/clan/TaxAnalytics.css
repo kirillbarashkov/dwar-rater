@@ -584,6 +584,12 @@
   width: 120px;
 }
 
+/* Reason dropdown for a correction (feeds the treasury journal). */
+.tax-edit-reason {
+  width: 130px;
+  border-color: var(--border);
+}
+
 .tax-edit-checkbox {
   display: flex;
   align-items: center;

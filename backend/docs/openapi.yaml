@@ -1326,6 +1326,114 @@ paths:
               schema:
                 $ref: "#/components/schemas/StatusResponse"
 
+  /api/clan/{clan_id}/treasury/journal:
+    get:
+      summary: Treasury correction journal
+      description: >-
+        Who corrected what in this clan's treasury, newest first, with reason
+        codes. Requires treasury:read.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            maximum: 200
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: nick
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Journal page plus the reason-code dictionary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      type: object
+                  total:
+                    type: integer
+                  reason_codes:
+                    type: array
+                    items:
+                      type: object
+                  actions:
+                    type: array
+                    items:
+                      type: string
+
+  /api/clan/{clan_id}/treasury/journal/{entry_id}/revert:
+    post:
+      summary: Revert a treasury correction
+      description: >-
+        Writes the previous values back as a reversing entry (history is never
+        deleted). Refused with 409 when the operation changed after the original
+        edit. Requires treasury:write.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: entry_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: Correction reverted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  operation_id:
+                    type: integer
+                  restored:
+                    type: object
+        "400":
+          description: Entry is not a revertable operation correction
+        "404":
+          description: Journal entry or operation not found
+        "409":
+          description: The operation changed after this correction
+
   /api/clan/{clan_id}/tax-carryover:
     get:
       summary: Tax overpayment carry-overs of a month
