@@ -1,5 +1,5 @@
-# v2.0.4
+# v2.1.0
 
-## Исправления
-- fix(ui): copy buttons work on HTTP — clipboard API needs a secure context [bump:patch]
+## Новое
+- feat(treasury): роль «Казначей» + автоперенос переплаты налога [bump:minor]
 
