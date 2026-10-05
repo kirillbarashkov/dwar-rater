@@ -183,6 +183,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 15m
           envs: APP_VERSION,APP_GIT_HASH,APP_BRANCH,APP_BUILD_DATE
+          script_stop: true
           script: |
             cd ~/dwar-rater
             git pull origin main
@@ -211,6 +212,10 @@ jobs:
             } > backend/RELEASE_NOTES.md
             # Build args reach docker-compose via env (${APP_VERSION:-dev} etc.)
             export APP_VERSION APP_GIT_HASH APP_BRANCH APP_BUILD_DATE
+            # The build cache grows to ~10GB and a full rebuild then dies with
+            # "no space left on device" — which used to be invisible because the
+            # SSH action did not stop on error. Cap it before every build.
+            docker builder prune -f --keep-storage 3GB >/dev/null 2>&1 || true
             docker compose -f docker-compose.prod.yml up -d --build
             docker image prune -f
 

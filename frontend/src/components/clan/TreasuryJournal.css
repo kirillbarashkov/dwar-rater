@@ -1,4 +1,4 @@
-/* Journal of treasury corrections. Declarations mirror the .tax-*/.tc-* patterns
+/* Journal of treasury corrections. Declarations mirror the .tax- and .tc- patterns
    already used in this tab (same radius, borders, badge shapes, button sizes). */
 
 .tj-panel {

@@ -194,12 +194,138 @@ def level_at_month_end(events: Sequence[Mapping[str, Any]], month: int, year: in
 
 
 def is_real_payment(op: Mapping[str, Any]) -> bool:
+    """Money actually paid into the treasury (not a «зачёт» marker)."""
     return (
-        (op.get("operation_type") or "") == TAX_OPERATION_TYPE
-        and (op.get("object_name") or "") == TAX_OBJECT_NAME
+        _is_tax_operation(op)
         and _as_int(op.get("quantity")) > 0
         and not op.get("compensation_flag")
     )
+
+
+def _is_tax_operation(op: Mapping[str, Any]) -> bool:
+    return (
+        (op.get("operation_type") or "") == TAX_OPERATION_TYPE
+        and (op.get("object_name") or "") == TAX_OBJECT_NAME
+    )
+
+
+def _classify(operations: Iterable[Mapping[str, Any]]):
+    """Split tax rows into money and «зачёт» markers, keyed by (nick, month, year)."""
+    paid: dict = {}
+    compensation: dict = {}
+    op_indexes = []
+    for op in operations:
+        key = month_key(op.get("date"))
+        if not key:
+            continue
+        month, year = key
+        op_indexes.append(ym_index(month, year))
+        if not _is_tax_operation(op):
+            continue
+        quantity = _as_int(op.get("quantity"))
+        if quantity <= 0:
+            continue
+        nick = (op.get("nick") or "").strip().lower()
+        if not nick:
+            continue
+        bucket = (nick, month, year)
+        if op.get("compensation_flag"):
+            compensation[bucket] = compensation.get(bucket, 0) + quantity
+        else:
+            paid[bucket] = paid.get(bucket, 0) + quantity
+    return op_indexes, paid, compensation
+
+
+def _run_chain(
+    operations,
+    members,
+    level_events,
+    decisions,
+    start_index,
+    end_index,
+    today,
+):
+    """Walk the months once and record every member's cell.
+
+    Single source of truth for both views: the carry-over proposals (a month's
+    positive balance) and the member ledger (the whole series). Two separate
+    loops would be a second implementation of the same rules.
+    """
+    op_indexes, paid, compensation = _classify(operations)
+    if not op_indexes:
+        return {}, []
+
+    start_index = max(min(op_indexes), start_index)
+
+    active = [m for m in members if not m.get("is_deleted")]
+    display_nick, level_now, start_due = {}, {}, {}
+    for member in active:
+        nick = (member.get("nick") or "").strip().lower()
+        if not nick:
+            continue
+        display_nick[nick] = member.get("nick")
+        level_now[nick] = member.get("level")
+        start_due[nick] = payment_start_ym(member, today)
+
+    cells: dict = {}
+    carried = {nick: 0 for nick in display_nick}
+    months = []
+
+    for index in range(start_index, end_index + 1):
+        month, year = index_to_ym(index)
+        months.append((month, year))
+        next_carried = {}
+        for nick in display_nick:
+            decision = decisions.get((nick, month, year))
+            if decision:
+                carry = (
+                    _as_int(decision.get("amount"))
+                    if (decision.get("status") or "") == STATUS_CONFIRMED
+                    else 0
+                )
+            else:
+                start = start_due[nick]
+                owes = start is None or index >= ym_index(start[0], start[1])
+                level = level_at_month_end(level_events.get(nick, ()), month, year)
+                if level is None:
+                    level = level_now[nick]
+                norm = norm_for_level(level) if (owes and level) else 0
+                # «Зачёт» is deliberately NOT income here: a waived month must not
+                # invent a credit to carry on. The ledger reports it separately and
+                # counts it as settling when measuring debt.
+                balance = (
+                    paid.get((nick, month, year), 0)
+                    + carried[nick]
+                    - norm
+                )
+                carry = balance if balance > 0 else 0
+            next_carried[nick] = carry
+            cells[(nick, index)] = {
+                "nick": display_nick[nick],
+                "month": month,
+                "year": year,
+                "level": level_now.get(nick),
+                "paid": paid.get((nick, month, year), 0),
+                "compensation": compensation.get((nick, month, year), 0),
+                "carried_in": carried[nick],
+                "carried_out": carry,
+                "decision": (decisions.get((nick, month, year)) or {}).get("status"),
+                "norm": _cell_norm(nick, month, year, level_events, level_now, start_due, index),
+            }
+        carried = next_carried
+
+    return cells, months
+
+
+def _cell_norm(nick, month, year, level_events, level_now, start_due, index):
+    start = start_due.get(nick)
+    owes = start is None or index >= ym_index(start[0], start[1])
+    if not owes:
+        return 0
+    level = level_at_month_end(level_events.get(nick, ()), month, year)
+    if level is None:
+        level = level_now.get(nick)
+    return norm_for_level(level) if level else DEFAULT_NORM
 
 
 # --------------------------------------------------------------------------- #
@@ -224,83 +350,125 @@ def compute_carryovers(
     """
     today = today or date.today()
     target_index = ym_index(target_month, target_year)
-
-    paid: dict = {}
-    op_indexes = []
-    for op in operations:
-        key = month_key(op.get("date"))
-        if not key:
-            continue
-        month, year = key
-        op_indexes.append(ym_index(month, year))
-        if not is_real_payment(op):
-            continue
-        nick = (op.get("nick") or "").strip().lower()
-        if not nick:
-            continue
-        bucket = (nick, month, year)
-        paid[bucket] = paid.get(bucket, 0) + _as_int(op.get("quantity"))
-
+    op_indexes, _paid, _comp = _classify(operations)
     if not op_indexes:
         return []
 
-    start_index = max(min(op_indexes), target_index - max_lookback)
+    cells, _months = _run_chain(
+        operations,
+        members,
+        level_events,
+        decisions,
+        max(min(op_indexes), target_index - max_lookback),
+        target_index,
+        today,
+    )
 
-    active = [m for m in members if not m.get("is_deleted")]
-    display_nick, level_now, start_due = {}, {}, {}
-    for member in active:
-        nick = (member.get("nick") or "").strip().lower()
-        if not nick:
-            continue
-        display_nick[nick] = member.get("nick")
-        level_now[nick] = member.get("level")
-        start_due[nick] = payment_start_ym(member, today)
-
-    if not display_nick:
-        return []
-
-    carried = {nick: 0 for nick in display_nick}
     proposals = []
-
-    for index in range(start_index, target_index + 1):
-        month, year = index_to_ym(index)
-        next_carried = {}
-        for nick in display_nick:
-            decision = decisions.get((nick, month, year))
-            if decision:
-                # Already reviewed: a confirmation fixes the amount, a
-                # cancellation means "no carry from here" — never re-proposed.
-                if (decision.get("status") or "") == STATUS_CONFIRMED:
-                    next_carried[nick] = _as_int(decision.get("amount"))
-                else:
-                    next_carried[nick] = 0
-                continue
-
-            start = start_due[nick]
-            owes = start is None or index >= ym_index(start[0], start[1])
-            if owes:
-                level = level_at_month_end(level_events.get(nick, ()), month, year)
-                if level is None:
-                    level = level_now[nick]
-                norm = norm_for_level(level) if level else DEFAULT_NORM
-            else:
-                norm = 0
-
-            balance = paid.get((nick, month, year), 0) + carried[nick] - norm
-            carry = balance if balance > 0 else 0
-            next_carried[nick] = carry
-
-            if index == target_index and carry > 0:
-                proposals.append(
-                    Carryover(
-                        nick=display_nick[nick],
-                        source_month=month,
-                        source_year=year,
-                        amount=carry,
-                    )
-                )
-
-        carried = next_carried
-
+    for (nick, index), cell in cells.items():
+        if index != target_index:
+            continue
+        if cell["decision"] or cell["carried_out"] <= 0:
+            continue
+        proposals.append(
+            Carryover(
+                nick=cell["nick"],
+                source_month=cell["month"],
+                source_year=cell["year"],
+                amount=cell["carried_out"],
+            )
+        )
     proposals.sort(key=lambda p: (-p.amount, p.nick.lower()))
     return proposals
+
+
+def compute_member_ledger(
+    operations: Iterable[Mapping[str, Any]],
+    members: Iterable[Mapping[str, Any]],
+    level_events: Mapping[str, Sequence[Mapping[str, Any]]],
+    decisions: Mapping[tuple, Mapping[str, Any]],
+    from_month: int,
+    from_year: int,
+    to_month: int,
+    to_year: int,
+    today: Optional[date] = None,
+    max_lookback: int = MAX_LOOKBACK_MONTHS,
+) -> dict:
+    """Лицевой счёт: a member's whole series plus totals over the window.
+
+    Uses the same chain as the carry-over proposals, so a member's balance can
+    never disagree with the amount proposed for them.
+    """
+    today = today or date.today()
+    start_index = ym_index(from_month, from_year)
+    end_index = ym_index(to_month, to_year)
+    if end_index < start_index:
+        start_index, end_index = end_index, start_index
+
+    cells, _months = _run_chain(
+        operations,
+        members,
+        level_events,
+        decisions,
+        max(start_index - max_lookback, 0),
+        end_index,
+        today,
+    )
+    if not cells:
+        return {"rows": [], "totals": [], "reason": "no_operations"}
+
+    per_nick: dict = {}
+    for (nick, index), cell in cells.items():
+        bucket = per_nick.setdefault(
+            nick,
+            {
+                "nick": cell["nick"],
+                "level": cell["level"],
+                "months": [],
+                "norm_total": 0,
+                "paid_total": 0,
+                "compensation_total": 0,
+                "carried_in_total": 0,
+                "carried_out_final": 0,
+                "debt": 0,
+            },
+        )
+        bucket["level"] = cell["level"] or bucket["level"]
+        bucket["months"].append(cell)
+        if index < start_index:
+            # Lookback months feed the chain only; they are not part of the window.
+            bucket["carried_out_final"] = cell["carried_out"]
+            continue
+        bucket["norm_total"] += cell["norm"]
+        bucket["paid_total"] += cell["paid"]
+        bucket["compensation_total"] += cell["compensation"]
+        bucket["carried_in_total"] += cell["carried_in"]
+        covered = cell["paid"] + cell["compensation"] + cell["carried_in"]
+        bucket["debt"] += max(0, cell["norm"] - covered)
+        bucket["carried_out_final"] = cell["carried_out"]
+
+    rows = []
+    for bucket in per_nick.values():
+        # Either a credit is carried on (carried_out_final) or there is an
+        # outstanding debt — the chain already netted payments against norms
+        # month by month, floors at zero, and never lets one member's excess
+        # cover another's debt.
+        bucket["balance"] = bucket["carried_out_final"] - bucket["debt"]
+        bucket["months"].sort(key=lambda c: ym_index(c["month"], c["year"]))
+        rows.append(bucket)
+
+    rows.sort(key=lambda r: (r["balance"], r["nick"].lower()))
+    return {"rows": rows, "totals": _ledger_totals(rows)}
+
+
+def _ledger_totals(rows: Sequence[Mapping[str, Any]]) -> list:
+    keys = (
+        "norm_total",
+        "paid_total",
+        "compensation_total",
+        "carried_in_total",
+        "carried_out_final",
+        "debt",
+        "balance",
+    )
+    return [{key: sum(_as_int(row.get(key)) for row in rows) for key in keys}]
