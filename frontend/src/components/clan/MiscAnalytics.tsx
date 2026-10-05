@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { TreasuryOperationData } from '../../types/clanInfo';
 import { parseDate, formatDateKey, isTaxOperation, isTalentOperation } from '../../utils/treasury';
+import { copyText } from '../../utils/clipboard';
 import './MiscAnalytics.css';
 
 interface MiscAnalyticsProps {
@@ -224,15 +225,11 @@ export function MiscAnalytics({ operations }: MiscAnalyticsProps) {
 
     const text = [headers.join('\t'), rows].join('\n');
 
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopyStatus('Скопировано!');
-      setTimeout(() => setCopyStatus(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-      setCopyStatus('Ошибка копирования');
-      setTimeout(() => setCopyStatus(null), 2000);
-    }
+    const copied = await copyText(text);
+    setCopyStatus(
+      copied ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'
+    );
+    setTimeout(() => setCopyStatus(null), 2000);
   };
 
   const MONTHS_RU = [

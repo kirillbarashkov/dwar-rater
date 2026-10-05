@@ -3,6 +3,7 @@ import type { TreasuryOperationData } from '../../types/clanInfo';
 import type { ClanMemberData } from '../../types/clanInfo';
 import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU } from '../../utils/treasury';
 import { createTreasuryCompensation, updateTreasuryOperation, getLevelHistory } from '../../api/clanInfo';
+import { copyText } from '../../utils/clipboard';
 import './TaxAnalytics.css';
 
 interface TaxAnalyticsProps {
@@ -528,15 +529,11 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
     
     const text = [headers.join('\t'), rows].join('\n');
     
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopyStatus('Скопировано!');
-      setTimeout(() => setCopyStatus(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-      setCopyStatus('Ошибка копирования');
-      setTimeout(() => setCopyStatus(null), 2000);
-    }
+    const copied = await copyText(text);
+    setCopyStatus(
+      copied ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'
+    );
+    setTimeout(() => setCopyStatus(null), 2000);
   };
 
   const renderStatusBadge = (summary: PlayerTaxSummary) => {
@@ -923,7 +920,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                       onClick={() => {
                         const headers = ['Игрок', 'Уровень', 'Норма'];
                         const rows = sortedNotPaidPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.normAmount].join('\t')).join('\n');
-                        navigator.clipboard.writeText([headers.join('\t'), rows].join('\n')).then(() => { setCopyStatus('Скопировано!'); setTimeout(() => setCopyStatus(null), 2000); });
+                        void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
                       }}
                       title="Копировать таблицу"
                     >
@@ -974,7 +971,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                       onClick={() => {
                         const headers = ['Игрок', 'Уровень', 'Сумма'];
                         const rows = sortedCompensatedPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.normAmount].join('\t')).join('\n');
-                        navigator.clipboard.writeText([headers.join('\t'), rows].join('\n')).then(() => { setCopyStatus('Скопировано!'); setTimeout(() => setCopyStatus(null), 2000); });
+                        void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
                       }}
                       title="Копировать таблицу"
                     >
@@ -1021,7 +1018,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                       onClick={() => {
                         const headers = ['Игрок', 'Уровень', 'Уплачено'];
                         const rows = sortedPaidDelayedPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.totalPaid].join('\t')).join('\n');
-                        navigator.clipboard.writeText([headers.join('\t'), rows].join('\n')).then(() => { setCopyStatus('Скопировано!'); setTimeout(() => setCopyStatus(null), 2000); });
+                        void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
                       }}
                       title="Копировать таблицу"
                     >

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { TreasuryOperationData, ClanMemberData } from '../../types/clanInfo';
 import { isTalentOperation, isTalentResource, getOriginalOwner } from '../../utils/treasury';
+import { copyText } from '../../utils/clipboard';
 import './TalentAnalytics.css';
 
 interface TalentAnalyticsProps {
@@ -329,15 +330,11 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
     
     const text = [headers.join('\t'), rows].join('\n');
     
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopyStatus('Скопировано!');
-      setTimeout(() => setCopyStatus(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-      setCopyStatus('Ошибка копирования');
-      setTimeout(() => setCopyStatus(null), 2000);
-    }
+    const copied = await copyText(text);
+    setCopyStatus(
+      copied ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'
+    );
+    setTimeout(() => setCopyStatus(null), 2000);
   };
 
   const renderStatusBadge = (status: 'submitted' | 'not_submitted') => {
@@ -492,7 +489,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
                   onClick={() => {
                     const headers = ['Игрок', 'Ресурсов'];
                     const rows = sortedSubmittedPlayers.map(p => [p.nick, Object.values(p.resources).reduce((s, v) => s + v, 0)].join('\t')).join('\n');
-                    navigator.clipboard.writeText([headers.join('\t'), rows].join('\n')).then(() => { setCopyStatus('Скопировано!'); setTimeout(() => setCopyStatus(null), 2000); });
+                    void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
                   }}
                   title="Копировать таблицу"
                 >
@@ -547,7 +544,7 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
                   onClick={() => {
                     const headers = ['Игрок'];
                     const rows = sortedNotSubmittedPlayers.map(p => p.nick).join('\n');
-                    navigator.clipboard.writeText([headers.join('\t'), rows].join('\n')).then(() => { setCopyStatus('Скопировано!'); setTimeout(() => setCopyStatus(null), 2000); });
+                    void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
                   }}
                   title="Копировать таблицу"
                 >

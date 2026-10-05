@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../api/client';
+import { copyText } from '../../utils/clipboard';
 import { showToast } from '../../components/ui/Toast';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { UserPermissionsModal } from './UserPermissionsModal';
@@ -325,7 +326,7 @@ function ResetPasswordModal({
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => { navigator.clipboard.writeText(password); setCopied(true); }}
+            onClick={async () => { setCopied(await copyText(password)); }}
           >
             {copied ? '✓' : 'Копировать'}
           </button>
