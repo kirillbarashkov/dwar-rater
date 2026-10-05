@@ -1,5 +1,5 @@
-# v2.0.3
+# v2.0.4
 
 ## Исправления
-- fix(treasury): make the import idempotent without dropping real rows [bump:patch]
+- fix(ui): copy buttons work on HTTP — clipboard API needs a secure context [bump:patch]
 
