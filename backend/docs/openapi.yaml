@@ -1326,6 +1326,245 @@ paths:
               schema:
                 $ref: "#/components/schemas/StatusResponse"
 
+  /api/clan/{clan_id}/tax-carryover:
+    get:
+      summary: Tax overpayment carry-overs of a month
+      description: >-
+        Proposals arising from the given month plus confirmed credits flowing
+        into it from the previous month. For a month that is not closed the
+        response also carries a computed `preview` (never stored).
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Carry-over ledger for the month
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  month:
+                    type: integer
+                  year:
+                    type: integer
+                  is_closed:
+                    type: boolean
+                  carryovers:
+                    type: array
+                    items:
+                      type: object
+                  incoming:
+                    type: array
+                    items:
+                      type: object
+                  preview:
+                    type: array
+                    items:
+                      type: object
+                  pending_count:
+                    type: integer
+                  pending_total:
+                    type: integer
+
+  /api/clan/{clan_id}/tax-carryover/recompute:
+    post:
+      summary: Recompute carry-over proposals for a closed month
+      description: >-
+        Regenerates `pending` proposals from the treasury data. Confirmed and
+        cancelled rows are treasurer decisions and are never rewritten; a stale
+        pending row is removed. Only closed months are accepted. Requires
+        treasury:approve.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - month
+                - year
+              properties:
+                month:
+                  type: integer
+                year:
+                  type: integer
+      responses:
+        "200":
+          description: Proposals regenerated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  created:
+                    type: integer
+                  updated:
+                    type: integer
+                  removed:
+                    type: integer
+                  carryovers:
+                    type: array
+                    items:
+                      type: object
+        "400":
+          description: Invalid month/year or the month is not closed yet
+
+  /api/clan/{clan_id}/tax-carryover/{carryover_id}/confirm:
+    post:
+      summary: Confirm a carry-over proposal
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: carryover_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+      responses:
+        "200":
+          description: Carry-over confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "409":
+          description: The proposal was already reviewed
+
+  /api/clan/{clan_id}/tax-carryover/{carryover_id}/cancel:
+    post:
+      summary: Cancel a carry-over proposal
+      description: >-
+        Marks the proposal as cancelled. The month carries nothing and is not
+        re-proposed on the next recompute.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: carryover_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+      responses:
+        "200":
+          description: Carry-over cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "409":
+          description: The proposal was already reviewed
+
+  /api/clan/{clan_id}/tax-carryover/bulk:
+    post:
+      summary: Confirm or cancel several carry-overs at once
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ids
+                - action
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                action:
+                  type: string
+                  enum: [confirm, cancel]
+                comment:
+                  type: string
+      responses:
+        "200":
+          description: Batch processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  updated:
+                    type: integer
+                  updated_ids:
+                    type: array
+                    items:
+                      type: integer
+                  skipped_ids:
+                    type: array
+                    items:
+                      type: integer
+                  missing_ids:
+                    type: array
+                    items:
+                      type: integer
+
   /api/clan/{clan_id}/treasury/import:
     post:
       summary: Import treasury operations

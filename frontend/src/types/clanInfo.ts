@@ -128,3 +128,53 @@ export interface MemberDiffResult {
     last_seen_role?: string;
   }[];
 }
+
+/**
+ * Tax overpayment carry-over ledger. A proposal is created automatically for a
+ * closed month and stays `pending` until a treasurer confirms or cancels it;
+ * the credit then applies to the following month. `source_month`/`source_year`
+ * are the month the member overpaid — the receiving month is derived.
+ */
+export type TaxCarryoverStatus = 'pending' | 'confirmed' | 'cancelled';
+
+export interface TaxCarryoverData {
+  id: number;
+  clan_id: number;
+  nick: string;
+  source_month: number;
+  source_year: number;
+  amount: number;
+  status: TaxCarryoverStatus;
+  comment: string;
+  created_by: number | null;
+  created_at: string | null;
+  reviewed_by: number | null;
+  reviewed_at: string | null;
+}
+
+/** A confirmed carry-over credited INTO the requested month. */
+export interface TaxCarryoverIncoming {
+  nick: string;
+  amount: number;
+  source_month: number;
+  source_year: number;
+}
+
+/** Computed for a month that is not closed yet; never stored, never approvable. */
+export interface TaxCarryoverPreview {
+  nick: string;
+  source_month: number;
+  source_year: number;
+  amount: number;
+}
+
+export interface TaxCarryoverMonth {
+  month: number;
+  year: number;
+  is_closed: boolean;
+  carryovers: TaxCarryoverData[];
+  incoming: TaxCarryoverIncoming[];
+  preview: TaxCarryoverPreview[];
+  pending_count: number;
+  pending_total: number;
+}

@@ -50,7 +50,7 @@
 }
 
 .tax-kpi-row2 {
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   margin-bottom: 16px;
 }
 
@@ -373,6 +373,11 @@
 .tax-badge-over {
   background: rgba(59, 130, 246, 0.15);
   color: #3b82f6;
+}
+
+.tax-badge-carried {
+  background: rgba(20, 184, 166, 0.15);
+  color: #14b8a6;
 }
 
 .tax-badge-notpaid {

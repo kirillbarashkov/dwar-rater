@@ -1,5 +1,5 @@
-from flask import Blueprint, request, jsonify
-from datetime import datetime
+from flask import Blueprint, request, jsonify, g
+from datetime import datetime, date
 import requests
 from shared.services.clan_parser import (
     fetch_clan_page,
@@ -27,12 +27,21 @@ from shared.models.clan_info import (
     ClanInfo,
     ClanMemberInfo,
     TreasuryOperation,
+    TaxCarryover,
     ClanCookie,
     ClanMembershipEvent,
     ClanLevelChangeEvent,
     TreasurySourceWindow,
 )
-from shared.rbac import require_permission, feature, Permission as PermDef
+from shared.services.tax_engine import (
+    STATUS_CANCELLED,
+    STATUS_CONFIRMED,
+    STATUS_PENDING,
+    compute_carryovers,
+    is_month_closed,
+    prev_ym,
+)
+from shared.rbac import require_permission, feature, Permission as PermDef, get_user_permission
 
 
 clan_info_bp = Blueprint("clan_info", __name__)
@@ -52,6 +61,30 @@ register_feature(
             "admin",
             "Импорт/экспорт казны, бэкапы",
             "Treasury import/export/backup admin",
+        ),
+    ],
+)
+
+# Treasury management is its own permission surface: a «Казначей» must be able to
+# correct operations and approve carry-overs without gaining clan-member import
+# rights (which stay under clan_info:admin).
+register_feature(
+    "treasury",
+    [
+        PermDef(
+            "write",
+            "Корректировка операций казны",
+            "PUT /api/clan/*/treasury/<id>, POST /api/clan/*/treasury/compensation",
+        ),
+        PermDef(
+            "approve",
+            "Подтверждение переносов/корректировок",
+            "tax-carryover confirm/cancel/bulk",
+        ),
+        PermDef(
+            "admin",
+            "Импорт/бэкап казны, cookies, авто-сбор",
+            "treasury import/restore/auto-fetch/cookies/estimate",
         ),
     ],
 )
@@ -85,6 +118,36 @@ def _as_int(value, default=0):
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _audit(action, target_type=None, target_id=None, old=None, new=None):
+    """Write an audit entry for a clan/treasury mutation.
+
+    Treasury corrections are manual reviewer decisions, so they must be
+    attributable — mirror the helper used by features/admin/routes.py.
+    """
+    import json
+
+    from flask import g
+
+    from shared.rbac.models import AuditLog
+
+    def _dump(value):
+        if value is None:
+            return None
+        return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+
+    user = getattr(g, "current_user", None)
+    entry = AuditLog(
+        user_id=user.id if user else None,
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+        old_value=_dump(old),
+        new_value=_dump(new),
+        ip_address=request.remote_addr,
+    )
+    db.session.add(entry)
 
 
 def _build_ui_structure_role_map(structure):
@@ -538,13 +601,9 @@ def add_clan_member(clan_id):
 @clan_info_bp.route("/api/clan/<int:clan_id>/members/import", methods=["POST"])
 @require_permission("clan_info", "admin")
 def import_clan_members(clan_id):
+    # Access is enforced by @require_permission("clan_info", "admin") — the old
+    # hardcoded role check bypassed RBAC and made the role unassignable.
     from flask import g
-
-    if not g.current_user or g.current_user.role != "admin":
-        data_logger.warning(f"[IMPORT] Unauthorized import attempt for clan {clan_id}")
-        return jsonify(
-            {"error": "Только администратор может импортировать участников"}
-        ), 403
 
     data = request.json
     members_data = data.get("members", [])
@@ -932,15 +991,8 @@ def get_treasury_backup(clan_id, filename):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/backup/restore", methods=["POST"])
-@require_permission("clan_info", "admin")
+@require_permission("treasury", "admin")
 def restore_treasury_backup(clan_id):
-    from flask import g
-
-    if not g.current_user or g.current_user.role != "admin":
-        return jsonify(
-            {"error": "Только администратор может восстанавливать бэкапы"}
-        ), 403
-
     data = request.json
     filename = data.get("filename")
 
@@ -983,6 +1035,13 @@ def restore_treasury_backup(clan_id):
         db.session.add(treasury_op)
         imported += 1
 
+    _audit(
+        "treasury_backup_restore",
+        target_type="clan_treasury",
+        target_id=clan_id,
+        new={"filename": filename, "imported": imported},
+    )
+
     db.session.commit()
 
     data_logger.info(f"[TREASURY] Restored {imported} operations from {filename}")
@@ -1024,13 +1083,8 @@ def get_treasury_operations(clan_id):
 @clan_info_bp.route(
     "/api/clan/<int:clan_id>/treasury/<int:operation_id>", methods=["PUT"]
 )
-@require_permission("clan_info", "admin")
+@require_permission("treasury", "write")
 def update_treasury_operation(clan_id, operation_id):
-    from flask import g
-
-    if not g.current_user or g.current_user.role != "admin":
-        return jsonify({"error": "Только администратор может изменять операции"}), 403
-
     operation = TreasuryOperation.query.filter_by(
         id=operation_id, clan_id=clan_id
     ).first()
@@ -1039,12 +1093,32 @@ def update_treasury_operation(clan_id, operation_id):
 
     data = request.json
 
+    old_state = {
+        "quantity": operation.quantity,
+        "compensation_flag": operation.compensation_flag,
+        "compensation_comment": operation.compensation_comment,
+    }
+
     if "quantity" in data:
         operation.quantity = int(data["quantity"])
     if "compensation_flag" in data:
         operation.compensation_flag = bool(data["compensation_flag"])
     if "compensation_comment" in data:
-        operation.compensation_comment = data["compensation_comment"]
+        operation.compensation_comment = _clip(data["compensation_comment"], 500)
+
+    new_state = {
+        "quantity": operation.quantity,
+        "compensation_flag": operation.compensation_flag,
+        "compensation_comment": operation.compensation_comment,
+    }
+    if new_state != old_state:
+        _audit(
+            "treasury_operation_update",
+            target_type="treasury_operation",
+            target_id=operation.id,
+            old=old_state,
+            new=new_state,
+        )
 
     db.session.commit()
 
@@ -1067,15 +1141,8 @@ def update_treasury_operation(clan_id, operation_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/compensation", methods=["POST"])
-@require_permission("clan_info", "admin")
+@require_permission("treasury", "write")
 def create_treasury_compensation(clan_id):
-    from flask import g
-
-    if not g.current_user or g.current_user.role != "admin":
-        return jsonify(
-            {"error": "Только администратор может создавать компенсации"}
-        ), 403
-
     data = request.json
     nick = data.get("nick")
     norm_amount = data.get("norm_amount", 0)
@@ -1106,6 +1173,20 @@ def create_treasury_compensation(clan_id):
         db.session.add(treasury_op)
         created.append(treasury_op)
 
+    _audit(
+        "treasury_compensation_create",
+        target_type="treasury_operation",
+        target_id=created[0].id if created else None,
+        new={
+            "nick": nick,
+            "norm_amount": norm_amount,
+            "months": months,
+            "year": year,
+            "comment": comment,
+            "count": len(created),
+        },
+    )
+
     db.session.commit()
 
     data_logger.info(
@@ -1128,6 +1209,358 @@ def create_treasury_compensation(clan_id):
             ],
         }
     ), 201
+
+
+# --------------------------------------------------------------------------- #
+# Tax overpayment carry-over («перенос переплаты на следующий месяц»)
+# --------------------------------------------------------------------------- #
+
+
+def _tax_carryover_decisions(clan_id):
+    """{(nick_lower, month, year): {'status', 'amount'}} for already reviewed rows.
+
+    These are the engine's fixed inputs: a confirmed amount is reused as-is and
+    a cancelled month carries nothing — recomputation must never resurrect a
+    proposal the treasurer rejected.
+    """
+    reviewed = (
+        TaxCarryover.query.filter(
+            TaxCarryover.clan_id == clan_id,
+            TaxCarryover.status.in_((STATUS_CONFIRMED, STATUS_CANCELLED)),
+        )
+        .all()
+    )
+    return {
+        (row.nick.lower(), row.source_month, row.source_year): {
+            "status": row.status,
+            "amount": row.amount,
+        }
+        for row in reviewed
+    }
+
+
+def _tax_engine_inputs(clan_id):
+    """Load the engine inputs from the DB as plain dicts (engine stays pure)."""
+    operations = [
+        {
+            "date": op.date,
+            "nick": op.nick,
+            "operation_type": op.operation_type,
+            "object_name": op.object_name,
+            "quantity": op.quantity,
+            "compensation_flag": op.compensation_flag,
+        }
+        for op in TreasuryOperation.query.filter_by(clan_id=clan_id).all()
+    ]
+    members = [
+        {
+            "nick": m.nick,
+            "level": m.level,
+            "join_date": m.join_date,
+            "trial_until": m.trial_until,
+            "is_deleted": m.is_deleted,
+        }
+        for m in ClanMemberInfo.query.filter_by(clan_id=clan_id).all()
+    ]
+    level_events = {}
+    for event in ClanLevelChangeEvent.query.filter_by(clan_id=clan_id).all():
+        level_events.setdefault(event.nick.lower(), []).append(
+            {"date": event.event_date, "new_level": event.new_level}
+        )
+    return operations, members, level_events
+
+
+def _compute_tax_carryovers(clan_id, month, year, today=None):
+    operations, members, level_events = _tax_engine_inputs(clan_id)
+    return compute_carryovers(
+        operations,
+        members,
+        level_events,
+        _tax_carryover_decisions(clan_id),
+        month,
+        year,
+        today=today,
+    )
+
+
+@clan_info_bp.route("/api/clan/<int:clan_id>/tax-carryover", methods=["GET"])
+@require_permission("clan_info", "read")
+def get_tax_carryovers(clan_id):
+    """Carry-over proposals arising FROM a month, plus credits flowing INTO it.
+
+    ``preview`` is computed but never stored: the running month is not final, so
+    it can only be shown, not approved.
+    """
+    today = date.today()
+    month = _as_int(request.args.get("month"), today.month)
+    year = _as_int(request.args.get("year"), today.year)
+    if not (1 <= month <= 12) or year < 2000:
+        return jsonify({"error": "Некорректный месяц/год"}), 400
+
+    closed = is_month_closed(month, year, today)
+    rows = (
+        TaxCarryover.query.filter_by(
+            clan_id=clan_id, source_month=month, source_year=year
+        )
+        .order_by(TaxCarryover.nick)
+        .all()
+    )
+    prev_month, prev_year = prev_ym(month, year)
+    incoming = (
+        TaxCarryover.query.filter_by(
+            clan_id=clan_id,
+            source_month=prev_month,
+            source_year=prev_year,
+            status=STATUS_CONFIRMED,
+        )
+        .order_by(TaxCarryover.nick)
+        .all()
+    )
+    preview = []
+    if not closed:
+        preview = [
+            p.as_dict() for p in _compute_tax_carryovers(clan_id, month, year, today)
+        ]
+
+    pending = [r for r in rows if r.status == STATUS_PENDING]
+    return jsonify(
+        {
+            "month": month,
+            "year": year,
+            "is_closed": closed,
+            "carryovers": [r.to_dict() for r in rows],
+            "incoming": [
+                {
+                    "nick": r.nick,
+                    "amount": r.amount,
+                    "source_month": r.source_month,
+                    "source_year": r.source_year,
+                }
+                for r in incoming
+            ],
+            "preview": preview,
+            "pending_count": len(pending),
+            "pending_total": sum(r.amount for r in pending),
+        }
+    )
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/tax-carryover/recompute", methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def recompute_tax_carryovers(clan_id):
+    """Regenerate pending proposals for a closed month.
+
+    Only ``pending`` rows are rewritten: confirmed and cancelled rows are the
+    treasurer's decisions and stay untouched. A pending row whose excess has
+    disappeared (payments shrank, the member left) is removed.
+    """
+    today = date.today()
+    data = request.get_json(silent=True) or {}
+    month = _as_int(data.get("month"), 0)
+    year = _as_int(data.get("year"), 0)
+    if not (1 <= month <= 12) or year < 2000:
+        return jsonify({"error": "month и year обязательны"}), 400
+    if not is_month_closed(month, year, today):
+        return (
+            jsonify(
+                {
+                    "error": "month_not_closed",
+                    "message": "Перенос формируется только по завершённому месяцу; "
+                    "для текущего месяца доступен прогноз.",
+                }
+            ),
+            400,
+        )
+
+    proposals = _compute_tax_carryovers(clan_id, month, year, today)
+    by_nick = {p.nick.lower(): p for p in proposals}
+
+    existing = TaxCarryover.query.filter_by(
+        clan_id=clan_id, source_month=month, source_year=year
+    ).all()
+    existing_by_nick = {row.nick.lower(): row for row in existing}
+
+    user = getattr(g, "current_user", None)
+    created = updated = removed = 0
+
+    for nick_lower, row in list(existing_by_nick.items()):
+        if row.status != STATUS_PENDING:
+            continue
+        proposal = by_nick.get(nick_lower)
+        if proposal is None:
+            db.session.delete(row)
+            removed += 1
+        elif row.amount != proposal.amount:
+            row.amount = proposal.amount
+            updated += 1
+
+    for nick_lower, proposal in by_nick.items():
+        if nick_lower in existing_by_nick:
+            continue
+        db.session.add(
+            TaxCarryover(
+                clan_id=clan_id,
+                nick=proposal.nick,
+                source_month=proposal.source_month,
+                source_year=proposal.source_year,
+                amount=proposal.amount,
+                status=STATUS_PENDING,
+                created_by=user.id if user else None,
+            )
+        )
+        created += 1
+
+    _audit(
+        "tax_carryover_recompute",
+        target_type="tax_carryover",
+        target_id=clan_id,
+        new={
+            "month": month,
+            "year": year,
+            "created": created,
+            "updated": updated,
+            "removed": removed,
+        },
+    )
+    db.session.commit()
+
+    rows = (
+        TaxCarryover.query.filter_by(
+            clan_id=clan_id, source_month=month, source_year=year
+        )
+        .order_by(TaxCarryover.nick)
+        .all()
+    )
+    return jsonify(
+        {
+            "success": True,
+            "created": created,
+            "updated": updated,
+            "removed": removed,
+            "carryovers": [r.to_dict() for r in rows],
+        }
+    )
+
+
+def _review_tax_carryover(clan_id, carryover_id, status):
+    row = TaxCarryover.query.filter_by(id=carryover_id, clan_id=clan_id).first()
+    if not row:
+        return jsonify({"error": "Перенос не найден"}), 404
+    if row.status != STATUS_PENDING:
+        return (
+            jsonify(
+                {
+                    "error": "not_pending",
+                    "message": f"Перенос уже обработан ({row.status})",
+                }
+            ),
+            409,
+        )
+
+    data = request.get_json(silent=True) or {}
+    if "comment" in data:
+        row.comment = _clip(data.get("comment"), 500)
+
+    user = getattr(g, "current_user", None)
+    row.status = status
+    row.reviewed_by = user.id if user else None
+    row.reviewed_at = datetime.utcnow()
+
+    _audit(
+        f"tax_carryover_{status}",
+        target_type="tax_carryover",
+        target_id=row.id,
+        old={"status": STATUS_PENDING},
+        new={
+            "status": status,
+            "nick": row.nick,
+            "amount": row.amount,
+            "source_month": row.source_month,
+            "source_year": row.source_year,
+            "comment": row.comment or "",
+        },
+    )
+    db.session.commit()
+    return jsonify({"success": True, "carryover": row.to_dict()})
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/tax-carryover/<int:carryover_id>/confirm",
+    methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def confirm_tax_carryover(clan_id, carryover_id):
+    return _review_tax_carryover(clan_id, carryover_id, STATUS_CONFIRMED)
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/tax-carryover/<int:carryover_id>/cancel",
+    methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def cancel_tax_carryover(clan_id, carryover_id):
+    return _review_tax_carryover(clan_id, carryover_id, STATUS_CANCELLED)
+
+
+@clan_info_bp.route("/api/clan/<int:clan_id>/tax-carryover/bulk", methods=["POST"])
+@require_permission("treasury", "approve")
+def bulk_review_tax_carryovers(clan_id):
+    """Confirm or cancel a whole batch («Подтвердить все» / «Отменить все»)."""
+    data = request.get_json(silent=True) or {}
+    action = (data.get("action") or "").strip()
+    if action not in ("confirm", "cancel"):
+        return jsonify({"error": "action должен быть confirm или cancel"}), 400
+
+    ids = [_as_int(i) for i in (data.get("ids") or [])]
+    ids = [i for i in ids if i]
+    if not ids:
+        return jsonify({"error": "ids обязателен"}), 400
+
+    status = STATUS_CONFIRMED if action == "confirm" else STATUS_CANCELLED
+    comment = _clip(data.get("comment"), 500)
+    user = getattr(g, "current_user", None)
+
+    rows = TaxCarryover.query.filter(
+        TaxCarryover.clan_id == clan_id, TaxCarryover.id.in_(ids)
+    ).all()
+    found_ids = {row.id for row in rows}
+
+    updated_ids, skipped_ids = [], []
+    for row in rows:
+        if row.status != STATUS_PENDING:
+            skipped_ids.append(row.id)
+            continue
+        row.status = status
+        if comment:
+            row.comment = comment
+        row.reviewed_by = user.id if user else None
+        row.reviewed_at = datetime.utcnow()
+        updated_ids.append(row.id)
+
+    missing_ids = [i for i in ids if i not in found_ids]
+    _audit(
+        f"tax_carryover_bulk_{action}",
+        target_type="tax_carryover",
+        target_id=clan_id,
+        new={
+            "updated": len(updated_ids),
+            "skipped": skipped_ids,
+            "missing": missing_ids,
+            "comment": comment,
+        },
+    )
+    db.session.commit()
+    return jsonify(
+        {
+            "success": True,
+            "updated": len(updated_ids),
+            "updated_ids": updated_ids,
+            "skipped_ids": skipped_ids,
+            "missing_ids": missing_ids,
+        }
+    )
 
 
 def _replace_operations_in_range(clan_id, operations_data):
@@ -1163,16 +1596,8 @@ def _replace_operations_in_range(clan_id, operations_data):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/import", methods=["POST"])
-@require_permission("clan_info", "admin")
+@require_permission("treasury", "admin")
 def import_treasury_operations(clan_id):
-    from flask import g
-
-    if not g.current_user or g.current_user.role != "admin":
-        data_logger.warning(
-            f"[TREASURY] Unauthorized import attempt for clan {clan_id}"
-        )
-        return jsonify({"error": "Только администратор может импортировать казну"}), 403
-
     data = request.json
     operations_data = data.get("operations", [])
     replace = data.get("replace", False)
@@ -1296,6 +1721,19 @@ def import_treasury_operations(clan_id):
     if skip_reasons:
         data_logger.warning(f"[TREASURY] Skipped operations: {skip_reasons}")
 
+    _audit(
+        "treasury_import",
+        target_type="clan_treasury",
+        target_id=clan_id,
+        new={
+            "imported": imported,
+            "updated": updated,
+            "skipped": skipped,
+            "replace": replace,
+            "replace_range": replace_range,
+        },
+    )
+
     try:
         db.session.commit()
     except Exception as e:
@@ -1411,14 +1849,8 @@ def get_treasury_date_coverage(clan_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury", methods=["POST"])
-@require_permission("clan_info", "admin")
+@require_permission("treasury", "admin")
 def fetch_treasury_operations(clan_id):
-    from flask import g
-
-    if not g.current_user or g.current_user.role != "admin":
-        data_logger.warning(f"[TREASURY] Unauthorized fetch attempt for clan {clan_id}")
-        return jsonify({"error": "Только администратор может обновлять казну"}), 403
-
     data_logger.info(f"[TREASURY] Starting treasury fetch for clan {clan_id}")
 
     try:
@@ -1484,13 +1916,9 @@ def fetch_treasury_operations(clan_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/cookies/save", methods=["POST"])
-@require_permission("clan_info", "admin")
+@require_permission("treasury", "admin")
 def save_treasury_cookies(clan_id):
-    from flask import g
     from urllib.parse import unquote
-
-    if not g.current_user or g.current_user.role != "admin":
-        return jsonify({"error": "Только администратор может управлять cookies"}), 403
 
     data = request.json
     cookies_str = data.get("cookies", "").strip()
@@ -1582,14 +2010,10 @@ def get_treasury_cookies_status(clan_id):
 @clan_info_bp.route(
     "/api/clan/<int:clan_id>/treasury/auto-fetch-json", methods=["POST"]
 )
-@require_permission("clan_info", "admin")
+@require_permission("treasury", "admin")
 def auto_fetch_treasury_json(clan_id):
     """JSON-based fetch for optimized range imports (no SSE)."""
-    from flask import g
     from urllib.parse import unquote
-
-    if not g.current_user or g.current_user.role != "admin":
-        return jsonify({"error": "Только администратор"}), 403
 
     cookie = ClanCookie.query.filter_by(clan_id=clan_id).first()
     if not cookie or not cookie.is_valid:
@@ -1768,13 +2192,7 @@ def auto_fetch_treasury_json(clan_id):
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/auto-fetch", methods=["POST"])
 @require_permission("clan_info", "admin")
 def auto_fetch_treasury(clan_id):
-    from flask import g
     from urllib.parse import unquote
-
-    if not g.current_user or g.current_user.role != "admin":
-        return jsonify(
-            {"error": "Только администратор может запускать авто-импорт"}
-        ), 403
 
     cookie = ClanCookie.query.filter_by(clan_id=clan_id).first()
     if not cookie or not cookie.is_valid:
@@ -1847,14 +2265,10 @@ def auto_fetch_treasury(clan_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/estimate", methods=["POST"])
-@require_permission("clan_info", "admin")
+@require_permission("treasury", "admin")
 def estimate_treasury_pages(clan_id):
     """Binary search to estimate page count in a date range before import."""
-    from flask import g
     from urllib.parse import unquote
-
-    if not g.current_user or g.current_user.role != "admin":
-        return jsonify({"error": "Только администратор"}), 403
 
     cookie = ClanCookie.query.filter_by(clan_id=clan_id).first()
     if not cookie or not cookie.is_valid:
@@ -2026,7 +2440,7 @@ def auto_fetch_treasury_stream(clan_id):
             if expires > datetime.now(timezone.utc):
                 current_user = User.query.get(session_token.user_id)
 
-    if not current_user or current_user.role != "admin":
+    if not current_user or get_user_permission(current_user, "treasury", "admin") == "none":
 
         def error_gen():
             yield (
@@ -2035,7 +2449,7 @@ def auto_fetch_treasury_stream(clan_id):
                     {
                         "type": "error",
                         "reason": "forbidden",
-                        "message": "Только администратор",
+                        "message": "Недостаточно прав",
                     }
                 )
                 + "\n\n"
@@ -2155,7 +2569,7 @@ def auto_fetch_members_stream(clan_id):
             if expires > datetime.now(timezone.utc):
                 current_user = User.query.get(session_token.user_id)
 
-    if not current_user or current_user.role != "admin":
+    if not current_user or get_user_permission(current_user, "clan_info", "admin") == "none":
 
         def error_gen():
             yield (
@@ -2164,7 +2578,7 @@ def auto_fetch_members_stream(clan_id):
                     {
                         "type": "error",
                         "reason": "forbidden",
-                        "message": "Только администратор",
+                        "message": "Недостаточно прав",
                     }
                 )
                 + "\n\n"
@@ -2304,11 +2718,6 @@ def auto_fetch_members_stream(clan_id):
 @require_permission("clan_info", "admin")
 def import_member_diff(clan_id):
     from flask import g
-
-    if not g.current_user or g.current_user.role != "admin":
-        return jsonify(
-            {"error": "Только администратор может импортировать изменения"}
-        ), 403
 
     data = request.json
     joined_list = data.get("joined", [])
@@ -2498,11 +2907,6 @@ def import_member_diff(clan_id):
 def import_history_events(clan_id):
     from flask import g
 
-    if not g.current_user or g.current_user.role != "admin":
-        return jsonify(
-            {"error": "Только администратор может импортировать историю"}
-        ), 403
-
     data = request.json
     events_list = data.get("events", [])
 
@@ -2671,7 +3075,7 @@ def import_level_events_stream(clan_id):
             if expires > datetime.now(timezone.utc):
                 current_user = User.query.get(session_token.user_id)
 
-    if not current_user or current_user.role != "admin":
+    if not current_user or get_user_permission(current_user, "clan_info", "admin") == "none":
 
         def error_gen():
             yield (
@@ -2680,7 +3084,7 @@ def import_level_events_stream(clan_id):
                     {
                         "type": "error",
                         "reason": "forbidden",
-                        "message": "Только администратор",
+                        "message": "Недостаточно прав",
                     }
                 )
                 + "\n\n"

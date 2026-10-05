@@ -120,7 +120,7 @@ def sync_permissions(db):
 
         default_level = user_defaults.get((feature_name, action), 'none')
 
-        for role_name in ['admin', 'superuser', 'user', 'custom']:
+        for role_name in ['admin', 'superuser', 'user', 'custom', 'treasurer']:
             role_id = roles.get(role_name)
             if role_id is None:
                 continue
@@ -216,8 +216,8 @@ def require_permission(feature: str, action: str):
             if level == 'none':
                 return jsonify({'error': 'Доступ запрещён'}), 403
 
-            # 'read' level blocks write/delete/admin actions
-            if level == 'read' and action in ('write', 'delete', 'admin'):
+            # 'read' level blocks write/delete/admin/approve actions
+            if level == 'read' and action in ('write', 'delete', 'admin', 'approve'):
                 return jsonify({'error': 'Недостаточно прав'}), 403
 
             return f(*args, **kwargs)

@@ -1,0 +1,235 @@
+/* Tax overpayment carry-over panel.
+   Classes mirror the established .tax-* patterns in TaxAnalytics.css verbatim
+   (same radius, borders, badge shapes, button sizes) — copy, don't invent. */
+
+.tc-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-left: 3px solid var(--border);
+}
+
+/* A pending decision is the treasurer's queue — make it visible. */
+.tc-panel-attention {
+  border-left-color: #f59e0b;
+}
+
+.tc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.tc-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+}
+
+.tc-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tc-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.tc-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.tc-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tc-btn-ok {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: transparent;
+  color: #22c55e;
+}
+
+.tc-btn-no {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: transparent;
+  color: #ef4444;
+}
+
+.tc-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tc-badge-pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.tc-badge-ok {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.tc-badge-no {
+  background: rgba(156, 163, 175, 0.15);
+  color: #6b7280;
+}
+
+.tc-note {
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.tc-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.tc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tc-table th,
+.tc-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.tc-table th {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tc-nick {
+  font-weight: 500;
+}
+
+.tc-amount {
+  color: #3b82f6;
+  font-family: monospace;
+}
+
+.tc-decision {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.tc-icon-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.tc-icon-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.tc-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tc-icon-ok {
+  color: #22c55e;
+}
+
+.tc-icon-no {
+  color: #ef4444;
+}
+
+.tc-muted {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.tc-comment {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  font-size: 13px;
+  margin-top: 8px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.tc-comment:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.tc-comment::placeholder {
+  color: var(--text-muted);
+}
+
+.tc-comment-cell {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.tc-history {
+  margin-top: 10px;
+}
+
+.tc-history summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tc-history table {
+  margin-top: 8px;
+}
+
+.tc-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 12px;
+  font-size: 13px;
+}

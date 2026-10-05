@@ -21,7 +21,11 @@ const TABS: { key: TabType; label: string }[] = [
 ];
 
 export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
-  const isAdmin = usePermission('clan_info', 'admin') === 'full';
+  // Treasury edits are their own permission (a «Казначей» must be able to
+  // correct operations without clan-member import rights).
+  const canManage = usePermission('treasury', 'write') === 'full';
+  // Approving carry-over proposals is a separate decision right.
+  const canApprove = usePermission('treasury', 'approve') === 'full';
   const [operations, setOperations] = useState<TreasuryOperationData[]>([]);
   const [members, setMembers] = useState<ClanMemberData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,7 +74,7 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
 
       <div className="ta-tab-content">
         {activeTab === 'tax' && (
-          <TaxAnalytics operations={operations} members={members} clanId={clanId} isAdmin={isAdmin} onRefresh={loadData} />
+          <TaxAnalytics operations={operations} members={members} clanId={clanId} canManage={canManage} canApprove={canApprove} onRefresh={loadData} />
         )}
         {activeTab === 'talent' && <TalentAnalytics operations={operations} members={members} />}
         {activeTab === 'misc' && <MiscAnalytics operations={operations} />}

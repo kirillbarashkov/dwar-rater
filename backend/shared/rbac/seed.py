@@ -5,6 +5,7 @@ ROLES = [
     {'name': 'superuser', 'label': 'Суперпользователь', 'is_system': False},
     {'name': 'user', 'label': 'Пользователь', 'is_system': True},
     {'name': 'custom', 'label': 'Пользовательский', 'is_system': False},
+    {'name': 'treasurer', 'label': 'Казначей', 'is_system': True},
 ]
 
 PERMISSIONS = [
@@ -24,6 +25,10 @@ PERMISSIONS = [
     ('clan_info', 'read', 'Просмотр инфо/состава/казны', 'GET /api/clan/*'),
     ('clan_info', 'write', 'Редактирование участников', 'POST/PUT/DELETE /api/clan/*/members/*'),
     ('clan_info', 'admin', 'Импорт/экспорт казны, бэкапы', 'Treasury import/export/backup admin'),
+    # treasury — касса: правки операций, зачёты и подтверждение переносов
+    ('treasury', 'write', 'Корректировка операций казны', 'PUT /api/clan/*/treasury/<id>, POST /api/clan/*/treasury/compensation'),
+    ('treasury', 'approve', 'Подтверждение переносов/корректировок', 'tax-carryover confirm/cancel/bulk'),
+    ('treasury', 'admin', 'Импорт/бэкап казны, cookies, авто-сбор', 'treasury import/restore/auto-fetch/cookies/estimate'),
     # scenarios
     ('scenarios', 'read', 'Просмотр сценариев', 'GET /api/scenarios'),
     ('scenarios', 'write', 'Создание/редактирование сценариев', 'POST/PUT/DELETE /api/scenarios/*'),
@@ -60,6 +65,9 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('admin', 'clan_info', 'read', 'full'),
     ('admin', 'clan_info', 'write', 'full'),
     ('admin', 'clan_info', 'admin', 'full'),
+    ('admin', 'treasury', 'write', 'full'),
+    ('admin', 'treasury', 'approve', 'full'),
+    ('admin', 'treasury', 'admin', 'full'),
     ('admin', 'scenarios', 'read', 'full'),
     ('admin', 'scenarios', 'write', 'full'),
     ('admin', 'tracks', 'read', 'full'),
@@ -87,6 +95,9 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('superuser', 'clan_info', 'read', 'full'),
     ('superuser', 'clan_info', 'write', 'full'),
     ('superuser', 'clan_info', 'admin', 'none'),
+    ('superuser', 'treasury', 'write', 'full'),
+    ('superuser', 'treasury', 'approve', 'full'),
+    ('superuser', 'treasury', 'admin', 'none'),
     ('superuser', 'scenarios', 'read', 'full'),
     ('superuser', 'scenarios', 'write', 'full'),
     ('superuser', 'tracks', 'read', 'full'),
@@ -129,6 +140,13 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('user', 'admin', 'admin', 'none'),
 
     # custom: everything none by default (admin assigns individually)
+
+    # treasurer (Казначей): полное право на корректировку записей казны,
+    # импорт/бэкап (treasury:admin) — по умолчанию нет, включается в матрице прав.
+    ('treasurer', 'clan_info', 'read', 'full'),
+    ('treasurer', 'treasury', 'write', 'full'),
+    ('treasurer', 'treasury', 'approve', 'full'),
+    ('treasurer', 'treasury', 'admin', 'none'),
 ]
 
 

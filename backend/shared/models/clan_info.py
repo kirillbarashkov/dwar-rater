@@ -151,6 +151,66 @@ class TreasurySourceWindow(db.Model):
         return f'<TreasurySourceWindow clan={self.clan_id} oldest={self.oldest_date}>'
 
 
+class TaxCarryover(db.Model):
+    """Review ledger for tax overpayments carried to the next month.
+
+    A proposal lives here with ``status='pending'`` until a treasurer confirms
+    or cancels it. The excess is NOT materialised as a synthetic
+    ``treasury_operations`` row: cancelling must not delete anything from the
+    treasury, an overpayment is not money received, and a cancelled proposal
+    must be remembered so recomputation does not bring it back.
+
+    ``source_month`` / ``source_year`` are the month the member overpaid;
+    the credit applies to the following month (derived, never stored, so the
+    two cannot drift apart).
+    """
+
+    __tablename__ = 'tax_carryover'
+    id = db.Column(db.Integer, primary_key=True)
+    clan_id = db.Column(
+        db.Integer, db.ForeignKey('clan_info.clan_id'), nullable=False, index=True
+    )
+    nick = db.Column(db.String(100), nullable=False)
+    source_month = db.Column(db.Integer, nullable=False)
+    source_year = db.Column(db.Integer, nullable=False)
+    amount = db.Column(db.Integer, nullable=False, default=0)
+    status = db.Column(db.String(12), nullable=False, default='pending')
+    comment = db.Column(db.String(500), default='')
+    created_by = db.Column(db.Integer, db.ForeignKey('app_user.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('app_user.id'), nullable=True)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            'clan_id', 'nick', 'source_month', 'source_year',
+            name='uq_tax_carryover_source',
+        ),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'clan_id': self.clan_id,
+            'nick': self.nick,
+            'source_month': self.source_month,
+            'source_year': self.source_year,
+            'amount': self.amount,
+            'status': self.status,
+            'comment': self.comment or '',
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'reviewed_by': self.reviewed_by,
+            'reviewed_at': self.reviewed_at.isoformat() if self.reviewed_at else None,
+        }
+
+    def __repr__(self):
+        return (
+            f'<TaxCarryover clan={self.clan_id} {self.nick} '
+            f'{self.source_month:02d}.{self.source_year} {self.amount} {self.status}>'
+        )
+
+
 class ClanLevelChangeEvent(db.Model):
     __tablename__ = 'clan_level_change_events'
     id = db.Column(db.Integer, primary_key=True)

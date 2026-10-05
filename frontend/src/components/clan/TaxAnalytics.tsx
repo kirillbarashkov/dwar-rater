@@ -1,16 +1,28 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import type { TreasuryOperationData } from '../../types/clanInfo';
+import type { TreasuryOperationData, TaxCarryoverMonth } from '../../types/clanInfo';
 import type { ClanMemberData } from '../../types/clanInfo';
 import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU } from '../../utils/treasury';
-import { createTreasuryCompensation, updateTreasuryOperation, getLevelHistory } from '../../api/clanInfo';
+import {
+  createTreasuryCompensation,
+  updateTreasuryOperation,
+  getLevelHistory,
+  getTaxCarryovers,
+  recomputeTaxCarryovers,
+  reviewTaxCarryover,
+  bulkReviewTaxCarryovers,
+} from '../../api/clanInfo';
 import { copyText } from '../../utils/clipboard';
+import { TaxCarryoverPanel } from './TaxCarryoverPanel';
 import './TaxAnalytics.css';
 
 interface TaxAnalyticsProps {
   operations: TreasuryOperationData[];
   members?: ClanMemberData[];
   clanId?: number;
-  isAdmin?: boolean;
+  /** True when the user holds treasury:write (correct operations / зачёты). */
+  canManage?: boolean;
+  /** True when the user holds treasury:approve (carry-over decisions). */
+  canApprove?: boolean;
   onRefresh?: () => void;
 }
 
@@ -29,6 +41,8 @@ interface PlayerTaxSummary {
   playerLevel?: number;
   normAmount: number;
   totalPaid: number;
+  /** Confirmed carry-over from the previous month, credited to this month. */
+  carriedIn: number;
   onTimePaid: number;
   delayedPaid: number;
   compensationAmount: number;
@@ -61,7 +75,7 @@ function getNormForLevel(level: number): number {
   return CLAN_TAX_NORM[level] || DEFAULT_NORM;
 }
 
-export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false, onRefresh }: TaxAnalyticsProps) {
+export function TaxAnalytics({ operations, members = [], clanId, canManage = false, canApprove = false, onRefresh }: TaxAnalyticsProps) {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [editingCompensation, setEditingCompensation] = useState<{
@@ -96,6 +110,58 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
       .catch((err) => { console.error('Failed to load level history:', err); if (!cancelled) setLevelHistory({}); });
     return () => { cancelled = true; };
   }, [clanId]);
+
+  const [carryover, setCarryover] = useState<TaxCarryoverMonth | null>(null);
+
+  const loadCarryover = useCallback(() => {
+    if (!clanId) return () => {};
+    let cancelled = false;
+    getTaxCarryovers(clanId, selectedMonth, selectedYear)
+      .then((data) => { if (!cancelled) setCarryover(data); })
+      .catch((err) => {
+        console.error('Failed to load tax carry-overs:', err);
+        if (!cancelled) setCarryover(null);
+      });
+    return () => { cancelled = true; };
+  }, [clanId, selectedMonth, selectedYear]);
+
+  useEffect(() => loadCarryover(), [loadCarryover]);
+
+  /** Confirmed credits flowing INTO the displayed month, keyed by nick. */
+  const carriedByNick = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const inc of carryover?.incoming ?? []) {
+      const key = inc.nick.toLowerCase();
+      map[key] = (map[key] || 0) + inc.amount;
+    }
+    return map;
+  }, [carryover]);
+
+  const runCarryoverAction = async (action: () => Promise<unknown>) => {
+    if (!clanId) return;
+    setIsSaving(true);
+    try {
+      await action();
+      setCarryover(await getTaxCarryovers(clanId, selectedMonth, selectedYear));
+    } catch (err) {
+      console.error('Carry-over action failed:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRecomputeCarryover = () =>
+    runCarryoverAction(() =>
+      recomputeTaxCarryovers(clanId as number, selectedMonth, selectedYear)
+    );
+
+  const handleReviewCarryover = (id: number, action: 'confirm' | 'cancel', comment?: string) =>
+    runCarryoverAction(() =>
+      reviewTaxCarryover(clanId as number, id, action, comment)
+    );
+
+  const handleBulkCarryover = (ids: number[], action: 'confirm' | 'cancel') =>
+    runCarryoverAction(() => bulkReviewTaxCarryovers(clanId as number, ids, action));
 
   const getLevelAtDate = useCallback((nick: string, dateStr: string): number | null => {
     const nickLower = nick.toLowerCase();
@@ -277,17 +343,24 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
       const effectiveLevel = levelAtPayment ?? currentLevel;
       const normAmount = effectiveLevel ? (CLAN_TAX_NORM[effectiveLevel] ?? DEFAULT_NORM) : (memberNorms[nickLower] || DEFAULT_NORM);
       const totalPaid = data.onTime + data.delayed;
+      const carriedIn = carriedByNick[nickLower] || 0;
+      // «Зачёт» rows (compensation_flag) are bookkeeping markers, not money.
+      // Counting them as income invents an overpayment — the same rule the
+      // carry-over engine applies (shared/services/tax_engine.py::is_real_payment),
+      // so the badge and the generated proposal can never disagree.
+      const realPaid = totalPaid - data.compensation;
+      const covered = realPaid + carriedIn;
 
       let status: PlayerTaxSummary['status'] = 'not_paid';
       if (!isPaymentDue(nickLower)) {
         status = 'future_member';
       } else if (data.flag) {
         status = 'compensated';
-      } else if (totalPaid >= normAmount) {
+      } else if (covered >= normAmount) {
         status = data.onTime >= normAmount ? 'paid' : 'paid_delayed';
       }
 
-      const isOver = totalPaid > normAmount || data.compensation >= normAmount;
+      const isOver = covered > normAmount;
       const paymentStart = getPaymentStartMonth(nickLower);
 
       playerSummaries.push({
@@ -295,6 +368,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
         playerLevel: effectiveLevel,
         normAmount,
         totalPaid,
+        carriedIn,
         onTimePaid: data.onTime,
         delayedPaid: data.onTime >= normAmount ? 0 : data.delayed,
         compensationAmount: data.compensation,
@@ -312,17 +386,23 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
       if (!addedNicks.has(nickLower)) {
         const paymentStart = getPaymentStartMonth(nickLower);
         const isFuture = !isPaymentDue(nickLower);
-        
+        const memberNorm = getNormForLevel(m.level);
+        const carriedIn = carriedByNick[nickLower] || 0;
+        // A confirmed carry-over settles the month even without cash payments —
+        // otherwise a covered member would be listed as a debtor.
+        const coveredByCarry = !isFuture && carriedIn >= memberNorm;
+
         playerSummaries.push({
           nick: m.nick,
           playerLevel: m.level,
-          normAmount: getNormForLevel(m.level),
+          normAmount: memberNorm,
           totalPaid: 0,
+          carriedIn,
           onTimePaid: 0,
           delayedPaid: 0,
           compensationAmount: 0,
           compensationComment: '',
-          status: isFuture ? 'future_member' : 'not_paid',
+          status: isFuture ? 'future_member' : coveredByCarry ? 'paid' : 'not_paid',
           isOver: false,
           paymentStartMonth: paymentStart,
         });
@@ -350,7 +430,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
       delayedTotal,
       expectedTotal,
     };
-  }, [taxPayments, members, selectedMonth, selectedYear, memberLevels, memberNorms, getLevelAtDate, operations]);
+  }, [taxPayments, members, selectedMonth, selectedYear, memberLevels, memberNorms, getLevelAtDate, operations, carriedByNick]);
 
   const filteredPlayers = useMemo(() => {
     if (!monthSummary) return [];
@@ -399,7 +479,20 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
 
   const totalExpected = monthSummary ? monthSummary.players.reduce((sum, p) => sum + (p.status === 'future_member' ? 0 : p.normAmount), 0) : 0;
   const totalCollected = monthSummary ? monthSummary.players.reduce((sum, p) => sum + p.totalPaid, 0) : 0;
-  const totalNotCollected = Math.max(0, totalExpected - totalCollected);
+  // «Не собрано» = РЕАЛЬНЫЙ дефицит: подтверждённый перенос закрывает месяц
+  // (деньги пришли в прошлом месяце), поэтому он не считается недостачей.
+  // Новички не должны ничего. Считаем по участникам: излишек одного не гасит
+  // долг другого.
+  const totalNotCollected = monthSummary
+    ? monthSummary.players.reduce(
+        (sum, p) =>
+          p.status === 'future_member'
+            ? sum
+            : sum + Math.max(0, p.normAmount - p.totalPaid - p.carriedIn),
+        0
+      )
+    : 0;
+  const totalCarriedIn = Object.values(carriedByNick).reduce((sum, v) => sum + v, 0);
 
   const sortedFilteredPlayers = useMemo(() => {
     if (!mainSort.column) return filteredPlayers;
@@ -548,6 +641,9 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
     if (summary.status === 'compensated') {
       return <span className="tax-badge tax-badge-compensated">Зачтено</span>;
     }
+    if (summary.carriedIn > 0 && summary.totalPaid < summary.normAmount && !summary.isOver) {
+      return <span className="tax-badge tax-badge-carried">Зачтено переплатой</span>;
+    }
     if (summary.isOver) {
       return <span className="tax-badge tax-badge-over">Заплатил + Сверхнормы</span>;
     }
@@ -658,6 +754,17 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
         </div>
       </header>
 
+      <TaxCarryoverPanel
+        month={selectedMonth}
+        year={selectedYear}
+        data={carryover}
+        canApprove={canApprove}
+        isSaving={isSaving}
+        onRecompute={handleRecomputeCarryover}
+        onReview={handleReviewCarryover}
+        onBulk={handleBulkCarryover}
+      />
+
       {monthSummary && (
         <>
           <div className="tax-kpi">
@@ -671,7 +778,12 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
             </div>
             <div className="tax-kpi-card tax-kpi-danger">
               <span className="tax-kpi-value">{totalNotCollected.toLocaleString()}</span>
-              <span className="tax-kpi-label">Не собрано</span>
+              <span
+                className="tax-kpi-label"
+                title="Реальный дефицит: норма минус живые платежи и минус зачтённая переплата за прошлый месяц"
+              >
+                Не собрано
+              </span>
             </div>
           </div>
 
@@ -703,6 +815,10 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
             <div className="tax-kpi-card">
               <span className="tax-kpi-value">{futureMemberPlayers.length}</span>
               <span className="tax-kpi-label">Новичок</span>
+            </div>
+            <div className="tax-kpi-card">
+              <span className="tax-kpi-value">{totalCarriedIn.toLocaleString()}</span>
+              <span className="tax-kpi-label">Перенос из пред. месяца</span>
             </div>
           </div>
 
@@ -786,6 +902,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                       <th className="tax-sortable" onClick={() => handleSort('main', 'nick')}>Игрок {renderSortIcon('main', 'nick')}</th>
                       <th className="tax-sortable" onClick={() => handleSort('main', 'level')}>Уровень {renderSortIcon('main', 'level')}</th>
                       <th className="tax-sortable" onClick={() => handleSort('main', 'paid')}>Уплачено {renderSortIcon('main', 'paid')}</th>
+                      <th>Перенос</th>
                       <th className="tax-sortable" onClick={() => handleSort('main', 'norm')}>Норма {renderSortIcon('main', 'norm')}</th>
                       <th className="tax-sortable" onClick={() => handleSort('main', 'status')}>Статус {renderSortIcon('main', 'status')}</th>
                       <th>Компенсация</th>
@@ -809,6 +926,12 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                                 onChange={(e) => setEditingData(prev => prev ? { ...prev, quantity: parseInt(e.target.value) || 0 } : null)}
                                 min="0"
                               />
+                            </td>
+                            <td
+                              className={p.carriedIn > 0 ? 'tax-over' : ''}
+                              title={p.carriedIn > 0 ? 'Зачтена переплата за прошлый месяц' : undefined}
+                            >
+                              {p.carriedIn > 0 ? p.carriedIn : '—'}
                             </td>
                             <td>{p.normAmount}</td>
                             <td>{renderStatusBadge(p)}</td>
@@ -835,10 +958,16 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                         ) : (
                           <>
                             <td className={p.isOver ? 'tax-over' : 'tax-paid'}>{p.totalPaid}</td>
+                            <td
+                              className={p.carriedIn > 0 ? 'tax-over' : ''}
+                              title={p.carriedIn > 0 ? 'Зачтена переплата за прошлый месяц' : undefined}
+                            >
+                              {p.carriedIn > 0 ? p.carriedIn : '—'}
+                            </td>
                             <td>{p.normAmount}</td>
                             <td>{renderStatusBadge(p)}</td>
                             <td>
-                              {isAdmin && p.status === 'not_paid' && (
+                              {canManage && p.status === 'not_paid' && (
                                 <button
                                   className="tax-compensate-btn"
                                   onClick={() => handleCompensate(p.nick, p.playerLevel || 1, p.normAmount)}
@@ -849,7 +978,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                               {p.status === 'compensated' && (
                                 <span className="tax-compensated">Зачтено</span>
                               )}
-                              {!isAdmin && p.status === 'compensated' && (
+                              {!canManage && p.status === 'compensated' && (
                                 <span className="tax-compensated">Да</span>
                               )}
                             </td>
@@ -859,7 +988,7 @@ export function TaxAnalytics({ operations, members = [], clanId, isAdmin = false
                           </>
                         )}
                         <td className="tax-actions">
-                          {isAdmin && editingRow !== p.nick && (
+                          {canManage && editingRow !== p.nick && (
                             <button
                               className="tax-edit-btn"
                               onClick={() => startInlineEdit(p)}

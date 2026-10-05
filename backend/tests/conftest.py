@@ -81,7 +81,7 @@ def _truncate_all():
     Uses CASCADE to handle FK dependencies.
     """
     try:
-        db.session.execute(db.text('TRUNCATE TABLE audit_log, user_permission, role_permission, session_token, equipment_item, compare_character, improvement_track, analysis_log, treasury_operations, clan_member_info, clan_chat_message, clan_chat_room, clan_member, character_snapshot, character_cache, closed_profiles, clan_info, clan, permission, app_user, role, leveling_scenario, rate_limit RESTART IDENTITY CASCADE'))
+        db.session.execute(db.text('TRUNCATE TABLE audit_log, user_permission, role_permission, session_token, equipment_item, compare_character, improvement_track, analysis_log, treasury_operations, tax_carryover, clan_member_info, clan_chat_message, clan_chat_room, clan_member, character_snapshot, character_cache, closed_profiles, clan_info, clan, permission, app_user, role, leveling_scenario, rate_limit RESTART IDENTITY CASCADE'))
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -208,6 +208,29 @@ def admin_headers(admin_token):
 def user_headers(user_token):
     """HTTP headers with user Bearer token."""
     return {'Authorization': f'Bearer {user_token}'}
+
+
+@pytest.fixture
+def treasurer_token(app):
+    """Session token for a user holding the «Казначей» role."""
+    with app.app_context():
+        treasurer = User.query.filter_by(username='testtreasurer').first()
+        if not treasurer:
+            treasurer = User(
+                username='testtreasurer',
+                password_hash=bcrypt.hashpw('testpass'.encode(), bcrypt.gensalt()).decode('utf-8'),
+                role='treasurer',
+                is_active=True,
+            )
+            db.session.add(treasurer)
+            db.session.commit()
+        return _create_token(treasurer.id)
+
+
+@pytest.fixture
+def treasurer_headers(treasurer_token):
+    """HTTP headers with treasurer Bearer token."""
+    return {'Authorization': f'Bearer {treasurer_token}'}
 
 
 @pytest.fixture

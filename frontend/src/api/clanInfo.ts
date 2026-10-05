@@ -1,5 +1,13 @@
 import apiClient from './client';
-import type { ClanInfoData, ClanMemberData, TreasuryOperationData, LeftMemberData, MembershipEvent } from '../types/clanInfo';
+import type {
+  ClanInfoData,
+  ClanMemberData,
+  TreasuryOperationData,
+  LeftMemberData,
+  MembershipEvent,
+  TaxCarryoverData,
+  TaxCarryoverMonth,
+} from '../types/clanInfo';
 
 export async function getClanInfo(clanId: number): Promise<ClanInfoData> {
   const response = await apiClient.get(`/api/clan/${clanId}/info`);
@@ -299,5 +307,55 @@ export async function getLevelHistory(
   clanId: number
 ): Promise<Record<string, Array<{ date: string; old_level: number; new_level: number }>>> {
   const response = await apiClient.get(`/api/clan/${clanId}/level-history`);
+  return response.data;
+}
+
+export async function getTaxCarryovers(
+  clanId: number,
+  month: number,
+  year: number
+): Promise<TaxCarryoverMonth> {
+  const response = await apiClient.get(`/api/clan/${clanId}/tax-carryover`, {
+    params: { month, year },
+  });
+  return response.data;
+}
+
+export async function recomputeTaxCarryovers(
+  clanId: number,
+  month: number,
+  year: number
+): Promise<{ created: number; updated: number; removed: number; carryovers: TaxCarryoverData[] }> {
+  const response = await apiClient.post(`/api/clan/${clanId}/tax-carryover/recompute`, {
+    month,
+    year,
+  });
+  return response.data;
+}
+
+export async function reviewTaxCarryover(
+  clanId: number,
+  carryoverId: number,
+  action: 'confirm' | 'cancel',
+  comment?: string
+): Promise<{ success: boolean; carryover: TaxCarryoverData }> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/tax-carryover/${carryoverId}/${action}`,
+    { comment: comment ?? '' }
+  );
+  return response.data;
+}
+
+export async function bulkReviewTaxCarryovers(
+  clanId: number,
+  ids: number[],
+  action: 'confirm' | 'cancel',
+  comment?: string
+): Promise<{ success: boolean; updated: number; updated_ids: number[]; skipped_ids: number[]; missing_ids: number[] }> {
+  const response = await apiClient.post(`/api/clan/${clanId}/tax-carryover/bulk`, {
+    ids,
+    action,
+    comment: comment ?? '',
+  });
   return response.data;
 }
