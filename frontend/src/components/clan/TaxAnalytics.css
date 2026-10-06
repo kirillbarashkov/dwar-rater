@@ -614,6 +614,64 @@
   margin-left: 6px;
 }
 
+/* «Закрытие месяца»: freeze control in the tax header. */
+.mc-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mc-badge {
+  color: #f59e0b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mc-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mc-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.mc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mc-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 8px;
+  font-size: 12px;
+  width: 160px;
+}
+
+.mc-error {
+  color: #ef4444;
+  font-size: 12px;
+}
+
+/* Two-step confirmation stays in the interface (no native dialog). */
+.mc-question {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.mc-btn-confirm {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
 .tax-edit-btn,
 .tax-save-btn,
 .tax-cancel-btn {

@@ -33,6 +33,7 @@ from shared.models.clan_info import (
     ClanMembershipEvent,
     ClanLevelChangeEvent,
     TreasurySourceWindow,
+    TreasuryMonthClose,
 )
 from shared.services.tax_engine import (
     STATUS_CANCELLED,
@@ -41,6 +42,7 @@ from shared.services.tax_engine import (
     compute_carryovers,
     compute_member_ledger,
     is_month_closed,
+    parse_ddmmyyyy,
     prev_ym,
 )
 from shared.rbac import require_permission, feature, Permission as PermDef, get_user_permission
@@ -1034,6 +1036,26 @@ def restore_treasury_backup(clan_id):
     with open(filepath, "r", encoding="utf-8") as f:
         backup_data = json.load(f)
 
+    # Same freeze rule as the import path, and for the same reason: the delete
+    # below is unconditional, so a backup holding a frozen month must not apply
+    # while that month is closed.
+    touched = _closed_months_touched(clan_id, backup_data.get("operations", []))
+    if touched:
+        listed = ", ".join(f"{month:02d}.{year}" for month, year in touched)
+        return (
+            jsonify(
+                {
+                    "error": "month_closed",
+                    "months": [
+                        {"month": month, "year": year} for month, year in touched
+                    ],
+                    "message": f"Бэкап затрагивает закрытые месяцы ({listed}) — "
+                    "переоткройте их. Данные не изменены.",
+                }
+            ),
+            400,
+        )
+
     TreasuryOperation.query.filter_by(clan_id=clan_id).delete()
 
     imported = 0
@@ -1107,6 +1129,10 @@ def update_treasury_operation(clan_id, operation_id):
     ).first()
     if not operation:
         return jsonify({"error": "Операция не найдена"}), 404
+
+    frozen = _ensure_month_open(clan_id, operation)
+    if frozen:
+        return frozen
 
     data = request.json
 
@@ -1189,6 +1215,10 @@ def reassign_treasury_operation(clan_id, operation_id):
     if not operation:
         return jsonify({"error": "Операция не найдена"}), 404
 
+    frozen = _ensure_month_open(clan_id, operation)
+    if frozen:
+        return frozen
+
     data = request.json or {}
     to_nick = _clip(data.get("to_nick"), 100)
     reason = _clip(data.get("reason"), 60)
@@ -1250,6 +1280,181 @@ def reassign_treasury_operation(clan_id, operation_id):
             "member_status": "left" if member.is_deleted else "active",
         }
     )
+
+
+# --------------------------------------------------------------------------- #
+# Closing a month («закрытие месяца»)
+# --------------------------------------------------------------------------- #
+
+
+def _date_pair(value):
+    """(month, year) from a «DD.MM.YYYY HH:MM» string, or None if unparseable."""
+    parsed = parse_ddmmyyyy(value)
+    if not parsed:
+        return None
+    year, month, _day = parsed
+    return month, year
+
+
+def _op_ym(operation):
+    """The (month, year) an operation belongs to, or None if its date is junk."""
+    return _date_pair(operation.date)
+
+
+def _closed_month_keys(clan_id):
+    """{(month, year)} this clan has explicitly closed."""
+    return {
+        (row.month, row.year)
+        for row in TreasuryMonthClose.query.filter_by(clan_id=clan_id).all()
+    }
+
+
+def _closed_months_touched(clan_id, rows):
+    """Closed (month, year) pairs a batch of raw operation dicts would write into.
+
+    One place for both bulk paths (import and backup restore) so a closed month
+    cannot be re-shaken through the back door.
+    """
+    closed = _closed_month_keys(clan_id)
+    if not closed:
+        return []
+    return sorted(
+        {
+            pair
+            for row in rows
+            for pair in [_date_pair((row or {}).get("date"))]
+            if pair in closed
+        }
+    )
+
+
+def _ensure_month_open(clan_id, operation, closed=None):
+    """Refuse a manual write into a frozen month; None means «allowed».
+
+    Freezing is the treasurer's decision, so corrections must respect it instead
+    of silently re-shaking a month the clan has already settled.
+    """
+    pair = _op_ym(operation)
+    if not pair:
+        return None
+    if closed is None:
+        closed = _closed_month_keys(clan_id)
+    if pair in closed:
+        month, year = pair
+        return (
+            jsonify(
+                {
+                    "error": "month_closed",
+                    "month": month,
+                    "year": year,
+                    "message": f"{month:02d}.{year} закрыт — сначала переоткройте месяц",
+                }
+            ),
+            400,
+        )
+    return None
+
+
+@clan_info_bp.route("/api/clan/<int:clan_id>/treasury/months", methods=["GET"])
+@require_permission("treasury", "read")
+def get_treasury_months(clan_id):
+    """The clan's closed months, newest first."""
+    rows = (
+        TreasuryMonthClose.query.filter_by(clan_id=clan_id)
+        .order_by(TreasuryMonthClose.year.desc(), TreasuryMonthClose.month.desc())
+        .all()
+    )
+    return jsonify({"clan_id": clan_id, "months": [row.to_dict() for row in rows]})
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/months/<int:year>/<int:month>/close",
+    methods=["POST"],
+)
+@require_permission("treasury", "approve")
+def close_treasury_month(clan_id, year, month):
+    """Freeze a month that has passed: it stops accepting retroactive writes.
+
+    Closing is a decision rather than a calendar fact, so it is stored and
+    audited. The carry-over proposals of the month are reported back (computed,
+    not persisted) — the treasurer publishes them with the panel's «Пересчитать»,
+    which stays the single place that writes proposals.
+    """
+    today = date.today()
+    if not (1 <= month <= 12) or year < 2000:
+        return jsonify({"error": "Некорректный месяц/год"}), 400
+    if not is_month_closed(month, year, today):
+        return (
+            jsonify(
+                {
+                    "error": "month_running",
+                    "message": "Месяц ещё не завершён — закрывать нечего",
+                }
+            ),
+            400,
+        )
+    if TreasuryMonthClose.query.filter_by(
+        clan_id=clan_id, month=month, year=year
+    ).first():
+        return (
+            jsonify({"error": "already_closed", "message": f"{month:02d}.{year} уже закрыт"}),
+            409,
+        )
+
+    from flask import g
+
+    data = request.get_json(silent=True) or {}
+    user = getattr(g, "current_user", None)
+    row = TreasuryMonthClose(
+        clan_id=clan_id,
+        month=month,
+        year=year,
+        note=_clip(data.get("note"), 200),
+        closed_by=user.id if user else None,
+    )
+    db.session.add(row)
+    db.session.commit()
+
+    proposals = len(_compute_tax_carryovers(clan_id, month, year, today))
+    _audit(
+        "treasury_month_close",
+        target_type="treasury_month",
+        new={"month": month, "year": year, "note": row.note, "proposals": proposals},
+        clan_id=clan_id,
+    )
+    # _audit only stages the entry — without this commit it is never written.
+    db.session.commit()
+    return jsonify({"closed": row.to_dict(), "proposals": proposals})
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/months/<int:year>/<int:month>/reopen",
+    methods=["POST"],
+)
+@require_permission("treasury", "approve")
+def reopen_treasury_month(clan_id, year, month):
+    """Undo the freeze (audited). The month accepts writes again."""
+    row = TreasuryMonthClose.query.filter_by(
+        clan_id=clan_id, month=month, year=year
+    ).first()
+    if not row:
+        return (
+            jsonify({"error": "not_closed", "message": f"{month:02d}.{year} не закрыт"}),
+            404,
+        )
+
+    data = request.get_json(silent=True) or {}
+    _audit(
+        "treasury_month_reopen",
+        target_type="treasury_month",
+        old={"month": month, "year": year, "note": row.note},
+        new={"month": month, "year": year},
+        clan_id=clan_id,
+        reason=_clip(data.get("reason"), 60) or None,
+    )
+    db.session.delete(row)
+    db.session.commit()
+    return jsonify({"reopened": {"month": month, "year": year}})
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/compensation", methods=["POST"])
@@ -1755,6 +1960,8 @@ TREASURY_REASON_CODES = [
 TREASURY_JOURNAL_ACTIONS = [
     "treasury_operation_update",
     "treasury_operation_reassign",
+    "treasury_month_close",
+    "treasury_month_reopen",
     "treasury_compensation_create",
     "treasury_import",
     "treasury_backup_restore",
@@ -1984,6 +2191,27 @@ def import_treasury_operations(clan_id):
     operations_data = data.get("operations", [])
     replace = data.get("replace", False)
     replace_range = bool(data.get("replace_range", False))
+
+    # Freeze check has to run BEFORE the destructive paths below: `replace`
+    # wipes the clan's operations outright, so a batch touching a closed month
+    # must be refused while the old data is still intact.
+    touched = _closed_months_touched(clan_id, operations_data)
+    if touched:
+        listed = ", ".join(f"{month:02d}.{year}" for month, year in touched)
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "month_closed",
+                    "months": [
+                        {"month": month, "year": year} for month, year in touched
+                    ],
+                    "message": f"Импорт затрагивает закрытые месяцы ({listed}) — "
+                    "переоткройте их или исключите эти строки. Данные не изменены.",
+                }
+            ),
+            400,
+        )
 
     data_logger.info(
         f"[TREASURY] Importing {len(operations_data)} operations for clan {clan_id} "

@@ -1434,6 +1434,133 @@ paths:
         "409":
           description: The operation changed after this correction
 
+  /api/clan/{clan_id}/treasury/months:
+    get:
+      summary: Closed (frozen) treasury months
+      description: >-
+        Months the treasurer has closed. A closed month refuses manual writes
+        (corrections, re-attributions, compensations) and bulk imports until it is
+        reopened — both decisions are audited.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Closed months, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clan_id:
+                    type: integer
+                  months:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        month:
+                          type: integer
+                        year:
+                          type: integer
+                        note:
+                          type: string
+                        closed_by:
+                          type: integer
+                        closed_at:
+                          type: string
+
+  /api/clan/{clan_id}/treasury/months/{year}/{month}/close:
+    post:
+      summary: Close (freeze) a treasury month
+      description: >-
+        Closing is a decision, not a calendar fact, so a running month cannot be
+        closed (400 `month_running`) and an already closed one is a 409. The
+        carry-over proposals of the month are reported back for the treasurer to
+        publish with the usual recompute action.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+      responses:
+        "200":
+          description: Month closed; `proposals` is the carry-over count for it
+        "400":
+          description: Invalid month/year or the month has not finished yet
+        "409":
+          description: The month is already closed
+
+  /api/clan/{clan_id}/treasury/months/{year}/{month}/reopen:
+    post:
+      summary: Reopen a closed treasury month
+      description: >-
+        Undoes the freeze so the month accepts writes again. Audited — the reopen
+        is itself a journal entry, nothing is deleted silently.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: Month reopened
+        "404":
+          description: The month was not closed
+
   /api/clan/{clan_id}/treasury/{operation_id}/reassign:
     post:
       summary: Re-attribute a payment to another member

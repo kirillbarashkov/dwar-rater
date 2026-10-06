@@ -219,6 +219,15 @@ export interface TaxLedgerTotals {
   balance: number;
 }
 
+/** A treasury month the treasurer has explicitly closed (frozen). */
+export interface TreasuryClosedMonth {
+  month: number;
+  year: number;
+  note: string;
+  closed_by: number | null;
+  closed_at: string | null;
+}
+
 export interface TaxLedgerResponse {
   clan_id: number;
   from_month: number;

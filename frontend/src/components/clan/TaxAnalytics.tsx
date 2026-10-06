@@ -14,6 +14,7 @@ import {
 import { copyText } from '../../utils/clipboard';
 import { TaxCarryoverPanel } from './TaxCarryoverPanel';
 import { ReassignButton } from './ReassignButton';
+import { MonthCloseControl } from './MonthCloseControl';
 import './TaxAnalytics.css';
 
 interface TaxAnalyticsProps {
@@ -106,6 +107,9 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<{ quantity: number; compensationFlag: boolean; compensationComment: string } | null>(null);
   const [editReason, setEditReason] = useState('');
+  // A frozen month (treasurer closed it) refuses writes server-side; the UI hides
+  // the row actions so the treasurer is not offered an action that will 400.
+  const [monthClosed, setMonthClosed] = useState(false);
   const [levelHistory, setLevelHistory] = useState<Record<string, Array<{ date: string; old_level: number; new_level: number }>>>({});
 
   useEffect(() => {
@@ -772,6 +776,13 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
           <span className="tax-period-label">{periodLabel}</span>
           <button onClick={handleNextMonth}>→</button>
         </div>
+        <MonthCloseControl
+          clanId={clanId}
+          month={selectedMonth}
+          year={selectedYear}
+          canApprove={canApprove}
+          onChanged={setMonthClosed}
+        />
       </header>
 
       <TaxCarryoverPanel
@@ -1009,6 +1020,7 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
                         )}
                         <td className="tax-actions">
                           {canManage &&
+                            !monthClosed &&
                             editingRow !== p.nick &&
                             (p.paymentOpId || p.operationId) && (
                             <button
@@ -1022,7 +1034,7 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
                               </svg>
                             </button>
                           )}
-                          {canManage && editingRow !== p.nick && (
+                          {canManage && !monthClosed && editingRow !== p.nick && (
                             <ReassignButton
                               clanId={clanId}
                               operationId={p.paymentOpId}

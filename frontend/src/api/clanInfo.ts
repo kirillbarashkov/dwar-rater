@@ -6,9 +6,10 @@ import type {
   LeftMemberData,
   MembershipEvent,
   TaxCarryoverData,
-    TaxCarryoverMonth,
-    TaxLedgerResponse,
-    TreasuryJournalResponse,
+  TaxCarryoverMonth,
+  TaxLedgerResponse,
+  TreasuryClosedMonth,
+  TreasuryJournalResponse,
 } from '../types/clanInfo';
 
 export async function getClanInfo(clanId: number): Promise<ClanInfoData> {
@@ -209,6 +210,39 @@ export async function reassignTreasuryOperation(
   const response = await apiClient.post(
     `/api/clan/${clanId}/treasury/${operationId}/reassign`,
     data
+  );
+  return response.data;
+}
+
+export async function getTreasuryMonths(
+  clanId: number
+): Promise<{ clan_id: number; months: TreasuryClosedMonth[] }> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury/months`);
+  return response.data;
+}
+
+export async function closeTreasuryMonth(
+  clanId: number,
+  year: number,
+  month: number,
+  note = ''
+): Promise<{ closed: TreasuryClosedMonth; proposals: number }> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/months/${year}/${month}/close`,
+    { note }
+  );
+  return response.data;
+}
+
+export async function reopenTreasuryMonth(
+  clanId: number,
+  year: number,
+  month: number,
+  reason = ''
+): Promise<{ reopened: { month: number; year: number } }> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/months/${year}/${month}/reopen`,
+    { reason }
   );
   return response.data;
 }

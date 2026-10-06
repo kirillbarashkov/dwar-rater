@@ -225,3 +225,44 @@ class ClanLevelChangeEvent(db.Model):
 
     def __repr__(self):
         return f'<ClanLevelChangeEvent {self.nick} {self.old_level}->{self.new_level} {self.event_date}>'
+
+
+class TreasuryMonthClose(db.Model):
+    """An explicit «месяц закрыт» decision for a clan's treasury.
+
+    ``tax_engine.is_month_closed()`` only means "the month has passed on the
+    calendar"; this row is the treasurer actually freezing it. A frozen month
+    refuses manual writes (corrections, re-attributions, compensations and
+    imports) until it is explicitly reopened, so a month the clan already settled
+    cannot be re-shaken retroactively. Both decisions land in the audit log — the
+    row simply carries the current state.
+    """
+
+    __tablename__ = 'treasury_month_close'
+    id = db.Column(db.Integer, primary_key=True)
+    clan_id = db.Column(
+        db.Integer, db.ForeignKey('clan_info.clan_id'), nullable=False, index=True
+    )
+    month = db.Column(db.Integer, nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    note = db.Column(db.String(200), default='')
+    closed_by = db.Column(db.Integer, db.ForeignKey('app_user.id'), nullable=True)
+    closed_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            'clan_id', 'month', 'year', name='uq_treasury_month_close'
+        ),
+    )
+
+    def to_dict(self):
+        return {
+            'month': self.month,
+            'year': self.year,
+            'note': self.note or '',
+            'closed_by': self.closed_by,
+            'closed_at': self.closed_at.isoformat() if self.closed_at else None,
+        }
+
+    def __repr__(self):
+        return f'<TreasuryMonthClose clan={self.clan_id} {self.month:02d}.{self.year}>'
