@@ -13,6 +13,7 @@ import {
 } from '../../api/clanInfo';
 import { copyText } from '../../utils/clipboard';
 import { TaxCarryoverPanel } from './TaxCarryoverPanel';
+import { ReassignButton } from './ReassignButton';
 import './TaxAnalytics.css';
 
 interface TaxAnalyticsProps {
@@ -53,6 +54,8 @@ interface PlayerTaxSummary {
   isOver: boolean;
   paymentStartMonth?: { month: number; year: number } | null;
   operationId?: number;
+  /** The month's money row — what «перераспределить» moves. */
+  paymentOpId?: number;
 }
 
 interface MonthSummary {
@@ -311,7 +314,7 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
   }, [operations]);
 
   const monthSummary = useMemo((): MonthSummary | null => {
-    const paymentsByPlayer: Record<string, { onTime: number; delayed: number; compensation: number; opId: number; flag: boolean; comment: string; originalNick: string }> = {};
+    const paymentsByPlayer: Record<string, { onTime: number; delayed: number; compensation: number; opId: number; paymentOpId: number; flag: boolean; comment: string; originalNick: string }> = {};
 
     for (const p of taxPayments) {
       const parsed = parseDate(p.date);
@@ -320,12 +323,17 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
 
       const key = p.nick.toLowerCase();
       if (!paymentsByPlayer[key]) {
-        paymentsByPlayer[key] = { onTime: 0, delayed: 0, compensation: 0, opId: 0, flag: false, comment: '', originalNick: p.nick };
+        paymentsByPlayer[key] = { onTime: 0, delayed: 0, compensation: 0, opId: 0, paymentOpId: 0, flag: false, comment: '', originalNick: p.nick };
       }
       if (p.day <= 15) {
         paymentsByPlayer[key].onTime += p.amount;
       } else {
         paymentsByPlayer[key].delayed += p.amount;
+      }
+      if (!p.compensationFlag) {
+        // The money row of the month. Tracked apart from opId, which stays the
+        // compensation row's identity — a member can have both in one month.
+        paymentsByPlayer[key].paymentOpId = p.operationId;
       }
       if (p.compensationFlag) {
         paymentsByPlayer[key].compensation += p.amount;
@@ -379,6 +387,7 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
         status,
         isOver,
         operationId: data.opId || undefined,
+        paymentOpId: data.paymentOpId || undefined,
         paymentStartMonth: paymentStart,
       });
       addedNicks.add(nickLower);
@@ -725,11 +734,17 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
   };
 
   const saveInlineEdit = async (player: PlayerTaxSummary) => {
-    if (!clanId || !editingData || !player.operationId) return;
+    // A compensated row is edited through its «зачёт» marker; every other row
+    // through the month's money operation. `operationId` is only filled for
+    // compensation rows, so using it alone made editing a normal payment a
+    // silent no-op.
+    const targetId =
+      player.status === 'compensated' ? player.operationId : player.paymentOpId;
+    if (!clanId || !editingData || !targetId) return;
 
     setIsSaving(true);
     try {
-      await updateTreasuryOperation(clanId, player.operationId, {
+      await updateTreasuryOperation(clanId, targetId, {
         quantity: editingData.quantity,
         compensation_flag: editingData.compensationFlag,
         compensation_comment: editingData.compensationComment,
@@ -993,7 +1008,9 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
                           </>
                         )}
                         <td className="tax-actions">
-                          {canManage && editingRow !== p.nick && (
+                          {canManage &&
+                            editingRow !== p.nick &&
+                            (p.paymentOpId || p.operationId) && (
                             <button
                               className="tax-edit-btn"
                               onClick={() => startInlineEdit(p)}
@@ -1004,6 +1021,17 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                               </svg>
                             </button>
+                          )}
+                          {canManage && editingRow !== p.nick && (
+                            <ReassignButton
+                              clanId={clanId}
+                              operationId={p.paymentOpId}
+                              nick={p.nick}
+                              members={members}
+                              reasonCodes={reasonCodes}
+                              disabled={isSaving}
+                              onDone={() => onRefresh?.()}
+                            />
                           )}
                           {editingRow === p.nick && (
                             <>

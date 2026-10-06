@@ -197,6 +197,22 @@ export async function updateTreasuryOperation(
   return response.data;
 }
 
+/**
+ * Re-attribute a payment to another member: the money is untouched, only its
+ * owner changes. `reason` is required — it lands in the treasury journal.
+ */
+export async function reassignTreasuryOperation(
+  clanId: number,
+  operationId: number,
+  data: { to_nick: string; reason: string }
+): Promise<TreasuryOperationData & { from_nick: string; member_status: 'active' | 'left' }> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/${operationId}/reassign`,
+    data
+  );
+  return response.data;
+}
+
 export interface ParsedTreasuryOperation {
   date: string;
   nick: string;

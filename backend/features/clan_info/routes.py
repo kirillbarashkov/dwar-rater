@@ -1170,6 +1170,88 @@ def update_treasury_operation(clan_id, operation_id):
     )
 
 
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/<int:operation_id>/reassign", methods=["POST"]
+)
+@require_permission("treasury", "write")
+def reassign_treasury_operation(clan_id, operation_id):
+    """Re-attribute a payment: the money stays, its owner changes.
+
+    The treasurer's «перераспределение». Only the nick moves — date, type,
+    object and quantity are untouched, so the row keeps the identity the journal
+    revert relies on and the tax engine simply sees the payment under another
+    member. The reason is required and lives in the audit entry (never in the
+    row's comment), because "why" belongs to the correction, not to the data.
+    """
+    operation = TreasuryOperation.query.filter_by(
+        id=operation_id, clan_id=clan_id
+    ).first()
+    if not operation:
+        return jsonify({"error": "Операция не найдена"}), 404
+
+    data = request.json or {}
+    to_nick = _clip(data.get("to_nick"), 100)
+    reason = _clip(data.get("reason"), 60)
+
+    if not to_nick:
+        return jsonify({"error": "Укажите ник, которому принадлежит платёж"}), 400
+    if reason not in {code["code"] for code in TREASURY_REASON_CODES}:
+        return jsonify({"error": "Укажите причину перераспределения"}), 400
+    if to_nick.lower() == (operation.nick or "").lower():
+        return jsonify({"error": "Платёж уже зачислен этому участнику"}), 400
+    if operation.compensation_flag:
+        return jsonify({"error": "«Зачёт» — не деньги, перераспределять нечего"}), 400
+    if _as_int(operation.quantity, 0) <= 0:
+        return jsonify({"error": "В операции нет суммы"}), 400
+
+    # Case-insensitive on purpose: the treasurer retypes the nick, and the stored
+    # spelling must win — otherwise «beta» would sit next to «Beta» forever.
+    member = (
+        ClanMemberInfo.query.filter(
+            ClanMemberInfo.clan_id == clan_id,
+            db.func.lower(ClanMemberInfo.nick) == to_nick.lower(),
+        ).first()
+    )
+    if not member:
+        # Paying a nick the clan never had is a different mistake than a wrong
+        # attribution — refuse instead of inventing a member.
+        return jsonify({"error": f"{to_nick} нет в составе клана"}), 400
+
+    from_nick = operation.nick
+    # Store the canonical spelling from the roster, not what was typed, so the
+    # engine's per-nick keys cannot drift on case or a typo.
+    operation.nick = member.nick
+
+    _audit(
+        "treasury_operation_reassign",
+        target_type="treasury_operation",
+        target_id=operation.id,
+        old={"nick": from_nick},
+        new={"nick": operation.nick},
+        clan_id=clan_id,
+        reason=reason,
+    )
+    db.session.commit()
+
+    data_logger.info(
+        f"[TREASURY] Reassigned operation {operation_id}: {from_nick} -> {operation.nick}"
+    )
+
+    return jsonify(
+        {
+            "id": operation.id,
+            "date": operation.date,
+            "nick": operation.nick,
+            "from_nick": from_nick,
+            "operation_type": operation.operation_type,
+            "object_name": operation.object_name,
+            "quantity": operation.quantity,
+            "compensation_flag": operation.compensation_flag,
+            "member_status": "left" if member.is_deleted else "active",
+        }
+    )
+
+
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/compensation", methods=["POST"])
 @require_permission("treasury", "write")
 def create_treasury_compensation(clan_id):
@@ -1672,6 +1754,7 @@ TREASURY_REASON_CODES = [
 # Everything a treasurer can do to the treasury, in journal order.
 TREASURY_JOURNAL_ACTIONS = [
     "treasury_operation_update",
+    "treasury_operation_reassign",
     "treasury_compensation_create",
     "treasury_import",
     "treasury_backup_restore",
@@ -1682,6 +1765,18 @@ TREASURY_JOURNAL_ACTIONS = [
     "tax_carryover_bulk_confirm",
     "tax_carryover_bulk_cancel",
 ]
+
+# Which fields a journal entry restores, per action: the revert writes them back
+# from the entry's `old` payload. An action missing here is still shown in the
+# journal, it just cannot be undone by a click.
+REVERTABLE_FIELDS = {
+    "treasury_operation_update": (
+        "quantity",
+        "compensation_flag",
+        "compensation_comment",
+    ),
+    "treasury_operation_reassign": ("nick",),
+}
 
 
 def _audit_json(value):
@@ -1711,7 +1806,7 @@ def _journal_entry(entry):
         "nick": (new or {}).get("nick") or (old or {}).get("nick"),
         "old": old,
         "new": new,
-        "revertable": entry.action == "treasury_operation_update",
+        "revertable": entry.action in REVERTABLE_FIELDS,
     }
 
 
@@ -1767,12 +1862,13 @@ def revert_treasury_journal_entry(clan_id, entry_id):
     entry = AuditLog.query.filter_by(id=entry_id, clan_id=clan_id).first()
     if not entry:
         return jsonify({"error": "Запись журнала не найдена"}), 404
-    if entry.action != "treasury_operation_update":
+    fields = REVERTABLE_FIELDS.get(entry.action)
+    if not fields:
         return (
             jsonify(
                 {
                     "error": "not_revertable",
-                    "message": "Обратной записью откатываются только правки операций казны",
+                    "message": "Обратной записью откатываются только правки и переносы операций казны",
                 }
             ),
             400,
@@ -1795,7 +1891,6 @@ def revert_treasury_journal_entry(clan_id, entry_id):
             404,
         )
 
-    fields = ("quantity", "compensation_flag", "compensation_comment")
     current = {field: getattr(operation, field) for field in fields}
     expected = {field: new.get(field) for field in fields}
     if current != expected:
@@ -1812,24 +1907,27 @@ def revert_treasury_journal_entry(clan_id, entry_id):
             409,
         )
 
-    for field in fields:
-        if field in old and old[field] is not None:
-            setattr(operation, field, old[field])
-
-    restored = {field: getattr(operation, field) for field in fields}
+    # Captured before the write-back: for a reassignment revert the nickname is
+    # exactly what changes, so the entry must show it as it was.
     identity = {
         "nick": operation.nick,
         "date": operation.date,
         "operation_type": operation.operation_type,
         "object_name": operation.object_name,
     }
+
+    for field in fields:
+        if field in old and old[field] is not None:
+            setattr(operation, field, old[field])
+
+    restored = {field: getattr(operation, field) for field in fields}
     data = request.get_json(silent=True) or {}
     _audit(
         "treasury_journal_revert",
         target_type="treasury_operation",
         target_id=operation.id,
         old={**identity, **current},
-        new={**identity, **restored},
+        new={**{**identity, "nick": operation.nick}, **restored},
         clan_id=clan_id,
         reason=_clip(data.get("reason"), 60) or "revert",
     )

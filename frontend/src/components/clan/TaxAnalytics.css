@@ -607,6 +607,13 @@
   white-space: nowrap;
 }
 
+/* Failed «перераспределение» — inline, next to the row's own controls. */
+.tax-reassign-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
 .tax-edit-btn,
 .tax-save-btn,
 .tax-cancel-btn {

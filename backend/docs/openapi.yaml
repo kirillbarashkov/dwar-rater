@@ -1434,6 +1434,50 @@ paths:
         "409":
           description: The operation changed after this correction
 
+  /api/clan/{clan_id}/treasury/{operation_id}/reassign:
+    post:
+      summary: Re-attribute a payment to another member
+      description: >-
+        «Перераспределение»: the money is untouched (amount, date, type and object
+        stay as they are), only the owner changes, so both members' tax analytics
+        move at once. The target must be a member of this clan; the reason is a
+        code from the treasury reason list and lands in the corrections journal.
+        The row is refused when it is a «зачёт» marker (not money).
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: operation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - to_nick
+                - reason
+              properties:
+                to_nick:
+                  type: string
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: Payment re-attributed
+        "400":
+          description: Unknown member, the same member, a «зачёт» row or an unknown reason
+        "404":
+          description: Operation not found
+
   /api/clan/{clan_id}/tax-ledger:
     get:
       summary: Member ledger (лицевой счёт) over a period
