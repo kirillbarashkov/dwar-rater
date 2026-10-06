@@ -8,6 +8,7 @@ import type {
   TaxCarryoverData,
   TaxCarryoverMonth,
   TaxLedgerResponse,
+  TreasuryAnomaliesResponse,
   TreasuryClosedMonth,
   TreasuryJournalResponse,
 } from '../types/clanInfo';
@@ -218,6 +219,14 @@ export async function getTreasuryMonths(
   clanId: number
 ): Promise<{ clan_id: number; months: TreasuryClosedMonth[] }> {
   const response = await apiClient.get(`/api/clan/${clanId}/treasury/months`);
+  return response.data;
+}
+
+/** Read-only diagnostics: what looks wrong in the stored treasury. */
+export async function getTreasuryAnomalies(
+  clanId: number
+): Promise<TreasuryAnomaliesResponse> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury/anomalies`);
   return response.data;
 }
 

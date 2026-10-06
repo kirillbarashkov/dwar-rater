@@ -1434,6 +1434,27 @@ paths:
         "409":
           description: The operation changed after this correction
 
+  /api/clan/{clan_id}/treasury/anomalies:
+    get:
+      summary: Treasury anomaly report (read-only diagnostics)
+      description: >-
+        Categorised findings over the stored operations: a future date and a
+        negative amount (both marked `blocking` — they are refused on the way in),
+        a payment from a nick the roster does not know, a payment made before the
+        member started owing, and an amount well above the monthly norm. Nothing
+        is corrected here.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Findings, biggest group first, plus what was checked
+
   /api/clan/{clan_id}/treasury/months:
     get:
       summary: Closed (frozen) treasury months

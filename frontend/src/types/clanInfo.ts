@@ -228,6 +228,30 @@ export interface TreasuryClosedMonth {
   closed_at: string | null;
 }
 
+/** One category of treasury findings (see the anomaly report endpoint). */
+export interface TreasuryAnomalyItem {
+  code: string;
+  label: string;
+  /** True for corruption (a future date, a negative amount) — also refused on write. */
+  blocking: boolean;
+  count: number;
+  examples: Array<{
+    id: number | null;
+    date: string | null;
+    nick: string | null;
+    quantity: number | null;
+    note?: string;
+  }>;
+}
+
+export interface TreasuryAnomaliesResponse {
+  clan_id: number;
+  items: TreasuryAnomalyItem[];
+  total: number;
+  checked: { operations: number; members: number };
+  today: string;
+}
+
 export interface TaxLedgerResponse {
   clan_id: number;
   from_month: number;

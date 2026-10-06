@@ -1,0 +1,142 @@
+/* Диагностика казны. Declarations mirror the .mc- and .tl- patterns of this tab
+   (same radius, borders, badge shapes, button sizes) — copy, don't invent. */
+
+.an-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-left: 3px solid var(--border);
+}
+
+.an-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.an-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+}
+
+.an-muted {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.an-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.an-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.an-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.an-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius);
+  color: #ef4444;
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.an-clean {
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 10px 4px;
+}
+
+.an-summary {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.an-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.an-group-blocking {
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.an-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.an-group-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.an-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.an-badge-blocking {
+  font-size: 11px;
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.an-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.an-table td {
+  padding: 3px 8px;
+  border-bottom: 1px dashed var(--border);
+  color: var(--text-primary);
+}
+
+.an-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.an-note {
+  color: var(--text-secondary);
+}
+
+.an-note-footer {
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin: 10px 0 0;
+  line-height: 1.5;
+}

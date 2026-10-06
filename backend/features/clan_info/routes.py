@@ -23,6 +23,7 @@ from shared.services.clan_parser import (
     _op_in_range,
 )
 from shared.services.data_logger import data_logger
+from shared.services.treasury_anomalies import detect_anomalies
 from shared.models import db
 from shared.models.clan_info import (
     ClanInfo,
@@ -106,6 +107,16 @@ COMMANDER_ROLE = "Воевода"
 
 DEFAULT_COUNCIL_SLOTS = 4
 CLAN_MAX_PLAYERS = 70
+
+
+def _today():
+    """Today's date, safe to call where a local name shadows ``date``.
+
+    The import loop assigns its own ``date`` (a string), which makes ``date`` a
+    local name for the whole function — ``date.today()`` there would raise
+    UnboundLocalError before the first row is even read.
+    """
+    return date.today()
 
 
 def _clip(value, limit, default=""):
@@ -1153,7 +1164,23 @@ def update_treasury_operation(clan_id, operation_id):
     }
 
     if "quantity" in data:
-        operation.quantity = int(data["quantity"])
+        try:
+            quantity = int(data["quantity"])
+        except (TypeError, ValueError):
+            return jsonify({"error": "bad_quantity", "message": "Сумма должна быть числом"}), 400
+        if quantity < 0:
+            # Corruption rather than a correction: «сумма -50» is never a fix, and
+            # the anomaly report flags such rows too.
+            return (
+                jsonify(
+                    {
+                        "error": "negative_quantity",
+                        "message": "Сумма не может быть отрицательной",
+                    }
+                ),
+                400,
+            )
+        operation.quantity = quantity
     if "compensation_flag" in data:
         operation.compensation_flag = bool(data["compensation_flag"])
     if "compensation_comment" in data:
@@ -1369,7 +1396,7 @@ def get_treasury_months(clan_id):
 
 @clan_info_bp.route(
     "/api/clan/<int:clan_id>/treasury/months/<int:year>/<int:month>/close",
-    methods=["POST"],
+    methods=["POST"]
 )
 @require_permission("treasury", "approve")
 def close_treasury_month(clan_id, year, month):
@@ -1429,7 +1456,7 @@ def close_treasury_month(clan_id, year, month):
 
 @clan_info_bp.route(
     "/api/clan/<int:clan_id>/treasury/months/<int:year>/<int:month>/reopen",
-    methods=["POST"],
+    methods=["POST"]
 )
 @require_permission("treasury", "approve")
 def reopen_treasury_month(clan_id, year, month):
@@ -1455,6 +1482,22 @@ def reopen_treasury_month(clan_id, year, month):
     db.session.delete(row)
     db.session.commit()
     return jsonify({"reopened": {"month": month, "year": year}})
+
+
+@clan_info_bp.route("/api/clan/<int:clan_id>/treasury/anomalies", methods=["GET"])
+@require_permission("clan_info", "read")
+def get_treasury_anomalies(clan_id):
+    """What looks wrong in the stored treasury — read-only diagnostics.
+
+    Nothing is corrected here. A payment from a nick the roster no longer knows
+    and an amount above the norm are judgement calls the treasurer reviews; a
+    future date or a negative amount is corruption, and those are also refused on
+    the way in (import and correction), so new ones cannot appear.
+    """
+    operations, members, _level_events = _tax_engine_inputs(clan_id)
+    result = detect_anomalies(operations, members)
+    result["clan_id"] = clan_id
+    return jsonify(result)
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/compensation", methods=["POST"])
@@ -1561,6 +1604,7 @@ def _tax_engine_inputs(clan_id):
     """Load the engine inputs from the DB as plain dicts (engine stays pure)."""
     operations = [
         {
+            "id": op.id,
             "date": op.date,
             "nick": op.nick,
             "operation_type": op.operation_type,
@@ -2257,6 +2301,8 @@ def import_treasury_operations(clan_id):
         f"[TREASURY] Processing {len(operations_data)} operations from frontend"
     )
 
+    today = _today()
+
     for i, op in enumerate(operations_data):
         try:
             date = _clip(op.get("date"), 20)
@@ -2266,6 +2312,20 @@ def import_treasury_operations(clan_id):
             quantity = _as_int(op.get("quantity"), 0)
             compensation_flag = op.get("compensation_flag", False)
             compensation_comment = _clip(op.get("compensation_comment"), 500)
+
+            # Corruption is skipped with a reason, not stored and not fatal for the
+            # batch: one bad row must not lose the rest, and a silent drop is what
+            # this project has been burned by before — the reasons go back to the
+            # caller in `skip_reasons`.
+            if quantity < 0:
+                skip_reasons.append(f"op {i}: отрицательная сумма {quantity}")
+                skipped += 1
+                continue
+            pair = _date_pair(date)
+            if pair and (pair[1], pair[0]) > (today.year, today.month):
+                skip_reasons.append(f"op {i}: дата в будущем {date}")
+                skipped += 1
+                continue
 
             if not date or not nick:
                 skip_reasons.append(f"op {i}: empty date or nick")
@@ -2372,6 +2432,11 @@ def import_treasury_operations(clan_id):
             "imported": imported,
             "updated": updated,
             "skipped": skipped,
+            # Why rows were dropped must reach the caller — a silent skip reads as
+            # "there was nothing else in the source". Capped, because a wholly bad
+            # page would otherwise ship thousands of lines.
+            "skip_reasons": skip_reasons[:20],
+            "skip_reasons_total": len(skip_reasons),
             "message": f"Импортировано {imported}, обновлено {updated}",
         }
     )

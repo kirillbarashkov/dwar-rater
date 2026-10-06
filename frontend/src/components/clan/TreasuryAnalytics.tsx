@@ -8,19 +8,21 @@ import { TaxLedger } from './TaxLedger';
 import { TalentAnalytics } from './TalentAnalytics';
 import { MiscAnalytics } from './MiscAnalytics';
 import { TreasuryJournal } from './TreasuryJournal';
+import { TreasuryAnomalies } from './TreasuryAnomalies';
 import './TreasuryAnalytics.css';
 
 interface TreasuryAnalyticsProps {
   clanId: number;
 }
 
-type TabType = 'tax' | 'ledger' | 'talent' | 'misc' | 'journal';
+type TabType = 'tax' | 'ledger' | 'talent' | 'misc' | 'anomalies' | 'journal';
 
 const TABS: { key: TabType; label: string }[] = [
   { key: 'tax', label: 'Налоги' },
   { key: 'ledger', label: 'Сальдо' },
   { key: 'talent', label: 'Ресурсы талантов' },
   { key: 'misc', label: 'Прочее' },
+  { key: 'anomalies', label: 'Диагностика' },
   { key: 'journal', label: 'Журнал' },
 ];
 
@@ -99,6 +101,7 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
 
       <div className="ta-tab-content">
         {activeTab === 'ledger' && <TaxLedger clanId={clanId} />}
+        {activeTab === 'anomalies' && <TreasuryAnomalies clanId={clanId} />}
         {activeTab === 'tax' && (
           <TaxAnalytics
             operations={operations}
