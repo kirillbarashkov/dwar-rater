@@ -1434,6 +1434,52 @@ paths:
         "409":
           description: The operation changed after this correction
 
+  /api/clan/{clan_id}/treasury/nick-transfer:
+    post:
+      summary: Move a renamed character's history to the new nick
+      description: >-
+        An in-game rename leaves the old nick holding the payments and level
+        records while the new one starts from zero. This moves treasury
+        operations, carry-over rows and level-change events; nothing is deleted
+        and no amounts are merged — a carry-over the receiving nick already has for
+        that month is reported in `skipped_carryovers` for a human to resolve.
+        `dry_run: true` returns the same plan without writing. Refused when the old
+        nick is still in the roster (that is a roster problem, not a treasury one)
+        or when the receiving nick is not a member.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [from_nick, to_nick, reason]
+              properties:
+                from_nick:
+                  type: string
+                  description: The nick that disappeared from the roster.
+                to_nick:
+                  type: string
+                  description: The new nick; must be a member (stored spelling wins).
+                reason:
+                  type: string
+                  description: A code from TREASURY_REASON_CODES (`renamed_nick`).
+                dry_run:
+                  type: boolean
+                  description: Plan only — nothing is written.
+      responses:
+        "200":
+          description: The plan, and the applied counts when it was not a dry run
+        "400":
+          description: Bad nick, unknown reason, same nicks, target not a member, or nothing to move
+
   /api/clan/{clan_id}/treasury/compensation/bulk/preview:
     post:
       summary: Dry-run of a bulk tax waiver — what would be created, nothing written

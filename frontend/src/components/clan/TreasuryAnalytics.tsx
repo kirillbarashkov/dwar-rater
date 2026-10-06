@@ -9,6 +9,7 @@ import { TalentAnalytics } from './TalentAnalytics';
 import { MiscAnalytics } from './MiscAnalytics';
 import { TreasuryJournal } from './TreasuryJournal';
 import { TreasuryAnomalies } from './TreasuryAnomalies';
+import { NickTransferPanel } from './NickTransferPanel';
 import './TreasuryAnalytics.css';
 
 interface TreasuryAnalyticsProps {
@@ -30,6 +31,9 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
   // Treasury edits are their own permission (a «Казначей» must be able to
   // correct operations without clan-member import rights).
   const canManage = usePermission('treasury', 'write') === 'full';
+  // Set by a click on an «unknown nick» finding: it prefills the transfer panel
+  // right below, so the diagnostic and its remedy sit together.
+  const [transferFrom, setTransferFrom] = useState('');
   // Approving carry-over proposals is a separate decision right.
   const canApprove = usePermission('treasury', 'approve') === 'full';
   // The journal is treasurer-level: who corrected what is not public clan data.
@@ -101,7 +105,14 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
 
       <div className="ta-tab-content">
         {activeTab === 'ledger' && <TaxLedger clanId={clanId} />}
-        {activeTab === 'anomalies' && <TreasuryAnomalies clanId={clanId} />}
+        {activeTab === 'anomalies' && (
+          <>
+            <TreasuryAnomalies clanId={clanId} onPickNick={setTransferFrom} />
+            {canManage && (
+              <NickTransferPanel clanId={clanId} canManage={canManage} fromNick={transferFrom} />
+            )}
+          </>
+        )}
         {activeTab === 'tax' && (
           <TaxAnalytics
             operations={operations}

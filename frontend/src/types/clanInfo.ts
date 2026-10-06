@@ -228,6 +228,40 @@ export interface TreasuryClosedMonth {
   closed_at: string | null;
 }
 
+/** What a renamed character's history transfer would move (and what it cannot). */
+export interface NickTransferPlan {
+  from_nick: string;
+  to_nick: string;
+  operations: {
+    count: number;
+    ids: number[];
+    total_quantity: number;
+    first_date: string | null;
+    last_date: string | null;
+    /** (month, year) pairs the moved payments belong to. */
+    months: Array<[number, number]>;
+  };
+  carryovers: {
+    move: number[];
+    /** Rows whose month the receiving nick already has — left for a human. */
+    skip: Array<{ id: number; month: number; year: number; amount: number; reason: string }>;
+    skipped_count: number;
+  };
+  level_events: { count: number; ids: number[] };
+  is_empty: boolean;
+}
+
+export interface NickTransferResult {
+  applied: boolean;
+  from_nick: string;
+  to_nick: string;
+  operations: number;
+  carryovers: number;
+  level_events: number;
+  skipped_carryovers: NickTransferPlan['carryovers']['skip'];
+  plan: NickTransferPlan;
+}
+
 /** One (nick, month) pair of a bulk waiver — what will happen and why. */
 export interface BulkCompensationItem {
   nick: string;

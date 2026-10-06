@@ -5,6 +5,8 @@ import './TreasuryAnomalies.css';
 
 interface TreasuryAnomaliesProps {
   clanId?: number;
+  /** Clicking a ghost nick offers it to the history-transfer panel below. */
+  onPickNick?: (nick: string) => void;
 }
 
 /**
@@ -15,7 +17,7 @@ interface TreasuryAnomaliesProps {
  * reviews; the two marked «жёстко» (a future date, a negative amount) are
  * corruption, and those are refused on the way in, so no new ones can appear.
  */
-export function TreasuryAnomalies({ clanId }: TreasuryAnomaliesProps) {
+export function TreasuryAnomalies({ clanId, onPickNick }: TreasuryAnomaliesProps) {
   const [data, setData] = useState<TreasuryAnomaliesResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -89,6 +91,15 @@ export function TreasuryAnomalies({ clanId }: TreasuryAnomaliesProps) {
                       <td className="an-nick">{row.nick || '—'}</td>
                       <td className="an-num">{row.quantity ?? '—'}</td>
                       <td className="an-note">{row.note || ''}</td>
+                      <td className="an-action">
+                        {/* The remedy sits next to the diagnosis: a ghost nick is
+                            usually a rename, and the transfer is right below. */}
+                        {item.code === 'unknown_nick' && row.nick && onPickNick && (
+                          <button className="an-pick" onClick={() => onPickNick(row.nick as string)}>
+                            перенести историю
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

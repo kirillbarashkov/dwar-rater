@@ -1689,6 +1689,162 @@ def apply_bulk_compensation(clan_id):
     )
 
 
+@clan_info_bp.route("/api/clan/<int:clan_id>/treasury/nick-transfer", methods=["POST"])
+@require_permission("treasury", "write")
+def transfer_nick_history(clan_id):
+    """Reconnect a renamed character's history to the new nick.
+
+    An in-game rename leaves the old nick holding every payment and level record
+    while the new one starts from zero — the ledger then shows both a ghost and a
+    debtor. This moves operations, carry-over rows and level events across.
+
+    `dry_run: true` runs the very same planner over the same data and returns what
+    would move, so the review cannot promise something different from the write.
+    """
+    from shared.models.clan_info import ClanLevelChangeEvent
+    from shared.services.nick_transfer import plan_nick_transfer
+
+    data = request.json or {}
+    from_nick = _clip(data.get("from_nick"), 100)
+    to_nick = _clip(data.get("to_nick"), 100)
+    reason = _clip(data.get("reason"), 60)
+
+    if not from_nick or not to_nick:
+        return jsonify({"error": "from_nick и to_nick обязательны"}), 400
+    if from_nick.lower() == to_nick.lower():
+        return jsonify({"error": "Ники совпадают"}), 400
+    if reason not in {code["code"] for code in TREASURY_REASON_CODES}:
+        return jsonify({"error": "Укажите причину переноса"}), 400
+
+    # Same case-insensitive roster lookup as the single reassign: the stored
+    # spelling must win, otherwise «newname» would live beside «NewName».
+    member = (
+        ClanMemberInfo.query.filter(
+            ClanMemberInfo.clan_id == clan_id,
+            db.func.lower(ClanMemberInfo.nick) == to_nick.lower(),
+        ).first()
+    )
+    if not member:
+        return jsonify({"error": f"{to_nick} нет в составе клана"}), 400
+
+    in_roster = (
+        ClanMemberInfo.query.filter(
+            ClanMemberInfo.clan_id == clan_id,
+            db.func.lower(ClanMemberInfo.nick) == from_nick.lower(),
+        ).first()
+    )
+    if in_roster:
+        # Two roster rows pointing at one person is a roster problem, not a
+        # treasury one: the treasurer deletes the stale row first, and only then
+        # does the history have somewhere unambiguous to go.
+        return (
+            jsonify(
+                {
+                    "error": "from_in_roster",
+                    "message": f"{from_nick} есть в составе — это не переименование. "
+                    "Сначала уберите старую запись из состава.",
+                }
+            ),
+            400,
+        )
+
+    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).all()
+    carryovers = TaxCarryover.query.filter_by(clan_id=clan_id).all()
+    level_events = ClanLevelChangeEvent.query.filter_by(clan_id=clan_id).all()
+
+    plan = plan_nick_transfer(
+        from_nick=from_nick,
+        to_nick=member.nick,
+        operations=[
+            {"id": op.id, "nick": op.nick, "date": op.date, "quantity": op.quantity}
+            for op in operations
+        ],
+        carryovers=[
+            {
+                "id": row.id,
+                "nick": row.nick,
+                "source_month": row.source_month,
+                "source_year": row.source_year,
+                "amount": row.amount,
+            }
+            for row in carryovers
+        ],
+        level_events=[
+            {"id": event.id, "nick": event.nick, "event_date": event.event_date}
+            for event in level_events
+        ],
+    )
+
+    if data.get("dry_run"):
+        return jsonify({"dry_run": True, "plan": plan})
+
+    if plan["is_empty"]:
+        return (
+            jsonify(
+                {
+                    "error": "nothing_to_move",
+                    "message": f"У «{from_nick}» нет истории для переноса",
+                    "plan": plan,
+                }
+            ),
+            400,
+        )
+
+    operation_ids = set(plan["operations"]["ids"])
+    for operation in operations:
+        if operation.id in operation_ids:
+            operation.nick = member.nick
+
+    carryover_ids = set(plan["carryovers"]["move"])
+    for row in carryovers:
+        if row.id in carryover_ids:
+            row.nick = member.nick
+
+    level_ids = set(plan["level_events"]["ids"])
+    for event in level_events:
+        if event.id in level_ids:
+            event.nick = member.nick
+
+    db.session.flush()
+
+    _audit(
+        "treasury_nick_transfer",
+        target_type="clan_member",
+        target_id=member.id,
+        clan_id=clan_id,
+        new={
+            "from_nick": from_nick,
+            "to_nick": member.nick,
+            "operations": len(operation_ids),
+            "operation_ids": sorted(operation_ids),
+            "carryovers": len(carryover_ids),
+            "level_events": len(level_ids),
+            "skipped_carryovers": plan["carryovers"]["skip"],
+        },
+        reason=reason,
+    )
+    db.session.commit()
+
+    data_logger.info(
+        f"[TREASURY] Nick transfer {from_nick} -> {member.nick}: "
+        f"operations={len(operation_ids)}, carryovers={len(carryover_ids)}, "
+        f"level_events={len(level_ids)}"
+    )
+
+    return jsonify(
+        {
+            "applied": True,
+            "from_nick": from_nick,
+            "to_nick": member.nick,
+            "operations": len(operation_ids),
+            "carryovers": len(carryover_ids),
+            "level_events": len(level_ids),
+            "skipped_carryovers": plan["carryovers"]["skip"],
+            "plan": plan,
+        }
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Tax overpayment carry-over («перенос переплаты на следующий месяц»)
 # --------------------------------------------------------------------------- #
@@ -2110,6 +2266,7 @@ TREASURY_REASON_CODES = [
     {"code": "carryover_refund", "label": "Возврат переплаты"},
     {"code": "level_surcharge", "label": "Доначисление (рост уровня)"},
     {"code": "wrong_nick", "label": "Ошибочный ник"},
+    {"code": "renamed_nick", "label": "Переименование в игре"},
     {"code": "duplicate", "label": "Дубль операции"},
     {"code": "import_fix", "label": "Исправление импорта"},
     {"code": "council_decision", "label": "Решение главы/совета"},
@@ -2124,6 +2281,7 @@ TREASURY_JOURNAL_ACTIONS = [
     "treasury_month_reopen",
     "treasury_compensation_create",
     "treasury_compensation_bulk",
+    "treasury_nick_transfer",
     "treasury_import",
     "treasury_backup_restore",
     "treasury_journal_revert",

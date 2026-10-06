@@ -10,6 +10,8 @@ import type {
   TaxLedgerResponse,
   BulkCompensationPlan,
   BulkCompensationResult,
+  NickTransferPlan,
+  NickTransferResult,
   TreasuryAnomaliesResponse,
   TreasuryClosedMonth,
   TreasuryJournalResponse,
@@ -229,6 +231,27 @@ export async function getTreasuryAnomalies(
   clanId: number
 ): Promise<TreasuryAnomaliesResponse> {
   const response = await apiClient.get(`/api/clan/${clanId}/treasury/anomalies`);
+  return response.data;
+}
+
+/** «Что изменится»: what a nickname history transfer would move — writes nothing. */
+export async function previewNickTransfer(
+  clanId: number,
+  payload: { from_nick: string; to_nick: string; reason: string }
+): Promise<{ dry_run: boolean; plan: NickTransferPlan }> {
+  const response = await apiClient.post(`/api/clan/${clanId}/treasury/nick-transfer`, {
+    ...payload,
+    dry_run: true,
+  });
+  return response.data;
+}
+
+/** Moves the history of a renamed character to the new nick. */
+export async function applyNickTransfer(
+  clanId: number,
+  payload: { from_nick: string; to_nick: string; reason: string }
+): Promise<NickTransferResult> {
+  const response = await apiClient.post(`/api/clan/${clanId}/treasury/nick-transfer`, payload);
   return response.data;
 }
 

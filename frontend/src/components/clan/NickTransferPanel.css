@@ -1,0 +1,119 @@
+/* «Перенос истории ника»: declarations mirror the .bc- / .an- panels of this tab
+   (same radius, borders, button sizes) — copy, don't invent. */
+
+.nt-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-left: 3px solid var(--accent);
+}
+
+.nt-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: var(--text-primary);
+}
+
+.nt-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.nt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+  flex: 1;
+}
+
+.nt-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.nt-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 8px;
+  font-size: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.nt-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.nt-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.nt-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.nt-btn-primary:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.nt-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nt-plan {
+  margin-top: 10px;
+}
+
+.nt-summary {
+  font-size: 12px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.nt-muted {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.nt-warn {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #f59e0b;
+}
+
+.nt-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius);
+  color: #ef4444;
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.nt-notice {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: var(--radius);
+  color: #22c55e;
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}

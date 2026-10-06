@@ -109,7 +109,8 @@ def test_reason_codes_are_served(app, client, treasurer_headers):
     codes = [c['code'] for c in body['reason_codes']]
     assert 'wrong_nick' in codes
     assert 'carryover_credit' in codes
-    assert len(codes) == 8
+    assert 'renamed_nick' in codes
+    assert len(codes) == 9
     assert 'treasury_operation_update' in body['actions']
 
 

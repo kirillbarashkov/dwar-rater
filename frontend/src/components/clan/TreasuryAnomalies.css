@@ -134,6 +134,17 @@
   color: var(--text-secondary);
 }
 
+.an-pick {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
 .an-note-footer {
   color: var(--text-secondary);
   font-size: 11px;
