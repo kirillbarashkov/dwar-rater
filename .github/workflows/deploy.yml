@@ -181,12 +181,14 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 15m
+          command_timeout: 30m
           envs: APP_VERSION,APP_GIT_HASH,APP_BRANCH,APP_BUILD_DATE
           script_stop: true
           script: |
             cd ~/dwar-rater
-            git pull origin main
+            # --ff-only: a deploy target must never sprout a merge commit; if the
+            # VM's main diverged, fail loudly instead of merging on the server.
+            git pull --ff-only origin main
             # Tags are pushed by the CI release step, git pull does not fetch
             # them — fetch explicitly or the notes fall back to a stub.
             git fetch --tags origin || true
