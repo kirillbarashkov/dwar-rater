@@ -24,6 +24,7 @@ from shared.services.clan_parser import (
 )
 from shared.services.data_logger import data_logger
 from shared.services.treasury_anomalies import detect_anomalies
+from shared.services.treasury_bulk import CREATE, plan_compensations
 from shared.models import db
 from shared.models.clan_info import (
     ClanInfo,
@@ -1533,6 +1534,8 @@ def create_treasury_compensation(clan_id):
         db.session.add(treasury_op)
         created.append(treasury_op)
 
+    db.session.flush()
+
     _audit(
         "treasury_compensation_create",
         target_type="treasury_operation",
@@ -1572,10 +1575,123 @@ def create_treasury_compensation(clan_id):
     ), 201
 
 
+def _bulk_compensation_plan(clan_id, data):
+    """The plan BOTH the preview and the apply run — one planner, no drift.
+
+    Returns either a Flask response (validation error) or the plan dict.
+    """
+    nicks = [n for n in (data.get("nicks") or []) if isinstance(n, str) and n.strip()]
+    months = data.get("months") or []
+    if not nicks or not months:
+        return jsonify({"error": "nicks и months обязательны"}), 400
+
+    operations, members, _level_events = _tax_engine_inputs(clan_id)
+    return plan_compensations(
+        nicks=nicks,
+        months=months,
+        year=_as_int(data.get("year"), datetime.now().year),
+        members=members,
+        operations=operations,
+        closed_keys=_closed_month_keys(clan_id),
+        amount_by_nick=data.get("amount_by_nick") or {},
+    )
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/compensation/bulk/preview", methods=["POST"]
+)
+@require_permission("treasury", "write")
+def preview_bulk_compensation(clan_id):
+    """«Что изменится» — the review step before a batch is written.
+
+    Runs the very same planner as the apply call against the same data, so the
+    dry-run cannot promise something different from what gets written. Nothing
+    here touches the database.
+    """
+    plan = _bulk_compensation_plan(clan_id, request.json or {})
+    if isinstance(plan, tuple):
+        return plan
+    return jsonify(plan)
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/compensation/bulk/apply", methods=["POST"]
+)
+@require_permission("treasury", "write")
+def apply_bulk_compensation(clan_id):
+    """Writes exactly what the preview showed: one marker per (nick, month).
+
+    Safe to re-run — the planner sees the rows it just created and reports them
+    as `already_compensated` instead of duplicating them.
+    """
+    data = request.json or {}
+    plan = _bulk_compensation_plan(clan_id, data)
+    if isinstance(plan, tuple):
+        return plan
+
+    comment = _clip(data.get("comment"), 500)
+    created = []
+    for item in plan["items"]:
+        if item["action"] != CREATE:
+            continue
+        operation = TreasuryOperation(
+            clan_id=clan_id,
+            date=f"15.{item['month']:02d}.{item['year']} 00:00",
+            nick=item["nick"],
+            operation_type="Деньги",
+            object_name="Монеты",
+            quantity=item["amount"],
+            compensation_flag=True,
+            compensation_comment=comment,
+        )
+        db.session.add(operation)
+        created.append(operation)
+
+    db.session.flush()
+
+    _audit(
+        "treasury_compensation_bulk",
+        target_type="treasury_operation",
+        target_id=created[0].id if created else None,
+        clan_id=clan_id,
+        new={
+            "count": len(created),
+            "year": _as_int(data.get("year"), datetime.now().year),
+            "months": data.get("months") or [],
+            "comment": comment,
+            "skipped": plan["totals"]["skip"],
+            "blocked": plan["totals"]["blocked"],
+            "operations": [
+                {"id": op.id, "nick": op.nick, "date": op.date, "quantity": op.quantity}
+                for op in created
+            ],
+        },
+    )
+    db.session.commit()
+
+    data_logger.info(
+        f"[TREASURY] Bulk compensation: created={len(created)}, "
+        f"skipped={plan['totals']['skip']}, blocked={plan['totals']['blocked']}"
+    )
+
+    return (
+        jsonify(
+            {
+                "created": len(created),
+                "operations": [
+                    {"id": op.id, "nick": op.nick, "date": op.date, "quantity": op.quantity}
+                    for op in created
+                ],
+                "plan": plan,
+            }
+        ),
+        201,
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Tax overpayment carry-over («перенос переплаты на следующий месяц»)
 # --------------------------------------------------------------------------- #
-
 
 def _tax_carryover_decisions(clan_id):
     """{(nick_lower, month, year): {'status', 'amount'}} for already reviewed rows.
@@ -2007,6 +2123,7 @@ TREASURY_JOURNAL_ACTIONS = [
     "treasury_month_close",
     "treasury_month_reopen",
     "treasury_compensation_create",
+    "treasury_compensation_bulk",
     "treasury_import",
     "treasury_backup_restore",
     "treasury_journal_revert",

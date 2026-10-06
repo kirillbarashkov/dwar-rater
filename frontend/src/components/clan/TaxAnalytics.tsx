@@ -15,6 +15,7 @@ import { copyText } from '../../utils/clipboard';
 import { TaxCarryoverPanel } from './TaxCarryoverPanel';
 import { ReassignButton } from './ReassignButton';
 import { MonthCloseControl } from './MonthCloseControl';
+import { BulkCompensationPanel } from './BulkCompensationPanel';
 import './TaxAnalytics.css';
 
 interface TaxAnalyticsProps {
@@ -795,6 +796,8 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
         onReview={handleReviewCarryover}
         onBulk={handleBulkCarryover}
       />
+
+      <BulkCompensationPanel clanId={clanId} canManage={canManage} members={members} />
 
       {monthSummary && (
         <>

@@ -8,6 +8,8 @@ import type {
   TaxCarryoverData,
   TaxCarryoverMonth,
   TaxLedgerResponse,
+  BulkCompensationPlan,
+  BulkCompensationResult,
   TreasuryAnomaliesResponse,
   TreasuryClosedMonth,
   TreasuryJournalResponse,
@@ -227,6 +229,42 @@ export async function getTreasuryAnomalies(
   clanId: number
 ): Promise<TreasuryAnomaliesResponse> {
   const response = await apiClient.get(`/api/clan/${clanId}/treasury/anomalies`);
+  return response.data;
+}
+
+/** «Что изменится»: what a bulk waiver of tax would create — nothing is written. */
+export async function previewBulkCompensation(
+  clanId: number,
+  payload: {
+    nicks: string[];
+    months: number[];
+    year: number;
+    comment?: string;
+    amount_by_nick?: Record<string, number>;
+  }
+): Promise<BulkCompensationPlan> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/compensation/bulk/preview`,
+    payload
+  );
+  return response.data;
+}
+
+/** Writes what the preview showed. Safe to re-run: already-waived pairs are skipped. */
+export async function applyBulkCompensation(
+  clanId: number,
+  payload: {
+    nicks: string[];
+    months: number[];
+    year: number;
+    comment?: string;
+    amount_by_nick?: Record<string, number>;
+  }
+): Promise<BulkCompensationResult> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/compensation/bulk/apply`,
+    payload
+  );
   return response.data;
 }
 

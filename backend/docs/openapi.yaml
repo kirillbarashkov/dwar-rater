@@ -1434,6 +1434,91 @@ paths:
         "409":
           description: The operation changed after this correction
 
+  /api/clan/{clan_id}/treasury/compensation/bulk/preview:
+    post:
+      summary: Dry-run of a bulk tax waiver — what would be created, nothing written
+      description: >-
+        Runs the same planner as the apply call, so the preview cannot promise
+        something different from what gets written. Each (nick, month) pair is
+        classified as `create`, `skip` (intent already satisfied or impossible) or
+        `blocked` (a closed or not-yet-started month).
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nicks, months, year]
+              properties:
+                nicks:
+                  type: array
+                  items:
+                    type: string
+                months:
+                  type: array
+                  items:
+                    type: integer
+                year:
+                  type: integer
+                comment:
+                  type: string
+                amount_by_nick:
+                  type: object
+                  description: Optional per-nick amount override (defaults to the member's own norm).
+      responses:
+        "200":
+          description: The plan (items, totals, reasons) — the database was not touched
+
+  /api/clan/{clan_id}/treasury/compensation/bulk/apply:
+    post:
+      summary: Apply a bulk tax waiver (writes what the preview showed)
+      description: >-
+        Writes one compensation marker per (nick, month). Safe to re-run: pairs
+        already waived are reported as `already_compensated` instead of being
+        duplicated. The batch is audited as `treasury_compensation_bulk` with the
+        created operation ids.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nicks, months, year]
+              properties:
+                nicks:
+                  type: array
+                  items:
+                    type: string
+                months:
+                  type: array
+                  items:
+                    type: integer
+                year:
+                  type: integer
+                comment:
+                  type: string
+                amount_by_nick:
+                  type: object
+      responses:
+        "201":
+          description: Created markers plus the plan they were derived from
+
   /api/clan/{clan_id}/treasury/anomalies:
     get:
       summary: Treasury anomaly report (read-only diagnostics)

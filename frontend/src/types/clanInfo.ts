@@ -228,6 +228,30 @@ export interface TreasuryClosedMonth {
   closed_at: string | null;
 }
 
+/** One (nick, month) pair of a bulk waiver — what will happen and why. */
+export interface BulkCompensationItem {
+  nick: string;
+  month: number | string;
+  year: number;
+  amount: number;
+  action: 'create' | 'skip' | 'blocked';
+  reason: string | null;
+}
+
+export interface BulkCompensationPlan {
+  items: BulkCompensationItem[];
+  totals: { pairs: number; create: number; skip: number; blocked: number };
+  by_reason: Record<string, number>;
+  labels: Record<string, string>;
+  today: string;
+}
+
+export interface BulkCompensationResult {
+  created: number;
+  operations: Array<{ id: number; nick: string; date: string; quantity: number }>;
+  plan: BulkCompensationPlan;
+}
+
 /** One category of treasury findings (see the anomaly report endpoint). */
 export interface TreasuryAnomalyItem {
   code: string;
