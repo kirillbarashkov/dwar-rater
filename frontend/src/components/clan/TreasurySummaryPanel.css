@@ -1,0 +1,98 @@
+/* «Сводка для чата»: declarations mirror the .bc- / .nt- / .an- panels of this tab
+   (same radius, borders, button sizes) — copy, don't invent. */
+
+.ts-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-left: 3px solid var(--accent);
+}
+
+.ts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.ts-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.ts-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ts-select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.ts-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ts-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.ts-btn-primary:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ts-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ts-output {
+  margin: 0;
+  padding: 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.ts-note,
+.ts-muted {
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.ts-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius);
+  color: #ef4444;
+  padding: 6px 10px;
+  font-size: 12px;
+}

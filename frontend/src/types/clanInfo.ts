@@ -228,6 +228,22 @@ export interface TreasuryClosedMonth {
   closed_at: string | null;
 }
 
+/** A chat-ready markdown summary of one month (see the treasury summary endpoint). */
+export interface TreasurySummaryResponse {
+  clan_id: number;
+  month: number;
+  year: number;
+  kind: string;
+  /** Available kinds, in a stable order. */
+  kinds: string[];
+  /** kind -> human label, served so the selector has a single source. */
+  labels: Record<string, string>;
+  count: number;
+  markdown: string;
+  /** `no_operations` when the clan has nothing to summarize. */
+  reason?: string;
+}
+
 /** What a renamed character's history transfer would move (and what it cannot). */
 export interface NickTransferPlan {
   from_nick: string;

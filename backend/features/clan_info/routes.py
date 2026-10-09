@@ -25,6 +25,12 @@ from shared.services.clan_parser import (
 from shared.services.data_logger import data_logger
 from shared.services.treasury_anomalies import detect_anomalies
 from shared.services.treasury_bulk import CREATE, plan_compensations
+from shared.services.treasury_summary import (
+    CARRYOVERS,
+    DEBTORS,
+    KINDS,
+    build_summary,
+)
 from shared.models import db
 from shared.models.clan_info import (
     ClanInfo,
@@ -1970,6 +1976,83 @@ def get_tax_ledger(clan_id):
         }
     )
     return jsonify(result)
+
+
+@clan_info_bp.route("/api/clan/<int:clan_id>/treasury/summary", methods=["GET"])
+@require_permission("clan_info", "read")
+def get_treasury_summary(clan_id):
+    """A chat-ready markdown summary of a month — read-only.
+
+    Totals and the debtor list are computed from the SAME ledger chain the «Сальдо»
+    tab renders, so a pasted summary cannot contradict the screen it was taken from.
+    The kinds are: month totals (собрано / ожидалось / не собрано), the flat list of
+    debtors with sums, and the flat list of carry-over records.
+    """
+    today = date.today()
+    month = _as_int(request.args.get("month"), today.month)
+    year = _as_int(request.args.get("year"), today.year)
+    kind = (request.args.get("kind") or "totals").strip()
+    if kind not in KINDS:
+        return jsonify({"error": "unknown_kind", "kinds": sorted(KINDS)}), 400
+    if not (1 <= month <= 12) or year < 2000:
+        return jsonify({"error": "Некорректный месяц/год"}), 400
+
+    base = {
+        "clan_id": clan_id,
+        "month": month,
+        "year": year,
+        "kind": kind,
+        "kinds": sorted(KINDS),
+        # Labels ship with the codes so the selector is built from one source.
+        "labels": KINDS,
+    }
+
+    if kind == CARRYOVERS:
+        rows = [
+            row.to_dict()
+            for row in TaxCarryover.query.filter_by(
+                clan_id=clan_id, source_month=month, source_year=year
+            )
+            .order_by(TaxCarryover.nick)
+            .all()
+        ]
+        base.update({"count": len(rows), "markdown": build_summary(kind, rows=rows)})
+        return jsonify(base)
+
+    ledger = _compute_tax_ledger(clan_id, month, year, month, year, today)
+    rows = ledger.get("rows") or []
+    totals = ledger.get("totals") or {}
+
+    if kind == DEBTORS:
+        markdown = build_summary(
+            kind,
+            month=month,
+            year=year,
+            rows=[
+                {
+                    "nick": row.get("nick"),
+                    "debt": row.get("debt"),
+                    "paid": row.get("paid_total"),
+                }
+                for row in rows
+            ],
+        )
+        base.update({"count": sum(1 for row in rows if _as_int(row.get("debt")) > 0),})
+    else:
+        markdown = build_summary(
+            kind,
+            month=month,
+            year=year,
+            collected=totals.get("paid_total"),
+            expected=totals.get("norm_total"),
+            missing=totals.get("debt"),
+            debtors=sum(1 for row in rows if _as_int(row.get("debt")) > 0),
+            members=len(rows),
+        )
+        base.update({"count": len(rows)})
+
+    base.update({"markdown": markdown, "reason": ledger.get("reason")})
+    return jsonify(base)
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/tax-carryover", methods=["GET"])

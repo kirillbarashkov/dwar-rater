@@ -12,6 +12,7 @@ import type {
   BulkCompensationResult,
   NickTransferPlan,
   NickTransferResult,
+  TreasurySummaryResponse,
   TreasuryAnomaliesResponse,
   TreasuryClosedMonth,
   TreasuryJournalResponse,
@@ -231,6 +232,15 @@ export async function getTreasuryAnomalies(
   clanId: number
 ): Promise<TreasuryAnomaliesResponse> {
   const response = await apiClient.get(`/api/clan/${clanId}/treasury/anomalies`);
+  return response.data;
+}
+
+/** Chat-ready markdown: month totals, the flat debtor list, or the carry-overs. */
+export async function getTreasurySummary(
+  clanId: number,
+  params: { month: number; year: number; kind: string }
+): Promise<TreasurySummaryResponse> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury/summary`, { params });
   return response.data;
 }
 

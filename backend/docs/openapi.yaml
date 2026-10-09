@@ -1434,6 +1434,43 @@ paths:
         "409":
           description: The operation changed after this correction
 
+  /api/clan/{clan_id}/treasury/summary:
+    get:
+      summary: Chat-ready markdown summary of a month (read-only)
+      description: >-
+        Three kinds: `totals` (собрано / ожидалось / не собрано plus the debtor
+        count), `debtors` (a flat list of debtors with sums) and `carryovers` (a
+        flat list of carry-over records for that month). Totals and debtors come
+        from the same ledger chain the «Сальдо» tab renders, so a pasted summary
+        cannot contradict the screen. Markdown on purpose — bullets and bold lines,
+        never tables: a clan chat does not render them.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: kind
+          in: query
+          schema:
+            type: string
+            enum: [totals, debtors, carryovers]
+      responses:
+        "200":
+          description: The markdown plus the applied kind and the available kinds
+        "400":
+          description: Unknown kind (the response lists the valid ones) or a bad period
+
   /api/clan/{clan_id}/treasury/nick-transfer:
     post:
       summary: Move a renamed character's history to the new nick
