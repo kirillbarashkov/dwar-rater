@@ -324,6 +324,8 @@ export interface TreasuryAnomaliesResponse {
   total: number;
   checked: { operations: number; members: number };
   today: string;
+  /** Findings a treasurer has accepted: ref '' = the whole category. */
+  muted: Array<{ code: string; ref: string; created_by: number | null; created_at: string | null }>;
 }
 
 export interface TaxLedgerResponse {

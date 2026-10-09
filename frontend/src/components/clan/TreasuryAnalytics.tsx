@@ -107,7 +107,7 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
         {activeTab === 'ledger' && <TaxLedger clanId={clanId} />}
         {activeTab === 'anomalies' && (
           <>
-            <TreasuryAnomalies clanId={clanId} onPickNick={setTransferFrom} />
+            <TreasuryAnomalies clanId={clanId} canManage={canManage} onPickNick={setTransferFrom} />
             {canManage && (
               <NickTransferPanel clanId={clanId} canManage={canManage} fromNick={transferFrom} />
             )}

@@ -1434,6 +1434,72 @@ paths:
         "409":
           description: The operation changed after this correction
 
+  /api/clan/{clan_id}/treasury/anomalies/mute:
+    post:
+      summary: Accept a finding — «это нормально, больше не показывать»
+      description: >-
+        A ghost nick (a member who left) and a prepayment above the norm are
+        legitimate, so the report keeps naming them until a treasurer accepts them.
+        `ref: ""` mutes the whole category, otherwise only that nick. Stored per clan
+        so the decision is shared, audited so it is attributable, and idempotent —
+        muting twice is not an error. Muted findings leave the count as well as the
+        examples, so the totals cannot lie.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  enum: [future_date, negative_quantity, before_join, unknown_nick, above_norm]
+                ref:
+                  type: string
+                  description: The nick, or "" for the whole category.
+      responses:
+        "200":
+          description: The stored mute
+        "400":
+          description: Unknown code (the response lists the valid ones)
+
+  /api/clan/{clan_id}/treasury/anomalies/unmute:
+    post:
+      summary: Bring a muted finding back into the report
+      description: Removes the stored «это нормально» decision and audits it.
+      tags:
+        - Clan Info
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                ref:
+                  type: string
+      responses:
+        "200":
+          description: Confirmation that the mute is gone
+
   /api/clan/{clan_id}/treasury/summary:
     get:
       summary: Chat-ready markdown summary of a month (read-only)

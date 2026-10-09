@@ -235,6 +235,30 @@ export async function getTreasuryAnomalies(
   return response.data;
 }
 
+/** «Это нормально, больше не показывать» — per category, or per nick. */
+export async function muteTreasuryAnomaly(
+  clanId: number,
+  payload: { code: string; ref?: string }
+): Promise<{ muted: { code: string; ref: string } }> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/anomalies/mute`,
+    payload
+  );
+  return response.data;
+}
+
+/** Bring a muted finding back into the report. */
+export async function unmuteTreasuryAnomaly(
+  clanId: number,
+  payload: { code: string; ref?: string }
+): Promise<{ unmuted: { code: string; ref: string } }> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/anomalies/unmute`,
+    payload
+  );
+  return response.data;
+}
+
 /** Chat-ready markdown: month totals, the flat debtor list, or the carry-overs. */
 export async function getTreasurySummary(
   clanId: number,

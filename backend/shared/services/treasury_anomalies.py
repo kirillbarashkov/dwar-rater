@@ -59,20 +59,43 @@ def _example(op: Mapping[str, Any], extra: Optional[str] = None) -> dict:
     return row
 
 
+def _is_muted(code: str, nick_key: str, muted_codes: set, muted_refs: set) -> bool:
+    """True when the treasurer already said «это нормально» about this finding.
+
+    A whole category is muted with an empty ref; a single nick (a member who left,
+    an intentional prepayment) with its own row.
+    """
+    return code in muted_codes or (code, nick_key) in muted_refs
+
+
 def detect_anomalies(
     operations: Iterable[Mapping[str, Any]],
     members: Iterable[Mapping[str, Any]],
     *,
     today: Optional[date] = None,
+    muted: Iterable[tuple] = (),
 ) -> dict:
     """Findings over the given operations, biggest group first.
 
     ``operations`` are plain dicts (id, date, nick, operation_type, object_name,
     quantity, compensation_flag); ``members`` are the clan roster. Nothing here
     touches the database, so the endpoint can run on every page load.
+
+    ``muted`` holds (code, ref) pairs the treasurer has accepted: ref '' mutes the
+    whole category, otherwise only that nick's occurrences. Muted findings are
+    excluded from both the count and the examples — a hidden finding must not skew
+    the totals either.
     """
     today = today or date.today()
     today_index = ym_index(today.month, today.year)
+
+    muted_codes = set()
+    muted_refs = set()
+    for code, ref in muted:
+        if ref:
+            muted_refs.add((code, (ref or '').strip().lower()))
+        else:
+            muted_codes.add(code)
 
     roster = {}
     for member in members:
@@ -92,14 +115,18 @@ def detect_anomalies(
 
         if parsed:
             year, month, _day = parsed
-            if ym_index(month, year) > today_index:
+            if ym_index(month, year) > today_index and not _is_muted(
+                FUTURE_DATE, nick_key, muted_codes, muted_refs
+            ):
                 found[FUTURE_DATE].append(_example(op))
-        if quantity < 0:
+        if quantity < 0 and not _is_muted(
+            NEGATIVE_QUANTITY, nick_key, muted_codes, muted_refs
+        ):
             found[NEGATIVE_QUANTITY].append(_example(op))
 
         member = roster.get(nick_key)
         if member is None:
-            if nick:
+            if nick and not _is_muted(UNKNOWN_NICK, nick_key, muted_codes, muted_refs):
                 found[UNKNOWN_NICK].append(_example(op))
             continue
 
@@ -111,13 +138,19 @@ def detect_anomalies(
         start = payment_start_ym(member, today)
         if parsed and start is not None:
             year, month, _day = parsed
-            if ym_index(month, year) < ym_index(start[0], start[1]):
+            if ym_index(month, year) < ym_index(start[0], start[1]) and not _is_muted(
+                BEFORE_JOIN, nick_key, muted_codes, muted_refs
+            ):
                 found[BEFORE_JOIN].append(
                     _example(op, extra=f"оплата идёт с {start[0]:02d}.{start[1]}")
                 )
 
         norm = norm_for_level(member.get("level"))
-        if norm and quantity >= norm * ABOVE_NORM_FACTOR:
+        if (
+            norm
+            and quantity >= norm * ABOVE_NORM_FACTOR
+            and not _is_muted(ABOVE_NORM, nick_key, muted_codes, muted_refs)
+        ):
             found[ABOVE_NORM].append(
                 _example(op, extra=f"норма {norm}, порог {norm * ABOVE_NORM_FACTOR}")
             )

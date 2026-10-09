@@ -23,6 +23,7 @@ from shared.services.clan_parser import (
     _op_in_range,
 )
 from shared.services.data_logger import data_logger
+from shared.services.treasury_anomalies import LABELS as ANOMALY_LABELS
 from shared.services.treasury_anomalies import detect_anomalies
 from shared.services.treasury_bulk import CREATE, plan_compensations
 from shared.services.treasury_summary import (
@@ -1516,10 +1517,99 @@ def get_treasury_anomalies(clan_id):
     future date or a negative amount is corruption, and those are also refused on
     the way in (import and correction), so new ones cannot appear.
     """
+    from shared.models.clan_info import TreasuryAnomalyMute
+
+    mutes = TreasuryAnomalyMute.query.filter_by(clan_id=clan_id).all()
     operations, members, _level_events = _tax_engine_inputs(clan_id)
-    result = detect_anomalies(operations, members)
-    result["clan_id"] = clan_id
+    result = detect_anomalies(
+        operations, members, muted=[(row.code, row.ref or "") for row in mutes]
+    )
+    result.update({"clan_id": clan_id, "muted": [row.to_dict() for row in mutes]})
     return jsonify(result)
+
+
+def _mute_payload(data):
+    """(code, ref) from a request body, or a Flask error response."""
+    code = _clip(data.get("code"), 40)
+    ref = _clip(data.get("ref"), 100)
+    if code not in ANOMALY_LABELS:
+        return None, (
+            jsonify({"error": "unknown_code", "codes": sorted(ANOMALY_LABELS)}),
+            400,
+        )
+    return (code, ref), None
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/anomalies/mute", methods=["POST"]
+)
+@require_permission("treasury", "write")
+def mute_treasury_anomaly(clan_id):
+    """«Это нормально, больше не показывать» — per category, or per nick.
+
+    Stored per clan so every treasurer stops seeing the same noise, and audited so
+    the decision is attributable. Idempotent: muting twice is not an error.
+    """
+    from shared.models.clan_info import TreasuryAnomalyMute
+
+    data = request.json or {}
+    pair, error = _mute_payload(data)
+    if error:
+        return error
+    code, ref = pair
+
+    existing = TreasuryAnomalyMute.query.filter_by(
+        clan_id=clan_id, code=code, ref=ref
+    ).first()
+    if not existing:
+        user = getattr(g, "current_user", None)
+        db.session.add(
+            TreasuryAnomalyMute(
+                clan_id=clan_id,
+                code=code,
+                ref=ref,
+                created_by=user.id if user else None,
+            )
+        )
+        _audit(
+            "treasury_anomaly_mute",
+            target_type="treasury_anomaly",
+            target_id=None,
+            clan_id=clan_id,
+            new={"code": code, "ref": ref, "label": ANOMALY_LABELS.get(code)},
+        )
+        db.session.commit()
+
+    return jsonify({"muted": {"code": code, "ref": ref}})
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/anomalies/unmute", methods=["POST"]
+)
+@require_permission("treasury", "write")
+def unmute_treasury_anomaly(clan_id):
+    """Bring a muted finding back into the report."""
+    from shared.models.clan_info import TreasuryAnomalyMute
+
+    data = request.json or {}
+    pair, error = _mute_payload(data)
+    if error:
+        return error
+    code, ref = pair
+
+    row = TreasuryAnomalyMute.query.filter_by(clan_id=clan_id, code=code, ref=ref).first()
+    if row:
+        db.session.delete(row)
+        _audit(
+            "treasury_anomaly_unmute",
+            target_type="treasury_anomaly",
+            target_id=None,
+            clan_id=clan_id,
+            old={"code": code, "ref": ref, "label": ANOMALY_LABELS.get(code)},
+        )
+        db.session.commit()
+
+    return jsonify({"unmuted": {"code": code, "ref": ref}})
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/compensation", methods=["POST"])
@@ -2380,6 +2470,8 @@ TREASURY_JOURNAL_ACTIONS = [
     "treasury_compensation_create",
     "treasury_compensation_bulk",
     "treasury_nick_transfer",
+    "treasury_anomaly_mute",
+    "treasury_anomaly_unmute",
     "treasury_import",
     "treasury_backup_restore",
     "treasury_journal_revert",

@@ -145,6 +145,21 @@
   white-space: nowrap;
 }
 
+.an-muted-list {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.an-muted {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
 .an-note-footer {
   color: var(--text-secondary);
   font-size: 11px;

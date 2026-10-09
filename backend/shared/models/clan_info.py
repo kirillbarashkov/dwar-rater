@@ -266,3 +266,41 @@ class TreasuryMonthClose(db.Model):
 
     def __repr__(self):
         return f'<TreasuryMonthClose clan={self.clan_id} {self.month:02d}.{self.year}>'
+
+
+class TreasuryAnomalyMute(db.Model):
+    """A treasurer's «это нормально» on one category of finding.
+
+    A ghost nick (a member who left the clan) and a prepayment above the norm are
+    legitimate, so the report keeps naming them until someone says «I know». The
+    decision is stored per clan — it belongs to the clan, not to the browser that
+    happened to make it, and every treasurer should stop seeing the same noise.
+
+    ``ref`` is the specific nick the decision applies to, or '' for the whole
+    category.
+    """
+
+    __tablename__ = 'treasury_anomaly_mute'
+    id = db.Column(db.Integer, primary_key=True)
+    clan_id = db.Column(
+        db.Integer, db.ForeignKey('clan_info.clan_id'), nullable=False, index=True
+    )
+    code = db.Column(db.String(40), nullable=False)
+    ref = db.Column(db.String(100), nullable=False, default='')
+    created_by = db.Column(db.Integer, db.ForeignKey('app_user.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('clan_id', 'code', 'ref', name='uq_treasury_anomaly_mute'),
+    )
+
+    def to_dict(self):
+        return {
+            'code': self.code,
+            'ref': self.ref or '',
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __repr__(self):
+        return f'<TreasuryAnomalyMute clan={self.clan_id} {self.code}/{self.ref}>'
