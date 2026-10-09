@@ -5,6 +5,7 @@ import {
   reopenTreasuryMonth,
 } from '../../api/clanInfo';
 import { MONTHS_RU } from '../../utils/treasury';
+import type { ReasonCode } from '../../types/clanInfo';
 
 interface MonthCloseControlProps {
   clanId?: number;
@@ -12,6 +13,8 @@ interface MonthCloseControlProps {
   year: number;
   /** treasury:approve — closing a month is a decision, not a read. */
   canApprove: boolean;
+  /** Reason codes from the API — a reopen must carry one. */
+  reasonCodes?: ReasonCode[];
   onChanged: (isClosed: boolean) => void;
 }
 
@@ -28,12 +31,15 @@ export function MonthCloseControl({
   month,
   year,
   canApprove,
+  reasonCodes = [],
   onChanged,
 }: MonthCloseControlProps) {
   const [isClosed, setIsClosed] = useState(false);
   const [note, setNote] = useState('');
   // null = idle, otherwise which change is awaiting a confirmation click.
   const [pending, setPending] = useState<'close' | 'reopen' | null>(null);
+  // A reopen undoes a freeze, so the journal must record WHY — required here too.
+  const [reopenReason, setReopenReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -75,7 +81,7 @@ export function MonthCloseControl({
       if (action === 'close') {
         await closeTreasuryMonth(clanId, year, month, note);
       } else {
-        await reopenTreasuryMonth(clanId, year, month);
+        await reopenTreasuryMonth(clanId, year, month, reopenReason);
       }
       setPending(null);
       await load();
@@ -102,10 +108,25 @@ export function MonthCloseControl({
         <button
           className="mc-btn mc-btn-confirm"
           onClick={() => void run(pending)}
-          disabled={isSaving}
+          disabled={isSaving || (!closing && !reopenReason)}
         >
           {closing ? 'Да, закрыть' : 'Да, переоткрыть'}
         </button>
+        {!closing && (
+          <select
+            className="mc-input"
+            value={reopenReason}
+            onChange={(e) => setReopenReason(e.target.value)}
+            disabled={isSaving}
+          >
+            <option value="">— причина переоткрытия —</option>
+            {reasonCodes.map((code) => (
+              <option key={code.code} value={code.code}>
+                {code.label}
+              </option>
+            ))}
+          </select>
+        )}
         <button className="mc-btn" onClick={() => setPending(null)} disabled={isSaving}>
           Отмена
         </button>
@@ -123,7 +144,10 @@ export function MonthCloseControl({
           </span>
           <button
             className="mc-btn"
-            onClick={() => setPending('reopen')}
+            onClick={() => {
+              setReopenReason('');
+              setPending('reopen');
+            }}
             disabled={isSaving}
             title="Снова разрешить правки и импорт за этот месяц"
           >

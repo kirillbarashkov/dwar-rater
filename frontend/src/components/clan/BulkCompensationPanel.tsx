@@ -36,8 +36,12 @@ export function BulkCompensationPanel({
   const now = new Date();
   const [month, setMonth] = useState<number>(now.getMonth() + 1);
   const [year, setYear] = useState<number>(now.getFullYear());
-  const [debts, setDebts] = useState<Record<string, number>>({});
+  // nick (lower-cased) -> the month's {debt, paid} from the ledger.
+  const [debts, setDebts] = useState<Record<string, { debt: number; paid: number }>>({});
   const [ledgerEmpty, setLedgerEmpty] = useState(false);
+  // A clan roster is dozens of nicks, so the list filters instead of dumping.
+  const [filter, setFilter] = useState<'debtors' | 'all'>('debtors');
+  const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [comment, setComment] = useState('');
   const [plan, setPlan] = useState<BulkCompensationPlan | null>(null);
@@ -61,9 +65,9 @@ export function BulkCompensationPanel({
       // A one-month window: the row's own debt IS that month's debt, and this is
       // the same chain the «Сальдо» tab renders. Keys are lower-cased because the
       // ledger and the roster may spell a nick differently.
-      const map: Record<string, number> = {};
+      const map: Record<string, { debt: number; paid: number }> = {};
       for (const row of rows) {
-        map[row.nick.toLowerCase()] = row.debt;
+        map[row.nick.toLowerCase()] = { debt: row.debt, paid: row.paid_total };
       }
       setDebts(map);
       setLedgerEmpty(rows.length === 0);
@@ -72,7 +76,7 @@ export function BulkCompensationPanel({
       // The usual errand is "waive the debtors", so they come pre-selected.
       setSelected(
         members
-          .filter((member) => (map[member.nick.toLowerCase()] || 0) > 0)
+          .filter((member) => (map[member.nick.toLowerCase()]?.debt || 0) > 0)
           .map((member) => member.nick)
       );
     } catch {
@@ -90,15 +94,26 @@ export function BulkCompensationPanel({
   const roster = useMemo(
     () =>
       members
-        .map((member) => ({
-          nick: member.nick,
-          debt: debts[member.nick.toLowerCase()] || 0,
-        }))
+        .map((member) => {
+          const cell = debts[member.nick.toLowerCase()];
+          return {
+            nick: member.nick,
+            debt: cell?.debt || 0,
+            paid: cell?.paid || 0,
+          };
+        })
         .sort((a, b) => b.debt - a.debt || a.nick.localeCompare(b.nick)),
     [members, debts]
   );
 
   const debtors = useMemo(() => roster.filter((row) => row.debt > 0), [roster]);
+
+  // Plain substring, case-insensitive: «сын» should find «Сын_Дракона».
+  const visible = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const base = filter === 'debtors' ? debtors : roster;
+    return query ? base.filter((row) => row.nick.toLowerCase().includes(query)) : base;
+  }, [roster, debtors, filter, search]);
 
   const payload = useMemo(
     () => ({ nicks: selected, months: [month], year, comment }),
@@ -194,23 +209,55 @@ export function BulkCompensationPanel({
                 снять выбор
               </button>
             </div>
+            <div className="bc-filters">
+              <button
+                className={`bc-chip ${filter === 'debtors' ? 'bc-chip-on' : ''}`}
+                onClick={() => setFilter('debtors')}
+              >
+                Должники ({debtors.length})
+              </button>
+              <button
+                className={`bc-chip ${filter === 'all' ? 'bc-chip-on' : ''}`}
+                onClick={() => setFilter('all')}
+              >
+                Все ({roster.length})
+              </button>
+              <input
+                className="bc-search"
+                placeholder="поиск по нику"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+              <span className="bc-muted">выбрано: {selected.length}</span>
+            </div>
             {ledgerEmpty && (
               <div className="bc-muted bc-hint">
                 В казне нет операций за этот месяц — выбирай вручную.
               </div>
             )}
             <div className="bc-list">
-              {roster.map((row) => (
-                <label key={row.nick} className="bc-item">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(row.nick)}
-                    onChange={() => toggle(row.nick)}
-                  />
-                  <span className="bc-nick">{row.nick}</span>
-                  {row.debt > 0 && <span className="bc-debt">долг {row.debt}</span>}
-                </label>
-              ))}
+              {visible.length === 0 ? (
+                <div className="bc-muted">Никого не найдено.</div>
+              ) : (
+                visible.map((row) => (
+                  <label key={row.nick} className="bc-item">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(row.nick)}
+                      onChange={() => toggle(row.nick)}
+                    />
+                    <span className="bc-nick">{row.nick}</span>
+                    {row.debt > 0 ? (
+                      <span className="bc-debt">
+                        долг {row.debt}
+                        {row.paid > 0 ? ` · оплачено ${row.paid}` : ''}
+                      </span>
+                    ) : (
+                      row.paid > 0 && <span className="bc-paid">оплачено {row.paid}</span>
+                    )}
+                  </label>
+                ))
+              )}
             </div>
           </>
         )}

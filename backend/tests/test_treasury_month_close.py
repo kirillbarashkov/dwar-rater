@@ -200,6 +200,27 @@ def test_reopen_refuses_a_month_that_was_never_closed(app, client, treasurer_hea
     assert resp.get_json()['error'] == 'not_closed'
 
 
+def test_reopen_requires_a_reason(app, client, treasurer_headers):
+    """Undoing a freeze is audited, so it must carry a reason — not a blank."""
+    _seed(app, **BASIC)
+    assert _close(client, treasurer_headers).status_code == 200
+
+    for body in ({}, {'reason': ''}, {'reason': 'because'}):
+        resp = _reopen(client, treasurer_headers, **body)
+        assert resp.status_code == 400, body
+        assert resp.get_json()['error'] == 'reason_required', body
+
+    with app.app_context():
+        # Nothing moved: the month is still frozen and the journal is clean.
+        assert TreasuryMonthClose.query.filter_by(clan_id=CLAN).count() == 1
+        assert (
+            AuditLog.query.filter_by(clan_id=CLAN, action='treasury_month_reopen').first()
+            is None
+        )
+
+    assert _reopen(client, treasurer_headers, reason='other').status_code == 200
+
+
 def test_closed_month_refuses_a_bulk_import(app, client, treasurer_headers, admin_headers):
     """The freeze must hold for bulk writes — and before the replace wipes data.
 

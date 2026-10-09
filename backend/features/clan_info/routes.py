@@ -1478,13 +1478,28 @@ def reopen_treasury_month(clan_id, year, month):
         )
 
     data = request.get_json(silent=True) or {}
+    # Undoing a freeze is a decision, and the journal has to say why — an optional
+    # reason was quietly omitted every time the UI forgot to send one.
+    reason = _clip(data.get("reason"), 60)
+    if reason not in {code["code"] for code in TREASURY_REASON_CODES}:
+        return (
+            jsonify(
+                {
+                    "error": "reason_required",
+                    "message": "Переоткрытие месяца требует причины из списка",
+                    "reasons": TREASURY_REASON_CODES,
+                }
+            ),
+            400,
+        )
+
     _audit(
         "treasury_month_reopen",
         target_type="treasury_month",
         old={"month": month, "year": year, "note": row.note},
         new={"month": month, "year": year},
         clan_id=clan_id,
-        reason=_clip(data.get("reason"), 60) or None,
+        reason=reason,
     )
     db.session.delete(row)
     db.session.commit()

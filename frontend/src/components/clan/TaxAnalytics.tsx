@@ -783,6 +783,7 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
           month={selectedMonth}
           year={selectedYear}
           canApprove={canApprove}
+          reasonCodes={reasonCodes}
           onChanged={setMonthClosed}
         />
       </header>
