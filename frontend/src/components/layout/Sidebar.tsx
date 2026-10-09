@@ -16,6 +16,10 @@ interface TabGroup {
   children?: TabItem[];
 }
 
+/** Tabs that belong to the treasurer's own section (see navGroups). */
+const TREASURY_GROUP_KEY = 'treasury-nav';
+const TREASURY_TABS = ['treasury', 'analytics', 'treasury-import'];
+
 interface SidebarProps {
   tabGroups?: TabGroup[];
   activeTab?: string;
@@ -24,13 +28,17 @@ interface SidebarProps {
   onToggleChat?: () => void;
 }
 
-// Default navigation structure
+// Default navigation structure. The treasury lives in its own group: it is a
+// different job from clan administration, and its visibility is decided by the
+// `treasury` permission group (admin and treasurer), not by being on the clan page.
 const navGroups: TabGroup[] = [
   { key: 'clan', label: 'Клан', icon: '🛡️', children: [
     { key: 'info', label: 'Информация', icon: '🛡️' },
     { key: 'members', label: 'Состав', icon: '👥' },
+  ]},
+  { key: TREASURY_GROUP_KEY, label: 'Казначейство', icon: '💰', children: [
     { key: 'treasury', label: 'Казна', icon: '💰' },
-    { key: 'analytics', label: 'Аналитика', icon: '📊' },
+    { key: 'analytics', label: 'Аналитика налогов', icon: '📊' },
     { key: 'treasury-import', label: 'Импорт / Экспорт', icon: '📥' },
   ]},
   { key: 'character', label: 'Персонаж', icon: '🧙', children: [
@@ -69,6 +77,12 @@ export function Sidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const canAccessAdmin = usePermission('admin', 'read') === 'full';
+  // The treasury section is for admin and treasurer. Everyone else still SEES the
+  // tab — greyed out with an explanation — so the feature is discoverable and the
+  // reason for its absence is obvious rather than mysterious.
+  const canTreasury = usePermission('treasury', 'read') === 'full';
+  const isGroupDisabled = (group: TabGroup) =>
+    group.key === TREASURY_GROUP_KEY && !canTreasury;
   const [expandedGroup, setExpandedGroup] = useState<string>(() =>
     location.pathname.startsWith('/clan') ? 'clan'
     : location.pathname.startsWith('/character') ? 'character'
@@ -78,7 +92,8 @@ export function Sidebar({
   const isCharacterPage = location.pathname.startsWith('/character');
   const isAnalyzePage = location.pathname.startsWith('/analyze');
 
-  const handleGroupClick = (groupKey: string, children?: TabItem[]) => {
+  const handleGroupClick = (groupKey: string, children?: TabItem[], disabled = false) => {
+    if (disabled) return;
     if (children && children.length > 0) {
       const willExpand = expandedGroup !== groupKey;
       setExpandedGroup(willExpand ? groupKey : '');
@@ -110,15 +125,24 @@ export function Sidebar({
         <div className="sidebar-section">
           <span className="sidebar-section-title">Навигация</span>
           {tabGroups.map((group) => {
-            const isActive = (isClanPage && group.key === 'clan') ||
+            const groupDisabled = isGroupDisabled(group);
+            // On the clan page the treasury is its own section: highlight it (and
+            // not «Клан») while one of its tabs is open.
+            const inTreasurySection =
+              isClanPage && Boolean(activeTab) && TREASURY_TABS.includes(activeTab as string);
+            const isActive = (isClanPage && group.key === 'clan' && !inTreasurySection) ||
+                            (isClanPage && group.key === TREASURY_GROUP_KEY && inTreasurySection) ||
                             (isCharacterPage && group.key === 'character') ||
                             (group.key === 'analysis' && isAnalyzePage) ||
                             (group.key === 'chat' && chatOpen);
+            const hint = groupDisabled ? 'Доступно админу и казначею' : undefined;
             return (
               <div key={group.key}>
                 <button
-                  className={`sidebar-item ${isActive || expandedGroup === group.key ? 'active' : ''}`}
-                  onClick={() => handleGroupClick(group.key, group.children)}
+                  className={`sidebar-item ${isActive || expandedGroup === group.key ? 'active' : ''} ${groupDisabled ? 'sidebar-item-disabled' : ''}`}
+                  onClick={() => handleGroupClick(group.key, group.children, groupDisabled)}
+                  disabled={groupDisabled}
+                  title={hint}
                 >
                   <span className="sidebar-icon">{group.icon}</span>
                   <span>{group.label}</span>
@@ -129,8 +153,10 @@ export function Sidebar({
                     {group.children.map((tab) => (
                       <button
                         key={tab.key}
-                        className={`sidebar-item ${activeTab === tab.key ? 'active' : ''}`}
+                        className={`sidebar-item ${activeTab === tab.key ? 'active' : ''} ${groupDisabled ? 'sidebar-item-disabled' : ''}`}
                         onClick={() => handleTabClick(group.key, tab.key)}
+                        disabled={groupDisabled}
+                        title={hint}
                       >
                         <span className="sidebar-icon">{tab.icon}</span>
                         <span>{tab.label}</span>

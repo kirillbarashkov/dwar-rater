@@ -313,7 +313,7 @@ function ClanPageWrapper() {
   }, []);
 
   const renderContent = () => {
-    if (activeGroup === 'clan') {
+    if (activeGroup === 'clan' || activeGroup === 'treasury-nav') {
       switch (activeTab) {
         case 'info': return <ClanOverview clanId={Number(clanId) || 2315} onSwitchTab={handleSwitchTab} />;
         case 'members': return <ClanMembersTable clanId={Number(clanId) || 2315} />;

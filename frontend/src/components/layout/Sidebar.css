@@ -104,6 +104,19 @@
   font-weight: 600;
 }
 
+/* Visible but not usable: the section belongs to admin and treasurer, so the tab
+   stays discoverable and the tooltip says why it cannot be opened. */
+.sidebar-item-disabled,
+.sidebar-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sidebar-item-disabled:hover,
+.sidebar-item:disabled:hover {
+  background: none;
+}
+
 .sidebar-item.active::before {
   height: 60%;
 }
