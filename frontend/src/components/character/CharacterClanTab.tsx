@@ -16,7 +16,7 @@ import './CharacterClanTab.css';
 const CLAN_ID = 2315;
 const DEFAULT_NORM = 10;
 
-type TaxStatus = 'paid' | 'paid_delayed' | 'compensated' | 'not_paid' | 'future_member';
+type TaxStatus = 'paid' | 'paid_delayed' | 'compensated' | 'not_paid' | 'future_member' | 'not_in_clan' | 'left_clan';
 
 interface TaxInfo {
   status: TaxStatus;
@@ -39,6 +39,8 @@ const STATUS_LABELS: Record<TaxStatus, string> = {
   compensated: 'Зачтено',
   not_paid: 'Не оплачено',
   future_member: 'Ещё не время платить',
+  not_in_clan: 'Ещё не в клане',
+  left_clan: 'Вышел из клана',
 };
 
 const STATUS_CLASSES: Record<TaxStatus, string> = {
@@ -47,6 +49,8 @@ const STATUS_CLASSES: Record<TaxStatus, string> = {
   compensated: 'char-clan-badge-compensated',
   not_paid: 'char-clan-badge-notpaid',
   future_member: 'char-clan-badge-future',
+  not_in_clan: 'char-clan-badge-notin',
+  left_clan: 'char-clan-badge-left',
 };
 
 export function CharacterClanTab() {
@@ -90,6 +94,7 @@ export function CharacterClanTab() {
   const myLevel = myMember?.level ?? null;
   const myJoinDate = myMember?.join_date ?? '';
   const myTrialUntil = myMember?.trial_until ?? '';
+  const myLeftDate = myMember?.left_date ?? '';
 
   const joinInfo = useMemo(() => {
     if (myJoinDate) {
@@ -121,6 +126,22 @@ export function CharacterClanTab() {
     if (selectedYear === joinInfo.year && selectedMonth > joinInfo.month) return true;
     return false;
   }, [joinInfo, selectedYear, selectedMonth]);
+
+  /** Дата выхода из клана — вторая граница окна участия. */
+  const leftInfo = useMemo(() => {
+    if (!myLeftDate) return null;
+    const match = myLeftDate.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+    if (!match) return null;
+    return { month: parseInt(match[2], 10), year: parseInt(match[3], 10) };
+  }, [myLeftDate]);
+
+  // Окно участия: до месяца вступления персонажа в клане ещё не было, после месяца
+  // выхода — уже нет. Без этих границ вкладка называла ушедшего «Не оплачено» за
+  // месяцы, когда его в клане не было.
+  const monthIndex = selectedYear * 12 + selectedMonth;
+  const isBeforeJoin = !!joinInfo && monthIndex < joinInfo.year * 12 + joinInfo.month;
+  const isAfterLeft = !!leftInfo && monthIndex > leftInfo.year * 12 + leftInfo.month;
+  const outsideWindow = isBeforeJoin || isAfterLeft;
 
   const getLevelAtDate = (dateStr: string): number | null => {
     const history = levelHistory[myNickLower];
@@ -173,7 +194,11 @@ export function CharacterClanTab() {
     const totalPaid = onTime + delayed;
 
     let status: TaxStatus = 'not_paid';
-    if (!isPaymentDue) {
+    if (isBeforeJoin) {
+      status = 'not_in_clan';
+    } else if (isAfterLeft) {
+      status = 'left_clan';
+    } else if (!isPaymentDue) {
       status = 'future_member';
     } else if (hasCompensationFlag) {
       status = 'compensated';
@@ -185,7 +210,7 @@ export function CharacterClanTab() {
     const effectiveDelayed = onTime >= normAmount ? 0 : delayed;
 
     return { status, totalPaid, onTimePaid: onTime, delayedPaid: effectiveDelayed, normAmount, isOver };
-  }, [operations, myNick, myNickLower, selectedMonth, selectedYear, myLevel, isPaymentDue]);
+  }, [operations, myNick, myNickLower, selectedMonth, selectedYear, myLevel, isPaymentDue, isBeforeJoin, isAfterLeft]);
 
   const resourceInfos = useMemo<ResourceInfo[]>(() => {
     if (!myNick) return [];
@@ -300,7 +325,7 @@ export function CharacterClanTab() {
         <button className="char-clan-nav-btn" onClick={handlePrevMonth} title="Предыдущий месяц">←</button>
         <span className="char-clan-month-label">{MONTHS_RU[selectedMonth]} {selectedYear}</span>
         <button className="char-clan-nav-btn" onClick={handleNextMonth} title="Следующий месяц">→</button>
-        {daysToDeadline >= 0 && daysToDeadline <= 15 && isPaymentDue && (
+        {daysToDeadline >= 0 && daysToDeadline <= 15 && isPaymentDue && !outsideWindow && (
           <span className="char-clan-deadline">⏰ До дедлайна налога: {daysToDeadline} дн.</span>
         )}
       </div>
@@ -316,6 +341,13 @@ export function CharacterClanTab() {
               </span>
               {taxInfo.isOver && <span className="char-clan-badge char-clan-badge-over">Сверх нормы</span>}
             </div>
+            {outsideWindow ? (
+              <div className="char-clan-tax-hint">
+                {isBeforeJoin
+                  ? `В ${MONTHS_RU[selectedMonth]} ${selectedYear} персонажа ещё не было в клане — налог за этот месяц не начисляется.`
+                  : `Персонаж вышел из клана${myLeftDate ? ` ${myLeftDate}` : ''} — налог за этот месяц не начисляется.`}
+              </div>
+            ) : (
             <div className="char-clan-tax-details">
               <div className="char-clan-tax-row">
                 <span className="char-clan-tax-label">Уплачено</span>
@@ -338,12 +370,13 @@ export function CharacterClanTab() {
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Ресурсы талантов по 3 группам */}
-      {TALENT_RESOURCE_GROUPS.map((group) => {
+      {/* Ресурсы талантов по 3 группам — только внутри окна участия */}
+      {!outsideWindow && TALENT_RESOURCE_GROUPS.map((group) => {
         const groupResources = resourceInfos.filter((r) => group.resources.includes(r.resourceName));
         const hasAny = groupResources.some((r) => r.submitted > 0);
         return (
