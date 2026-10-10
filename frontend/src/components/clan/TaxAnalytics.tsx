@@ -99,7 +99,6 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
   const [filters, setFilters] = useState({
     search: '',
     level: '',
-    norm: '',
     status: '',
     hasCompensation: '',
   });
@@ -462,9 +461,6 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
       if (filters.level && p.playerLevel !== parseInt(filters.level)) {
         return false;
       }
-      if (filters.norm && p.normAmount !== parseInt(filters.norm)) {
-        return false;
-      }
       if (filters.status && p.status !== filters.status) {
         return false;
       }
@@ -482,12 +478,6 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
     if (!monthSummary) return [];
     const levels = new Set(monthSummary.players.map(p => p.playerLevel).filter(l => l !== undefined) as number[]);
     return Array.from(levels).sort((a, b) => a - b);
-  }, [monthSummary]);
-
-  const uniqueNorms = useMemo(() => {
-    if (!monthSummary) return [];
-    const norms = new Set(monthSummary.players.map(p => p.normAmount));
-    return Array.from(norms).sort((a, b) => a - b);
   }, [monthSummary]);
 
   const paidDelayedPlayers = filteredPlayers.filter(p => p.status === 'paid_delayed');
@@ -790,46 +780,6 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
         />
       </header>
 
-      <GuideSteps
-        title={`Как проходит месяц — ${periodLabel}`}
-        steps={[
-          {
-            text: 'Посмотрите три числа выше: «Ожидалось» — сколько должны собрать, «Собрано» — сколько реально пришло, «Не собрано» — сколько ещё недобрали.',
-          },
-          {
-            text: 'Разберите должников: отфильтруйте список по «Не заплатил», напомните людям про взнос — или зачтите его, если так решил совет.',
-            action: {
-              label: 'Показать должников',
-              onClick: () => setFilters((f) => ({ ...f, status: 'not_paid' })),
-            },
-          },
-          {
-            text: 'Сверьте переплату: лишние монеты переносятся на следующий месяц. Подтверждать перенос можно только после закрытия месяца.',
-          },
-          {
-            text: 'Закройте прошедший месяц, когда цифры сойдутся: после закрытия правки и импорт задним числом перестанут проходить.',
-          },
-          {
-            text: 'Скопируйте готовую сводку в клановый чат — блок «Сводка для чата» ниже.',
-          },
-        ]}
-      />
-
-      <TaxCarryoverPanel
-        month={selectedMonth}
-        year={selectedYear}
-        data={carryover}
-        canApprove={canApprove}
-        isSaving={isSaving}
-        onRecompute={handleRecomputeCarryover}
-        onReview={handleReviewCarryover}
-        onBulk={handleBulkCarryover}
-      />
-
-      <BulkCompensationPanel clanId={clanId} canManage={canManage} members={members} />
-
-      <TreasurySummaryPanel clanId={clanId} month={selectedMonth} year={selectedYear} />
-
       {monthSummary && (
         <>
           <div className="tax-kpi">
@@ -898,6 +848,34 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
             </div>
           </div>
 
+          {/* Числа — первыми: казначей заходит узнать «сколько собрали и кто должен».
+              Шаги-объяснения идут сразу за ними, а не перед: иначе инструкция
+              отодвигает цифры за нижнюю границу экрана. */}
+          <GuideSteps
+            title={`Как проходит месяц — ${periodLabel}`}
+            steps={[
+              {
+                text: 'Посмотрите три числа выше: «Ожидалось» — сколько должны собрать, «Собрано» — сколько реально пришло, «Не собрано» — сколько ещё недобрали.',
+              },
+              {
+                text: 'Разберите должников: отфильтруйте список по «Не заплатил», напомните людям про взнос — или зачтите его, если так решил совет.',
+                action: {
+                  label: 'Показать должников',
+                  onClick: () => setFilters((f) => ({ ...f, status: 'not_paid' })),
+                },
+              },
+              {
+                text: 'Сверьте переплату: лишние монеты переносятся на следующий месяц. Подтверждать перенос можно только после закрытия месяца.',
+              },
+              {
+                text: 'Закройте прошедший месяц, когда цифры сойдутся: после закрытия правки и импорт задним числом перестанут проходить.',
+              },
+              {
+                text: 'Скопируйте готовую сводку в клановый чат — блок «Сводка для чата» ниже.',
+              },
+            ]}
+          />
+
           <div className="tax-filters">
             <input
               type="text"
@@ -913,15 +891,6 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
               <option value="">Все уровни</option>
               {uniqueLevels.map(l => (
                 <option key={l} value={l}>Ур. {l}</option>
-              ))}
-            </select>
-            <select
-              value={filters.norm}
-              onChange={e => setFilters(f => ({ ...f, norm: e.target.value }))}
-            >
-              <option value="">Все нормы</option>
-              {uniqueNorms.map(n => (
-                <option key={n} value={n}>{n} монет</option>
               ))}
             </select>
             <select
@@ -941,10 +910,10 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
               <option value="yes">С компенсацией</option>
               <option value="no">Без компенсации</option>
             </select>
-            {(filters.search || filters.level || filters.norm || filters.status || filters.hasCompensation) && (
+            {(filters.search || filters.level || filters.status || filters.hasCompensation) && (
               <button
                 className="tax-filter-clear"
-                onClick={() => setFilters({ search: '', level: '', norm: '', status: '', hasCompensation: '' })}
+                onClick={() => setFilters({ search: '', level: '', status: '', hasCompensation: '' })}
               >
                 Сбросить
               </button>
@@ -1297,6 +1266,33 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
           </div>
         </>
       )}
+
+      {/* Инструменты правки стоят ПОСЛЕ данных: казначей заходит узнать «сколько
+          собрали и кто должен», а не «чем тут можно править». Пока они были
+          сверху, цифры и таблица уезжали ниже первого экрана (замер: 610px
+          инструментов, 1414px содержимого в окне 569px). Переезд в свои вкладки
+          («Переносы», «Взносы» в режиме выделения) — следующий этап плана
+          development-roadmap/treasury-ux-restructure-v1.0.md. */}
+      <TaxCarryoverPanel
+        month={selectedMonth}
+        year={selectedYear}
+        data={carryover}
+        canApprove={canApprove}
+        isSaving={isSaving}
+        onRecompute={handleRecomputeCarryover}
+        onReview={handleReviewCarryover}
+        onBulk={handleBulkCarryover}
+      />
+
+      <BulkCompensationPanel
+        clanId={clanId}
+        canManage={canManage}
+        members={members}
+        month={selectedMonth}
+        year={selectedYear}
+      />
+
+      <TreasurySummaryPanel clanId={clanId} month={selectedMonth} year={selectedYear} />
 
       {editingCompensation && (
         <div className="tax-modal-overlay">

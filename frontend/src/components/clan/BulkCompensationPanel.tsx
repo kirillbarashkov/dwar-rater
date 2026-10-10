@@ -14,6 +14,13 @@ interface BulkCompensationPanelProps {
   members?: Array<{ nick: string; level?: number }>;
   /** treasury:write — without it the panel renders nothing. */
   canManage?: boolean;
+  /**
+   * Период раздела. Раздел задаёт период один раз — панель его наследует и свой
+   * селектор не показывает: два селектора месяца на одном экране дают «а почему
+   * цифры другие?». Без этих пропсов панель работает автономно (свой селектор).
+   */
+  month?: number;
+  year?: number;
 }
 
 /**
@@ -32,10 +39,15 @@ export function BulkCompensationPanel({
   clanId,
   members = [],
   canManage = false,
+  month: periodMonth,
+  year: periodYear,
 }: BulkCompensationPanelProps) {
   const now = new Date();
-  const [month, setMonth] = useState<number>(now.getMonth() + 1);
-  const [year, setYear] = useState<number>(now.getFullYear());
+  const [ownMonth, setOwnMonth] = useState<number>(now.getMonth() + 1);
+  const [ownYear, setOwnYear] = useState<number>(now.getFullYear());
+  // Период раздела важнее собственного: он один на весь экран.
+  const month = periodMonth ?? ownMonth;
+  const year = periodYear ?? ownYear;
   // nick (lower-cased) -> the month's {debt, paid} from the ledger.
   const [debts, setDebts] = useState<Record<string, { debt: number; paid: number }>>({});
   const [ledgerEmpty, setLedgerEmpty] = useState(false);
@@ -165,25 +177,33 @@ export function BulkCompensationPanel({
     <section className="bc-panel">
       <div className="bc-header">
         <h3 className="bc-title">Массовый зачёт налога</h3>
-        <div className="bc-period">
-          <select
-            className="bc-select"
-            value={month}
-            onChange={(event) => setMonth(Number(event.target.value))}
-          >
-            {MONTHS_RU.map((name, index) => (
-              <option key={name} value={index + 1}>
-                {name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="bc-year"
-            type="number"
-            value={year}
-            onChange={(event) => setYear(Number(event.target.value))}
-          />
-        </div>
+        {periodMonth === undefined ? (
+          <div className="bc-period">
+            <select
+              className="bc-select"
+              value={month}
+              onChange={(event) => setOwnMonth(Number(event.target.value))}
+            >
+              {MONTHS_RU.map((name, index) =>
+                index === 0 ? null : (
+                  <option key={name} value={index}>
+                    {name}
+                  </option>
+                ),
+              )}
+            </select>
+            <input
+              className="bc-year"
+              type="number"
+              value={year}
+              onChange={(event) => setOwnYear(Number(event.target.value))}
+            />
+          </div>
+        ) : (
+          <span className="bc-muted">
+            Период: {MONTHS_RU[month]} {year} — из шапки раздела
+          </span>
+        )}
       </div>
 
       {error && <div className="bc-error">{error}</div>}
