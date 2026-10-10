@@ -14,6 +14,7 @@ from datetime import date
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from shared.services.tax_engine import (
+    is_money_operation,
     is_real_payment,
     norm_for_level,
     parse_ddmmyyyy,
@@ -26,20 +27,28 @@ NEGATIVE_QUANTITY = "negative_quantity"
 BEFORE_JOIN = "before_join"
 UNKNOWN_NICK = "unknown_nick"
 ABOVE_NORM = "above_norm"
+HUGE_AMOUNT = "huge_amount"
 
 # «Заметно выше нормы»: a single payment of three monthly norms or more reads as
 # lumped prepayments (or a typo), which the treasurer should look at.
 ABOVE_NORM_FACTOR = 3
+
+# «Очень крупная операция»: единый порог для ЛЮБОЙ операции казны — и взноса, и
+# снятия, и деньгами, и предметами. Причина простая: 1 041 110 монет в казну и
+# вынос 44 978 единиц предмета одинаково требуют взгляда казначея, а нормы для
+# предметов не существует. Порог задан владельцем клана.
+HUGE_AMOUNT_THRESHOLD = 10_000
 
 # How many example operations each finding carries (the count is always exact).
 EXAMPLES = 5
 
 LABELS = {
     FUTURE_DATE: "Дата в будущем",
-    NEGATIVE_QUANTITY: "Отрицательная сумма",
+    NEGATIVE_QUANTITY: "Отрицательная сумма по деньгам",
     BEFORE_JOIN: "Платёж раньше вступления",
     UNKNOWN_NICK: "Ник не из состава",
     ABOVE_NORM: "Сумма заметно выше нормы",
+    HUGE_AMOUNT: "Крупная операция (от 10 000)",
 }
 
 # Findings that are corruption rather than judgement — these are also refused on
@@ -119,10 +128,29 @@ def detect_anomalies(
                 FUTURE_DATE, nick_key, muted_codes, muted_refs
             ):
                 found[FUTURE_DATE].append(_example(op))
-        if quantity < 0 and not _is_muted(
+        # Отрицательная величина — порча ТОЛЬКО по деньгам. Минус в складской
+        # операции означает обычное списание предметов со склада (на проде таких
+        # 4029 из 4029 отрицательных): помечать их аномалией — значит утопить
+        # настоящие находки в шуме.
+        if quantity < 0 and is_money_operation(op) and not _is_muted(
             NEGATIVE_QUANTITY, nick_key, muted_codes, muted_refs
         ):
             found[NEGATIVE_QUANTITY].append(_example(op))
+        # Единый порог для любой операции: взнос это, снятие или вынос предметов.
+        # Проверяется ДО ветки состава, иначе крупная операция от ника не из
+        # состава (а это самый интересный случай) не попала бы в отчёт.
+        if abs(quantity) >= HUGE_AMOUNT_THRESHOLD and not _is_muted(
+            HUGE_AMOUNT, nick_key, muted_codes, muted_refs
+        ):
+            found[HUGE_AMOUNT].append(
+                _example(
+                    op,
+                    extra=(
+                        f"{op.get('operation_type') or '—'} · {op.get('object_name') or '—'}, "
+                        f"порог {HUGE_AMOUNT_THRESHOLD}"
+                    ),
+                )
+            )
 
         member = roster.get(nick_key)
         if member is None:

@@ -196,13 +196,19 @@ def level_at_month_end(events: Sequence[Mapping[str, Any]], month: int, year: in
 def is_real_payment(op: Mapping[str, Any]) -> bool:
     """Money actually paid into the treasury (not a «зачёт» marker)."""
     return (
-        _is_tax_operation(op)
+        is_money_operation(op)
         and _as_int(op.get("quantity")) > 0
         and not op.get("compensation_flag")
     )
 
 
-def _is_tax_operation(op: Mapping[str, Any]) -> bool:
+def is_money_operation(op: Mapping[str, Any]) -> bool:
+    """Операция «деньги/Монеты» — форма, а не знак.
+
+    Отделено от `is_real_payment` (который ещё требует положительную сумму и
+    отсутствие зачёта): диагностике казны нужна именно форма, чтобы отличить
+    деньги от складских операций и не считать минус в предметах порчей.
+    """
     return (
         (op.get("operation_type") or "") == TAX_OPERATION_TYPE
         and (op.get("object_name") or "") == TAX_OBJECT_NAME
@@ -220,7 +226,7 @@ def _classify(operations: Iterable[Mapping[str, Any]]):
             continue
         month, year = key
         op_indexes.append(ym_index(month, year))
-        if not _is_tax_operation(op):
+        if not is_money_operation(op):
             continue
         quantity = _as_int(op.get("quantity"))
         if quantity <= 0:

@@ -954,3 +954,27 @@
   font-size: 11px;
   font-weight: 400;
 }
+
+/* Путь назад из отфильтрованной таблицы в «Обзор». */
+.tax-backbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.tax-backbar-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--accent);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tax-backbar-hint {
+  color: var(--text-muted);
+  font-size: 11px;
+}

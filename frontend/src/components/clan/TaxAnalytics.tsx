@@ -47,6 +47,12 @@ interface TaxAnalyticsProps {
    */
   onOpenDues?: () => void;
   /**
+   * Вернуться в «Обзор». Симметрия к предыдущему: если нажатие очереди уводит
+   * в таблицу, из таблицы должен быть такой же явный путь назад, а не «ищи
+   * вкладку сам».
+   */
+  onBackToOverview?: () => void;
+  /**
    * Что показывает вкладка: «Обзор» (цифры, покрытие, очереди, сводка),
    * «Взносы» (фильтры, таблицы, массовый зачёт) или «Переносы».
    * Один компонент на три вкладки — одна цепочка расчёта: цифры в «Обзоре» и
@@ -118,6 +124,7 @@ export function TaxAnalytics({
   year: selectedYear,
   monthClosed = false,
   onOpenDues,
+  onBackToOverview,
   view = 'overview',
 }: TaxAnalyticsProps) {
   const [editingCompensation, setEditingCompensation] = useState<{
@@ -152,6 +159,9 @@ export function TaxAnalytics({
   const [bulkPlan, setBulkPlan] = useState<BulkCompensationPlan | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkNotice, setBulkNotice] = useState<string | null>(null);
+  // Пришли в таблицу из очереди «Обзора»? Тогда показываем путь назад: иначе
+  // пользователь остаётся в отфильтрованной таблице без объяснения, откуда она.
+  const [cameFromQueue, setCameFromQueue] = useState(false);
 
   const clearSelection = () => {
     setSelectedNicks([]);
@@ -165,7 +175,15 @@ export function TaxAnalytics({
    */
   const showInDues = (status: string) => {
     setFilters((f) => ({ ...f, status }));
+    setCameFromQueue(true);
     onOpenDues?.();
+  };
+
+  /** Обратный путь: снять фильтр очереди и вернуться в «Обзор». */
+  const backToOverview = () => {
+    setFilters({ search: '', level: '', status: '', hasCompensation: '' });
+    setCameFromQueue(false);
+    onBackToOverview?.();
   };
 
   const toggleSelected = (nick: string) => {
@@ -821,6 +839,16 @@ export function TaxAnalytics({
     ? `${MONTHS_RU[monthSummary.month]} ${monthSummary.year}`
     : '';
 
+  // Человеческое имя активного статуса-фильтра — для плашки возврата.
+  const statusLabel =
+    {
+      not_paid: 'не заплатили',
+      paid_delayed: 'оплатили с просрочкой',
+      over: 'переплата',
+      future_member: 'новички',
+      paid: 'заплатили',
+    }[filters.status] || 'фильтр включён';
+
   const handleCompensate = (nick: string, level: number, normAmount: number) => {
     setEditingCompensation({ nick, level, normAmount });
     setCompensationComment('');
@@ -1075,6 +1103,17 @@ export function TaxAnalytics({
           )}
           {view === 'dues' && (
             <>
+            {cameFromQueue && (
+              <div className="tax-backbar">
+                <button className="tax-backbar-btn" onClick={backToOverview}>
+                  ← Вернуться в «Обзор»
+                </button>
+                <span className="tax-backbar-hint">
+                  таблица показывает выборку из очереди: {statusLabel}
+                </span>
+              </div>
+            )}
+
             {/* Массовая работа — по таблице: выделил строки, появился экшенбар.
                 Второго списка ников на экране нет (раньше рядом с таблицей жила
                 отдельная панель зачёта со своим списком и своим селектором месяца). */}

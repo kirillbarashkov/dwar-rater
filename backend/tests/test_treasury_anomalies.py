@@ -70,6 +70,62 @@ def test_negative_quantity_is_blocking():
     assert item["blocking"] is True
 
 
+def item_op(op_id, day, month, year, nick, quantity, object_name="Сущность Гальфиды"):
+    """Складская операция: количество предметов, а не деньги."""
+    row = op(op_id, day, month, year, nick, quantity)
+    row["operation_type"] = "Склад"
+    row["object_name"] = object_name
+    return row
+
+
+def test_a_negative_item_quantity_is_not_an_anomaly():
+    """Минус в складской операции — обычное списание предметов со склада.
+
+    На проде таких 4029 из 4029 отрицательных величин. Пока детектор считал их
+    порчей, отчёт состоял из них почти целиком, и настоящие находки в нём тонули.
+    """
+    result = detect_anomalies(
+        [item_op(9, 5, 10, 2026, "Alpha", -2)],
+        [member("Alpha")],
+        today=TODAY,
+    )
+    assert result["items"] == []
+
+
+def test_a_huge_amount_is_reported_for_money_and_for_items():
+    """Порог 10 000 — единый: и взнос деньгами, и вынос предметов, и снятие."""
+    result = detect_anomalies(
+        [
+            op(1, 19, 1, 2026, "FeDeLTa", 1_041_110),
+            item_op(2, 3, 1, 2026, "Manjunya86", 18_270),
+            op(3, 5, 10, 2026, "Alpha", 9_999),
+        ],
+        [member("FeDeLTa", level=19), member("Manjunya86", level=19), member("Alpha")],
+        today=TODAY,
+    )
+    item = codes(result)["huge_amount"]
+    assert item["count"] == 2
+    assert item["blocking"] is False
+    assert {row["id"] for row in item["examples"]} == {1, 2}
+
+
+def test_a_huge_operation_from_an_unknown_nick_is_reported_too():
+    """Порог проверяется ДО ветки состава.
+
+    Иначе самый интересный случай — крупная операция от ника, которого в клане
+    уже нет, — выпадал бы из отчёта именно тогда, когда нужнее всего.
+    """
+    result = detect_anomalies(
+        [op(1, 19, 1, 2026, "Ghost", 1_041_110)],
+        [member("Alpha")],
+        today=TODAY,
+    )
+    found = codes(result)
+    assert found["huge_amount"]["count"] == 1
+    assert found["unknown_nick"]["count"] == 1
+    assert "Деньги · Монеты" in found["huge_amount"]["examples"][0]["note"]
+
+
 def test_payment_before_joining_is_flagged_with_the_start_month():
     result = detect_anomalies(
         [op(1, 10, 1, 2020, "Alpha", 10)],
