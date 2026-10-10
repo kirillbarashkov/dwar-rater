@@ -3,7 +3,22 @@
 }
 
 .treasury-analytics-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 16px;
+}
+
+/* Период — ближе к правому краю, кнопки закрытия месяца — сразу за ним, всё в
+   один ряд. Раньше шапка была блоком, и «Закрыть месяц» уезжал на вторую строку. */
+.treasury-analytics-header .tax-period-nav {
+  margin-left: auto;
+}
+
+/* Поле пометки у месяца — узкое: иначе шапка не влезает в один ряд. */
+.treasury-analytics-header .mc-input {
+  width: 170px;
 }
 
 .treasury-analytics-title {

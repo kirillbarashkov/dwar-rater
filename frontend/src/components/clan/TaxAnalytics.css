@@ -782,6 +782,24 @@
   margin-bottom: 10px;
 }
 
+.tax-queues-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tax-queues-title {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tax-queues-hint {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
 .tax-queue {
   display: flex;
   align-items: center;

@@ -41,6 +41,12 @@ interface TaxAnalyticsProps {
   /** Заморозка месяца тоже приходит из шапки (там же кнопка закрытия). */
   monthClosed?: boolean;
   /**
+   * Перейти к таблице. Нужен потому, что фильтр сам по себе результата не
+   * показывает: нажав очередь в «Обзоре», пользователь не видит изменений —
+   * таблица живёт во «Взносах». Поэтому нажатие и переключает вкладку.
+   */
+  onOpenDues?: () => void;
+  /**
    * Что показывает вкладка: «Обзор» (цифры, покрытие, очереди, сводка),
    * «Взносы» (фильтры, таблицы, массовый зачёт) или «Переносы».
    * Один компонент на три вкладки — одна цепочка расчёта: цифры в «Обзоре» и
@@ -111,6 +117,7 @@ export function TaxAnalytics({
   month: selectedMonth,
   year: selectedYear,
   monthClosed = false,
+  onOpenDues,
   view = 'overview',
 }: TaxAnalyticsProps) {
   const [editingCompensation, setEditingCompensation] = useState<{
@@ -149,6 +156,16 @@ export function TaxAnalytics({
   const clearSelection = () => {
     setSelectedNicks([]);
     setBulkPlan(null);
+  };
+
+  /**
+   * Показать выборку в таблице. Одного фильтра мало: таблица на другой вкладке,
+   * и без перехода пользователь видит «ничего не произошло». Фильтр и переход
+   * делаются вместе — это одно действие с одним ожидаемым результатом.
+   */
+  const showInDues = (status: string) => {
+    setFilters((f) => ({ ...f, status }));
+    onOpenDues?.();
   };
 
   const toggleSelected = (nick: string) => {
@@ -935,13 +952,49 @@ export function TaxAnalytics({
               )}
             </div>
 
+            {/* Инструкция — ПЕРЕД очередями: сначала человек читает, что делать в
+                этом месяце, и только потом получает список работы. Три числа
+                остаются выше них: они отвечают на «как дела» и должны попадать на
+                первый экран, а не уезжать под инструкцию. */}
+            <GuideSteps
+              title={`Как проходит месяц — ${periodLabel}`}
+              steps={[
+                {
+                  text: 'Посмотрите три числа выше: «Ожидалось» — сколько должны собрать, «Собрано» — сколько реально пришло, «Не собрано» — сколько ещё недобрали.',
+                },
+                {
+                  text: 'Разберите должников: откройте список по «Не заплатил», напомните людям про взнос — или зачтите его, если так решил совет.',
+                  action: {
+                    label: 'Показать должников',
+                    onClick: () => showInDues('not_paid'),
+                  },
+                },
+                {
+                  text: 'Сверьте переплату: лишние монеты переносятся на следующий месяц. Подтверждать перенос можно только после закрытия месяца.',
+                },
+                {
+                  text: 'Закройте прошедший месяц, когда цифры сойдутся: после закрытия правки и импорт задним числом перестанут проходить.',
+                },
+                {
+                  text: 'Скопируйте готовую сводку в клановый чат — блок «Сводка для чата» ниже.',
+                },
+              ]}
+            />
+
             {/* Исключения вперёд: очередь с нулём не рисуется — ноль не информация,
-                а занятое место. Каждая строка кликабельна и фильтрует таблицу. */}
+                а занятое место. Нажатие ведёт в таблицу: фильтр без перехода
+                выглядит как «ничего не произошло» — таблица-то на другой вкладке. */}
+            <div className="tax-queues-head">
+              <span className="tax-queues-title">Требует внимания</span>
+              <span className="tax-queues-hint">
+                нажмите строку — откроется список во «Взносах»
+              </span>
+            </div>
             <div className="tax-queues">
               {notPaidPlayers.length > 0 && (
                 <button
                   className="tax-queue tax-queue-danger"
-                  onClick={() => setFilters((f) => ({ ...f, status: 'not_paid' }))}
+                  onClick={() => showInDues('not_paid')}
                 >
                   <span className="tax-queue-label">
                     <span className="tax-status-dot tax-status-notpaid" />
@@ -950,13 +1003,13 @@ export function TaxAnalytics({
                   <span className="tax-queue-value">
                     {notPaidPlayers.length} чел. · {notPaidSum.toLocaleString()} монет
                   </span>
-                  <span className="tax-queue-go">показать ›</span>
+                  <span className="tax-queue-go">показать во «Взносах» ›</span>
                 </button>
               )}
               {paidDelayedPlayers.length > 0 && (
                 <button
                   className="tax-queue"
-                  onClick={() => setFilters((f) => ({ ...f, status: 'paid_delayed' }))}
+                  onClick={() => showInDues('paid_delayed')}
                 >
                   <span className="tax-queue-label">
                     <span className="tax-status-dot tax-status-delayed" />
@@ -965,13 +1018,13 @@ export function TaxAnalytics({
                   <span className="tax-queue-value">
                     {paidDelayedPlayers.length} чел. · {delayedSum.toLocaleString()} монет
                   </span>
-                  <span className="tax-queue-go">показать ›</span>
+                  <span className="tax-queue-go">показать во «Взносах» ›</span>
                 </button>
               )}
               {overpaidPlayers.length > 0 && (
                 <button
                   className="tax-queue"
-                  onClick={() => setFilters((f) => ({ ...f, status: 'over' }))}
+                  onClick={() => showInDues('over')}
                 >
                   <span className="tax-queue-label">
                     <span className="tax-status-dot tax-status-over" />
@@ -980,20 +1033,20 @@ export function TaxAnalytics({
                   <span className="tax-queue-value">
                     {overpaidPlayers.length} чел. · +{overpaySum.toLocaleString()} монет
                   </span>
-                  <span className="tax-queue-go">показать ›</span>
+                  <span className="tax-queue-go">показать во «Взносах» ›</span>
                 </button>
               )}
               {futureMemberPlayers.length > 0 && (
                 <button
                   className="tax-queue tax-queue-muted"
-                  onClick={() => setFilters((f) => ({ ...f, status: 'future_member' }))}
+                  onClick={() => showInDues('future_member')}
                 >
                   <span className="tax-queue-label">
                     <span className="tax-status-dot" />
                     Новички — норма начнётся со следующего месяца
                   </span>
                   <span className="tax-queue-value">{futureMemberPlayers.length} чел. · долга нет</span>
-                  <span className="tax-queue-go">показать ›</span>
+                  <span className="tax-queue-go">показать во «Взносах» ›</span>
                 </button>
               )}
               {filters.status !== '' && (
@@ -1017,34 +1070,6 @@ export function TaxAnalytics({
               · заплатили в срок: {paidOnTimePlayers.length} · зачтено: {compensatedPlayers.length}
               {totalCarriedIn > 0 && <> · перенос из прошлого месяца: {totalCarriedIn.toLocaleString()}</>}
             </div>
-
-            {/* Числа — первыми: казначей заходит узнать «сколько собрали и кто должен».
-                Шаги-объяснения идут сразу за ними, а не перед: иначе инструкция
-                отодвигает цифры за нижнюю границу экрана. */}
-            <GuideSteps
-              title={`Как проходит месяц — ${periodLabel}`}
-              steps={[
-                {
-                  text: 'Посмотрите три числа выше: «Ожидалось» — сколько должны собрать, «Собрано» — сколько реально пришло, «Не собрано» — сколько ещё недобрали.',
-                },
-                {
-                  text: 'Разберите должников: отфильтруйте список по «Не заплатил», напомните людям про взнос — или зачтите его, если так решил совет.',
-                  action: {
-                    label: 'Показать должников',
-                    onClick: () => setFilters((f) => ({ ...f, status: 'not_paid' })),
-                  },
-                },
-                {
-                  text: 'Сверьте переплату: лишние монеты переносятся на следующий месяц. Подтверждать перенос можно только после закрытия месяца.',
-                },
-                {
-                  text: 'Закройте прошедший месяц, когда цифры сойдутся: после закрытия правки и импорт задним числом перестанут проходить.',
-                },
-                {
-                  text: 'Скопируйте готовую сводку в клановый чат — блок «Сводка для чата» ниже.',
-                },
-              ]}
-            />
 
             </>
           )}

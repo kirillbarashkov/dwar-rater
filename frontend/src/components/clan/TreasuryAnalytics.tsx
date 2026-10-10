@@ -170,6 +170,7 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
             canApprove={canApprove}
             reasonCodes={reasonCodes}
             onRefresh={() => loadData(true)}
+            onOpenDues={() => setActiveTab('dues')}
             month={selectedMonth}
             year={selectedYear}
             monthClosed={monthClosed}
