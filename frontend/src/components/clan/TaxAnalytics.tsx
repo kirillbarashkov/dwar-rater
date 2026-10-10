@@ -144,9 +144,6 @@ export function TaxAnalytics({
   // По умолчанию — «сначала худшие»: наибольший долг сверху. Казначею нужен
   // список работы, а не алфавит; любую колонку можно пересортировать кликом.
   const [mainSort, setMainSort] = useState<SortConfig>({ column: 'debt', direction: 'desc' });
-  const [notPaidSort, setNotPaidSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
-  const [compensatedSort, setCompensatedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
-  const [paidDelayedSort, setPaidDelayedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<{ quantity: number; compensationFlag: boolean; compensationComment: string } | null>(null);
@@ -713,78 +710,18 @@ export function TaxAnalytics({
     });
   }, [filteredPlayers, mainSort]);
 
-  const sortedNotPaidPlayers = useMemo(() => {
-    if (!notPaidSort.column) return notPaidPlayers;
-    return [...notPaidPlayers].sort((a, b) => {
-      let cmp = 0;
-      switch (notPaidSort.column) {
-        case 'nick':
-          cmp = a.nick.localeCompare(b.nick);
-          break;
-        case 'level':
-          cmp = (a.playerLevel || 0) - (b.playerLevel || 0);
-          break;
-        case 'norm':
-          cmp = a.normAmount - b.normAmount;
-          break;
-      }
-      return notPaidSort.direction === 'asc' ? cmp : -cmp;
-    });
-  }, [notPaidPlayers, notPaidSort]);
 
-  const sortedCompensatedPlayers = useMemo(() => {
-    if (!compensatedSort.column) return compensatedPlayers;
-    return [...compensatedPlayers].sort((a, b) => {
-      let cmp = 0;
-      switch (compensatedSort.column) {
-        case 'nick':
-          cmp = a.nick.localeCompare(b.nick);
-          break;
-        case 'level':
-          cmp = (a.playerLevel || 0) - (b.playerLevel || 0);
-          break;
-        case 'norm':
-          cmp = a.normAmount - b.normAmount;
-          break;
-      }
-      return compensatedSort.direction === 'asc' ? cmp : -cmp;
-    });
-  }, [compensatedPlayers, compensatedSort]);
-
-  const sortedPaidDelayedPlayers = useMemo(() => {
-    if (!paidDelayedSort.column) return paidDelayedPlayers;
-    return [...paidDelayedPlayers].sort((a, b) => {
-      let cmp = 0;
-      switch (paidDelayedSort.column) {
-        case 'nick':
-          cmp = a.nick.localeCompare(b.nick);
-          break;
-        case 'level':
-          cmp = (a.playerLevel || 0) - (b.playerLevel || 0);
-          break;
-        case 'paid':
-          cmp = b.totalPaid - a.totalPaid;
-          break;
-      }
-      return paidDelayedSort.direction === 'asc' ? cmp : -cmp;
-    });
-  }, [paidDelayedPlayers, paidDelayedSort]);
-
-  const handleSort = (table: 'main' | 'notPaid' | 'compensated' | 'paidDelayed', column: string) => {
-    const setSort = table === 'main' ? setMainSort : table === 'notPaid' ? setNotPaidSort : table === 'compensated' ? setCompensatedSort : setPaidDelayedSort;
-    const currentSort = table === 'main' ? mainSort : table === 'notPaid' ? notPaidSort : table === 'compensated' ? compensatedSort : paidDelayedSort;
-    
-    if (currentSort.column === column) {
-      setSort({ column, direction: currentSort.direction === 'asc' ? 'desc' : 'asc' });
+  const handleSort = (column: string) => {
+    if (mainSort.column === column) {
+      setMainSort({ column, direction: mainSort.direction === 'asc' ? 'desc' : 'asc' });
     } else {
-      setSort({ column, direction: 'desc' });
+      setMainSort({ column, direction: 'desc' });
     }
   };
 
-  const renderSortIcon = (table: 'main' | 'notPaid' | 'compensated' | 'paidDelayed', column: string) => {
-    const currentSort = table === 'main' ? mainSort : table === 'notPaid' ? notPaidSort : table === 'compensated' ? compensatedSort : paidDelayedSort;
-    if (currentSort.column !== column) return <span className="tax-sort-icon">↕</span>;
-    return <span className="tax-sort-icon tax-sort-active">{currentSort.direction === 'asc' ? '↑' : '↓'}</span>;
+  const renderSortIcon = (column: string) => {
+    if (mainSort.column !== column) return <span className="tax-sort-icon">↕</span>;
+    return <span className="tax-sort-icon tax-sort-active">{mainSort.direction === 'asc' ? '↑' : '↓'}</span>;
   };
 
   const getStatusLabel = (status: string) => {
@@ -1271,21 +1208,21 @@ export function TaxAnalytics({
                           />
                         </th>
                         <th className="tax-sortable">#</th>
-                        <th className="tax-sortable" onClick={() => handleSort('main', 'nick')}>Игрок {renderSortIcon('main', 'nick')}</th>
-                        <th className="tax-sortable" onClick={() => handleSort('main', 'level')}>Уровень {renderSortIcon('main', 'level')}</th>
-                        <th className="tax-sortable" onClick={() => handleSort('main', 'paid')}>Уплачено {renderSortIcon('main', 'paid')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('nick')}>Игрок {renderSortIcon('nick')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('level')}>Уровень {renderSortIcon('level')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('paid')}>Уплачено {renderSortIcon('paid')}</th>
                         <th>
                           <HelpTip term="carryover" marker={false} clickToToggle={false}>
                             Перенос
                           </HelpTip>
                         </th>
-                        <th className="tax-sortable" onClick={() => handleSort('main', 'norm')}>
+                        <th className="tax-sortable" onClick={() => handleSort('norm')}>
                           <HelpTip term="norm" marker={false} clickToToggle={false}>
                             Норма
                           </HelpTip>{' '}
-                          {renderSortIcon('main', 'norm')}
+                          {renderSortIcon('norm')}
                         </th>
-                        <th className="tax-sortable" onClick={() => handleSort('main', 'status')}>Статус {renderSortIcon('main', 'status')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('status')}>Статус {renderSortIcon('status')}</th>
                         <th>
                           <HelpTip term="compensation" marker={false} clickToToggle={false}>
                             Компенсация
@@ -1454,150 +1391,8 @@ export function TaxAnalytics({
                 )}
               </section>
 
-              <section className="tax-section">
-                <div className="tax-section-header">
-                  <h3 className="tax-section-title">
-                    <span className="tax-status-dot tax-status-notpaid" />
-                    Не заплатил ({sortedNotPaidPlayers.length})
-                  </h3>
-                  {sortedNotPaidPlayers.length > 0 && (
-                    <div className="tax-section-actions">
-                      <button 
-                        className="tax-copy-btn" 
-                        onClick={() => {
-                          const headers = ['Игрок', 'Уровень', 'Норма'];
-                          const rows = sortedNotPaidPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.normAmount].join('\t')).join('\n');
-                          void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
-                        }}
-                        title="Копировать таблицу"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-                {sortedNotPaidPlayers.length > 0 ? (
-                  <div className="tax-table-wrapper">
-                  <table className="tax-table">
-                    <thead>
-                      <tr>
-                        <th className="tax-sortable" onClick={() => handleSort('notPaid', 'nick')}>Игрок {renderSortIcon('notPaid', 'nick')}</th>
-                        <th className="tax-sortable" onClick={() => handleSort('notPaid', 'level')}>Уровень {renderSortIcon('notPaid', 'level')}</th>
-                        <th className="tax-sortable" onClick={() => handleSort('notPaid', 'norm')}>Норма {renderSortIcon('notPaid', 'norm')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedNotPaidPlayers.map(p => (
-                        <tr key={p.nick}>
-                          <td className="tax-nick">{p.nick}</td>
-                          <td>{p.playerLevel ?? '-'}</td>
-                          <td className="tax-debt">{p.normAmount}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  </div>
-                ) : (
-                  <div className="tax-empty">Нет должников</div>
-                )}
-              </section>
 
-              {compensatedPlayers.length > 0 && (
-                <section className="tax-section">
-                  <div className="tax-section-header">
-                    <h3 className="tax-section-title">
-                      <span className="tax-status-dot tax-status-compensated" />
-                      Зачтено ({sortedCompensatedPlayers.length})
-                    </h3>
-                    <div className="tax-section-actions">
-                      <button 
-                        className="tax-copy-btn" 
-                        onClick={() => {
-                          const headers = ['Игрок', 'Уровень', 'Сумма'];
-                          const rows = sortedCompensatedPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.normAmount].join('\t')).join('\n');
-                          void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
-                        }}
-                        title="Копировать таблицу"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <div className="tax-table-wrapper">
-                  <table className="tax-table">
-                    <thead>
-                      <tr>
-                        <th className="tax-sortable" onClick={() => handleSort('compensated', 'nick')}>Игрок {renderSortIcon('compensated', 'nick')}</th>
-                        <th className="tax-sortable" onClick={() => handleSort('compensated', 'level')}>Уровень {renderSortIcon('compensated', 'level')}</th>
-                        <th className="tax-sortable" onClick={() => handleSort('compensated', 'norm')}>Сумма {renderSortIcon('compensated', 'norm')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedCompensatedPlayers.map(p => (
-                        <tr key={p.nick}>
-                          <td className="tax-nick">{p.nick}</td>
-                          <td>{p.playerLevel ?? '-'}</td>
-                          <td className="tax-paid">{p.normAmount}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  </div>
-                </section>
-              )}
 
-              {paidDelayedPlayers.length > 0 && (
-                <section className="tax-section">
-                  <div className="tax-section-header">
-                    <h3 className="tax-section-title">
-                      <span className="tax-status-dot tax-status-delayed" />
-                      Заплатил + Задержано ({sortedPaidDelayedPlayers.length})
-                    </h3>
-                    <div className="tax-section-actions">
-                      <button 
-                        className="tax-copy-btn" 
-                        onClick={() => {
-                          const headers = ['Игрок', 'Уровень', 'Уплачено'];
-                          const rows = sortedPaidDelayedPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.totalPaid].join('\t')).join('\n');
-                          void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
-                        }}
-                        title="Копировать таблицу"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <div className="tax-table-wrapper">
-                  <table className="tax-table">
-                    <thead>
-                      <tr>
-                        <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'nick')}>Игрок {renderSortIcon('paidDelayed', 'nick')}</th>
-                        <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'level')}>Уровень {renderSortIcon('paidDelayed', 'level')}</th>
-                        <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'paid')}>Уплачено {renderSortIcon('paidDelayed', 'paid')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedPaidDelayedPlayers.map(p => (
-                        <tr key={p.nick}>
-                          <td className="tax-nick">{p.nick}</td>
-                          <td>{p.playerLevel ?? '-'}</td>
-                          <td className="tax-paid">{p.totalPaid}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  </div>
-                </section>
-              )}
             </div>
             </>
           )}
