@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import type { TreasuryOperationData, TaxCarryoverMonth, ReasonCode, BulkCompensationPlan } from '../../types/clanInfo';
 import type { ClanMemberData } from '../../types/clanInfo';
-import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU } from '../../utils/treasury';
+import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU, overdueDays } from '../../utils/treasury';
 import {
   createTreasuryCompensation,
   updateTreasuryOperation,
@@ -127,7 +127,9 @@ export function TaxAnalytics({
     status: '',
     hasCompensation: '',
   });
-  const [mainSort, setMainSort] = useState<SortConfig>({ column: 'status', direction: 'asc' });
+  // По умолчанию — «сначала худшие»: наибольший долг сверху. Казначею нужен
+  // список работы, а не алфавит; любую колонку можно пересортировать кликом.
+  const [mainSort, setMainSort] = useState<SortConfig>({ column: 'debt', direction: 'desc' });
   const [notPaidSort, setNotPaidSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
   const [compensatedSort, setCompensatedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
   const [paidDelayedSort, setPaidDelayedSort] = useState<SortConfig>({ column: 'nick', direction: 'asc' });
@@ -641,6 +643,15 @@ export function TaxAnalytics({
         case 'norm':
           cmp = a.normAmount - b.normAmount;
           break;
+        case 'debt': {
+          // Недобор по участнику — та же формула, что на бэкенде
+          // (compute_member_ledger): норма минус деньги, зачёт и перенос.
+          // Излишек одного не гасит долг другого, поэтому max(0, …).
+          const debtOf = (p: PlayerTaxSummary) =>
+            Math.max(0, p.normAmount - p.totalPaid - p.compensationAmount - p.carriedIn);
+          cmp = debtOf(a) - debtOf(b);
+          break;
+        }
         case 'status':
           const statusOrder: Record<string, number> = { paid: 0, paid_delayed: 1, compensated: 2, not_paid: 3, future_member: 4 };
           cmp = (statusOrder[a.status] || 5) - (statusOrder[b.status] || 5);
@@ -765,7 +776,14 @@ export function TaxAnalytics({
       return <span className="tax-badge tax-badge-future">Оплата с {dateStr}</span>;
     }
     if (summary.status === 'not_paid') {
-      return <span className="tax-badge tax-badge-notpaid">Не заплатил</span>;
+      // Срок — 15-е включительно, значит просрочка идёт с 16-го. Пока срок не
+      // истёк, пишем это прямо: «просрочено 0» читалось бы как ошибка.
+      const late = overdueDays(selectedMonth, selectedYear);
+      return (
+        <span className="tax-badge tax-badge-notpaid">
+          Не заплатил · {late > 0 ? `просрочено ${late} дн.` : 'срок до 15-го'}
+        </span>
+      );
     }
     if (summary.status === 'compensated') {
       return <span className="tax-badge tax-badge-compensated">Зачтено</span>;
@@ -1131,7 +1149,12 @@ export function TaxAnalytics({
             <div className="tax-shortlists">
               <section className="tax-section tax-section-wide">
                 <div className="tax-section-header">
-                  <h3 className="tax-section-title">Сводная — {periodLabel}</h3>
+                  <h3 className="tax-section-title">
+                    Сводная — {periodLabel}
+                    {mainSort.column === 'debt' && (
+                      <span className="tax-sort-hint"> · сначала с наибольшим долгом</span>
+                    )}
+                  </h3>
                   <div className="tax-section-actions">
                     {copyStatus && <span className="tax-copy-status">{copyStatus}</span>}
                     <button 

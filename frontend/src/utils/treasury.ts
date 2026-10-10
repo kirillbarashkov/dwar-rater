@@ -368,3 +368,15 @@ export function shiftDisplayDays(days: number): string {
   d.setDate(d.getDate() + days);
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
 }
+
+/**
+ * Сколько дней просрочен взнос за месяц. Срок сдачи — 15-е число включительно,
+ * поэтому просрочка считается с 16-го. Для будущего месяца и для срока, который
+ * ещё не истёк, возвращается 0: «просрочено 0» читалось бы как ошибка в цифрах,
+ * а не как «пока не должен».
+ */
+export function overdueDays(month: number, year: number, today: Date = new Date()): number {
+  const deadline = new Date(year, month - 1, 16);
+  const diff = today.getTime() - deadline.getTime();
+  return diff <= 0 ? 0 : Math.floor(diff / 86_400_000);
+}
