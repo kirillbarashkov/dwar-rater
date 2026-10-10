@@ -1,0 +1,8 @@
+From https://github.com/kirillbarashkov/dwar-rater
+ * branch            main       -> FETCH_HEAD
+   50011f1..5b367c6  main       -> origin/main
+Rebasing (1/1)Successfully rebased and updated refs/heads/main.
+To https://github.com/kirillbarashkov/dwar-rater.git
+   5b367c6..e947353  main -> main
+PUSH_EXIT=0
+e947353

@@ -565,6 +565,10 @@ def get_clan_members(clan_id):
                 "ui_structure_role": ui_roles.get((m.nick or "").strip().lower()),
                 "join_date": m.join_date,
                 "trial_until": m.trial_until,
+                # Нужен аналитике налогов: вторая граница окна участия. Участник
+                # виден в сводках по месяц выхода включительно; без этого поля
+                # фронт не может отличить «ещё в клане» от «уже вышел».
+                "left_date": m.left_date,
             }
             for m in members
         ]

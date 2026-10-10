@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import type { TreasuryOperationData, TaxCarryoverMonth, ReasonCode, BulkCompensationPlan } from '../../types/clanInfo';
 import type { ClanMemberData } from '../../types/clanInfo';
-import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU, overdueDays } from '../../utils/treasury';
+import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU, overdueDays, isMemberVisibleInMonth } from '../../utils/treasury';
 import {
   createTreasuryCompensation,
   updateTreasuryOperation,
@@ -390,6 +390,16 @@ export function TaxAnalytics({
     return map;
   }, [members]);
 
+  /** Даты выхода из клана — вторая граница окна участия. */
+  const memberLeftDates = useMemo(() => {
+    const map: Record<string, { month: number; year: number } | null> = {};
+    for (const m of members) {
+      const parsed = m.left_date ? parseDate(m.left_date) : null;
+      map[m.nick.toLowerCase()] = parsed ? { month: parsed.month, year: parsed.year } : null;
+    }
+    return map;
+  }, [members]);
+
   const getMinCompensationMonth = (nick: string): number | null => {
     const joinInfo = memberJoinDates[nick.toLowerCase()];
     if (!joinInfo) return null;
@@ -543,6 +553,13 @@ export function TaxAnalytics({
     for (const m of members) {
       const nickLower = m.nick.toLowerCase();
       if (!addedNicks.has(nickLower)) {
+        // Вне окна участия строку не рисуем: до месяца вступления человек в клан
+        // ещё не входил, после месяца выхода — уже не в нём. Раньше такие
+        // участники висели во всех месяцах со статусом «Оплата с …» и засоряли
+        // и таблицу, и очередь «Новички».
+        if (!isMemberVisibleInMonth(memberJoinDates[nickLower], memberLeftDates[nickLower], selectedMonth, selectedYear)) {
+          continue;
+        }
         const paymentStart = getPaymentStartMonth(nickLower);
         const isFuture = !isPaymentDue(nickLower);
         const memberNorm = getNormForLevel(m.level);

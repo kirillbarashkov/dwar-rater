@@ -156,6 +156,30 @@ export function formatDateKey(day: number, month: number, year: number): string 
   return `${day.toString().padStart(2, '0')}.${month.toString().padStart(2, '0')}.${year}`;
 }
 
+/**
+ * Виден ли участник в сводке за выбранный месяц.
+ *
+ * Окно участия: с месяца вступления по месяц выхода включительно. Месяц
+ * вступления — он же месяц перед первым платежом: по правилу владельца участник
+ * входит в клан и начинает платить со следующего месяца, поэтому в месяце
+ * вступления он ещё показывается (со статусом «Оплата с …»), а раньше — нет.
+ * В месяце выхода показывается, со следующего — нет.
+ *
+ * Без даты вступления участник виден везде: у старых записей её нет, и скрывать
+ * их значило бы потерять людей из отчёта.
+ */
+export function isMemberVisibleInMonth(
+  join: { month: number; year: number } | null | undefined,
+  left: { month: number; year: number } | null | undefined,
+  month: number,
+  year: number,
+): boolean {
+  const index = (m: number, y: number) => y * 12 + m;
+  if (left && index(year, month) > index(left.year, left.month)) return false;
+  if (join && index(year, month) < index(join.year, join.month)) return false;
+  return true;
+}
+
 export interface MonthDay {
   day: number;
   dateKey: string;

@@ -86,6 +86,28 @@ def test_ui_structure_role_none_without_structure(app, client, admin_headers):
     assert by_nick['HermeticDeputy']['clan_role'] == 'Зам. Главы'
 
 
+def test_members_payload_carries_the_participation_window(app, client, admin_headers):
+    """GET /members must expose join_date / trial_until / left_date.
+
+    Аналитика налогов строит по ним окно участия: участник виден с месяца
+    вступления по месяц выхода включительно. Без `left_date` в ответе фронт не
+    может отличить «ещё в клане» от «уже вышел» — и ушедший участник висит во
+    всех месяцах после выхода, как это и было до правки.
+    """
+    _seed(app)
+    with app.app_context():
+        row = ClanMemberInfo.query.filter_by(clan_id=CLAN, nick='HermeticRanger').first()
+        row.join_date = '01.01.2026'
+        row.trial_until = '15.01.2026'
+        row.left_date = '01.03.2026'
+        db.session.commit()
+
+    ranger = _members(client, admin_headers)['HermeticRanger']
+    assert ranger['join_date'] == '01.01.2026'
+    assert ranger['trial_until'] == '15.01.2026'
+    assert ranger['left_date'] == '01.03.2026'
+
+
 def test_ui_structure_role_nick_matching_is_case_insensitive(app, client, admin_headers):
     _seed(app)
     # Nick cased differently in the structure than in the roster.
