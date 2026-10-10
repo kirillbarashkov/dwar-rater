@@ -1,0 +1,89 @@
+/* «Что здесь делать»: объяснение до данных, а не после. */
+
+.gs {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  margin-bottom: 14px;
+}
+
+.gs-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.gs-chevron {
+  color: var(--accent);
+  width: 12px;
+}
+
+.gs-title {
+  flex: 1;
+}
+
+.gs-count {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.gs-list {
+  margin: 0;
+  padding: 0 12px 10px 12px;
+  list-style: none;
+}
+
+.gs-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.gs-num {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 10px;
+  margin-top: 1px;
+}
+
+.gs-text {
+  flex: 1;
+}
+
+.gs-action {
+  flex: none;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--accent);
+  padding: 2px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.gs-action:hover {
+  border-color: var(--accent);
+}

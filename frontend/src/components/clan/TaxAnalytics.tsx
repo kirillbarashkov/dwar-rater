@@ -17,6 +17,8 @@ import { ReassignButton } from './ReassignButton';
 import { MonthCloseControl } from './MonthCloseControl';
 import { BulkCompensationPanel } from './BulkCompensationPanel';
 import { TreasurySummaryPanel } from './TreasurySummaryPanel';
+import { HelpTip } from '../ui/HelpTip';
+import { GuideSteps } from '../ui/GuideSteps';
 import './TaxAnalytics.css';
 
 interface TaxAnalyticsProps {
@@ -788,6 +790,31 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
         />
       </header>
 
+      <GuideSteps
+        title={`Как проходит месяц — ${periodLabel}`}
+        steps={[
+          {
+            text: 'Посмотрите три числа выше: «Ожидалось» — сколько должны собрать, «Собрано» — сколько реально пришло, «Не собрано» — сколько ещё недобрали.',
+          },
+          {
+            text: 'Разберите должников: отфильтруйте список по «Не заплатил», напомните людям про взнос — или зачтите его, если так решил совет.',
+            action: {
+              label: 'Показать должников',
+              onClick: () => setFilters((f) => ({ ...f, status: 'not_paid' })),
+            },
+          },
+          {
+            text: 'Сверьте переплату: лишние монеты переносятся на следующий месяц. Подтверждать перенос можно только после закрытия месяца.',
+          },
+          {
+            text: 'Закройте прошедший месяц, когда цифры сойдутся: после закрытия правки и импорт задним числом перестанут проходить.',
+          },
+          {
+            text: 'Скопируйте готовую сводку в клановый чат — блок «Сводка для чата» ниже.',
+          },
+        ]}
+      />
+
       <TaxCarryoverPanel
         month={selectedMonth}
         year={selectedYear}
@@ -808,19 +835,20 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
           <div className="tax-kpi">
             <div className="tax-kpi-card">
               <span className="tax-kpi-value">{totalExpected.toLocaleString()}</span>
-              <span className="tax-kpi-label">Ожидалось</span>
+              <span className="tax-kpi-label">
+                <HelpTip term="expected">Ожидалось</HelpTip>
+              </span>
             </div>
             <div className="tax-kpi-card">
               <span className="tax-kpi-value">{totalCollected.toLocaleString()}</span>
-              <span className="tax-kpi-label">Собрано</span>
+              <span className="tax-kpi-label">
+                <HelpTip term="collected">Собрано</HelpTip>
+              </span>
             </div>
             <div className="tax-kpi-card tax-kpi-danger">
               <span className="tax-kpi-value">{totalNotCollected.toLocaleString()}</span>
-              <span
-                className="tax-kpi-label"
-                title="Реальный дефицит: норма минус живые платежи и минус зачтённая переплата за прошлый месяц"
-              >
-                Не собрано
+              <span className="tax-kpi-label">
+                <HelpTip term="missing">Не собрано</HelpTip>
               </span>
             </div>
           </div>
@@ -832,7 +860,9 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
             </div>
             <div className="tax-kpi-card">
               <span className="tax-kpi-value">{overpaidPlayers.length}</span>
-              <span className="tax-kpi-label">Заплатил+сверхнормы</span>
+              <span className="tax-kpi-label">
+                <HelpTip term="overpay">Переплата</HelpTip>
+              </span>
             </div>
             <div className="tax-kpi-card">
               <span className="tax-kpi-value">{paidOnTimePlayers.length}</span>
@@ -840,7 +870,9 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
             </div>
             <div className="tax-kpi-card">
               <span className="tax-kpi-value">{paidDelayedPlayers.length}</span>
-              <span className="tax-kpi-label">Заплатил+задержано</span>
+              <span className="tax-kpi-label">
+                <HelpTip term="late">Оплатил с просрочкой</HelpTip>
+              </span>
             </div>
             <div className="tax-kpi-card tax-kpi-danger">
               <span className="tax-kpi-value">{notPaidPlayers.length}</span>
@@ -848,15 +880,21 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
             </div>
             <div className="tax-kpi-card">
               <span className="tax-kpi-value">{compensatedPlayers.length}</span>
-              <span className="tax-kpi-label">Зачтено</span>
+              <span className="tax-kpi-label">
+                <HelpTip term="compensation">Зачтено</HelpTip>
+              </span>
             </div>
             <div className="tax-kpi-card">
               <span className="tax-kpi-value">{futureMemberPlayers.length}</span>
-              <span className="tax-kpi-label">Новичок</span>
+              <span className="tax-kpi-label">
+                <HelpTip term="newcomer">Новичок</HelpTip>
+              </span>
             </div>
             <div className="tax-kpi-card">
               <span className="tax-kpi-value">{totalCarriedIn.toLocaleString()}</span>
-              <span className="tax-kpi-label">Перенос из пред. месяца</span>
+              <span className="tax-kpi-label">
+                <HelpTip term="carryover">Перенос из пред. месяца</HelpTip>
+              </span>
             </div>
           </div>
 
@@ -940,10 +978,23 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
                       <th className="tax-sortable" onClick={() => handleSort('main', 'nick')}>Игрок {renderSortIcon('main', 'nick')}</th>
                       <th className="tax-sortable" onClick={() => handleSort('main', 'level')}>Уровень {renderSortIcon('main', 'level')}</th>
                       <th className="tax-sortable" onClick={() => handleSort('main', 'paid')}>Уплачено {renderSortIcon('main', 'paid')}</th>
-                      <th>Перенос</th>
-                      <th className="tax-sortable" onClick={() => handleSort('main', 'norm')}>Норма {renderSortIcon('main', 'norm')}</th>
+                      <th>
+                        <HelpTip term="carryover" marker={false} clickToToggle={false}>
+                          Перенос
+                        </HelpTip>
+                      </th>
+                      <th className="tax-sortable" onClick={() => handleSort('main', 'norm')}>
+                        <HelpTip term="norm" marker={false} clickToToggle={false}>
+                          Норма
+                        </HelpTip>{' '}
+                        {renderSortIcon('main', 'norm')}
+                      </th>
                       <th className="tax-sortable" onClick={() => handleSort('main', 'status')}>Статус {renderSortIcon('main', 'status')}</th>
-                      <th>Компенсация</th>
+                      <th>
+                        <HelpTip term="compensation" marker={false} clickToToggle={false}>
+                          Компенсация
+                        </HelpTip>
+                      </th>
                       <th>Комментарий</th>
                       <th>Действия</th>
                     </tr>
