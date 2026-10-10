@@ -385,7 +385,12 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
         nick: data.originalNick,
         playerLevel: effectiveLevel,
         normAmount,
-        totalPaid,
+        // В «Уплачено» идут ТОЛЬКО деньги: зачёт (compensation_flag) — bookkeeping-
+        // маркер, а не поступление. Раньше сюда попадала сырая сумма вместе с
+        // зачётом, и «Собрано» в шапке раздувалось на сумму зачётов — при том что
+        // рядом в коде стоит ровно противоположный комментарий, а бэкенд
+        // (tax_engine.is_real_payment) считает зачёт не деньгами.
+        totalPaid: realPaid,
         carriedIn,
         onTimePaid: data.onTime,
         delayedPaid: data.onTime >= normAmount ? 0 : data.delayed,
@@ -437,8 +442,8 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
       return b.totalPaid - a.totalPaid;
     });
 
-    const totalCollected = Object.values(paymentsByPlayer).reduce((sum, v) => sum + v.onTime + v.delayed, 0);
-    const delayedTotal = Object.values(paymentsByPlayer).reduce((sum, v) => sum + v.delayed, 0);
+    const totalCollected = playerSummaries.reduce((sum, p) => sum + p.totalPaid, 0);
+    const delayedTotal = playerSummaries.reduce((sum, p) => sum + p.delayedPaid, 0);
     const expectedTotal = playerSummaries.reduce((sum, p) => sum + (p.status === 'future_member' ? 0 : p.normAmount), 0);
 
     return {
@@ -461,7 +466,12 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
       if (filters.level && p.playerLevel !== parseInt(filters.level)) {
         return false;
       }
-      if (filters.status && p.status !== filters.status) {
+      // «Переплата» — не статус, а флаг isOver: у человека статус «заплатил», но
+      // внёс больше нормы. Отдельная ветка, иначе фильтр по статусу его не найдёт.
+      if (filters.status === 'over' && !p.isOver) {
+        return false;
+      }
+      if (filters.status && filters.status !== 'over' && p.status !== filters.status) {
         return false;
       }
       if (filters.hasCompensation === 'yes' && p.status !== 'compensated') {
@@ -492,17 +502,28 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
   // «Не собрано» = РЕАЛЬНЫЙ дефицит: подтверждённый перенос закрывает месяц
   // (деньги пришли в прошлом месяце), поэтому он не считается недостачей.
   // Новички не должны ничего. Считаем по участникам: излишек одного не гасит
-  // долг другого.
+  // долг другого. Зачёт вычитается наравне с деньгами: он закрывает норму, не
+  // принося денег, — ровно так же считает бэкенд (`compute_member_ledger`,
+  // `debt = max(0, norm − (paid + compensation + carried_in))`). Без этого
+  // участник с зачётом выглядел должником на всю норму.
   const totalNotCollected = monthSummary
     ? monthSummary.players.reduce(
         (sum, p) =>
           p.status === 'future_member'
             ? sum
-            : sum + Math.max(0, p.normAmount - p.totalPaid - p.carriedIn),
+            : sum + Math.max(0, p.normAmount - p.totalPaid - p.compensationAmount - p.carriedIn),
         0
       )
     : 0;
   const totalCarriedIn = Object.values(carriedByNick).reduce((sum, v) => sum + v, 0);
+
+  // Суммы для очередей «требует внимания». Ноль в очереди — не информация, а
+  // занятое место, поэтому очередь с нулём просто не рисуется.
+  const notPaidSum = notPaidPlayers.reduce((sum, p) => sum + p.normAmount, 0);
+  const delayedSum = paidDelayedPlayers.reduce((sum, p) => sum + p.totalPaid, 0);
+  const overpaySum = overpaidPlayers.reduce((sum, p) => sum + (p.totalPaid - p.normAmount), 0);
+  const compensatedNorm = compensatedPlayers.reduce((sum, p) => sum + p.normAmount, 0);
+  const coveragePercent = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
 
   const sortedFilteredPlayers = useMemo(() => {
     if (!mainSort.column) return filteredPlayers;
@@ -655,10 +676,10 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
       return <span className="tax-badge tax-badge-carried">Зачтено переплатой</span>;
     }
     if (summary.isOver) {
-      return <span className="tax-badge tax-badge-over">Заплатил + Сверхнормы</span>;
+      return <span className="tax-badge tax-badge-over">Переплата</span>;
     }
     if (summary.status === 'paid_delayed') {
-      return <span className="tax-badge tax-badge-delayed">Заплатил + Задержано</span>;
+      return <span className="tax-badge tax-badge-delayed">Оплатил с просрочкой</span>;
     }
     return <span className="tax-badge tax-badge-paid">Заплатил</span>;
   };
@@ -803,49 +824,115 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
             </div>
           </div>
 
-          <div className="tax-kpi tax-kpi-row2">
-            <div className="tax-kpi-card">
-              <span className="tax-kpi-value">{filteredPlayers.length}</span>
-              <span className="tax-kpi-label">Всего</span>
+          {/* Полоса покрытия: одним взглядом видно, сколько начисленного уже в казне. */}
+          <div className="tax-coverage">
+            <div className="tax-coverage-bar">
+              <i style={{ width: `${coveragePercent}%` }} />
             </div>
-            <div className="tax-kpi-card">
-              <span className="tax-kpi-value">{overpaidPlayers.length}</span>
-              <span className="tax-kpi-label">
-                <HelpTip term="overpay">Переплата</HelpTip>
-              </span>
+            <div className="tax-coverage-line">
+              Собрано {totalCollected.toLocaleString()} из {totalExpected.toLocaleString()} · {coveragePercent}%
             </div>
-            <div className="tax-kpi-card">
-              <span className="tax-kpi-value">{paidOnTimePlayers.length}</span>
-              <span className="tax-kpi-label">Заплатил</span>
-            </div>
-            <div className="tax-kpi-card">
-              <span className="tax-kpi-value">{paidDelayedPlayers.length}</span>
-              <span className="tax-kpi-label">
-                <HelpTip term="late">Оплатил с просрочкой</HelpTip>
-              </span>
-            </div>
-            <div className="tax-kpi-card tax-kpi-danger">
-              <span className="tax-kpi-value">{notPaidPlayers.length}</span>
-              <span className="tax-kpi-label">Не заплатил</span>
-            </div>
-            <div className="tax-kpi-card">
-              <span className="tax-kpi-value">{compensatedPlayers.length}</span>
-              <span className="tax-kpi-label">
-                <HelpTip term="compensation">Зачтено</HelpTip>
-              </span>
-            </div>
-            <div className="tax-kpi-card">
-              <span className="tax-kpi-value">{futureMemberPlayers.length}</span>
-              <span className="tax-kpi-label">
-                <HelpTip term="newcomer">Новичок</HelpTip>
-              </span>
-            </div>
-            <div className="tax-kpi-card">
-              <span className="tax-kpi-value">{totalCarriedIn.toLocaleString()}</span>
-              <span className="tax-kpi-label">
-                <HelpTip term="carryover">Перенос из пред. месяца</HelpTip>
-              </span>
-            </div>
+            {(compensatedNorm > 0 || overpaySum > 0 || totalCarriedIn > 0) && (
+              <div className="tax-coverage-note">
+                Почему «собрано» не равно «ожидалось»: зачёт — не деньги, а пометка «взнос
+                не нужен»; переплата — наоборот, деньги сверх нормы; перенос закрывает
+                норму деньгами, которые пришли в прошлом месяце. Сходится так: ожидалось{' '}
+                {totalExpected.toLocaleString()} ={' '}
+                {[
+                  `собрано ${totalCollected.toLocaleString()}`,
+                  overpaySum > 0 ? `− переплата ${overpaySum.toLocaleString()}` : null,
+                  compensatedNorm > 0 ? `+ зачтено ${compensatedNorm.toLocaleString()}` : null,
+                  totalCarriedIn > 0 ? `+ перенос ${totalCarriedIn.toLocaleString()}` : null,
+                  totalNotCollected > 0 ? `+ не собрано ${totalNotCollected.toLocaleString()}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                .
+              </div>
+            )}
+          </div>
+
+          {/* Исключения вперёд: очередь с нулём не рисуется — ноль не информация,
+              а занятое место. Каждая строка кликабельна и фильтрует таблицу. */}
+          <div className="tax-queues">
+            {notPaidPlayers.length > 0 && (
+              <button
+                className="tax-queue tax-queue-danger"
+                onClick={() => setFilters((f) => ({ ...f, status: 'not_paid' }))}
+              >
+                <span className="tax-queue-label">
+                  <span className="tax-status-dot tax-status-notpaid" />
+                  Не заплатили
+                </span>
+                <span className="tax-queue-value">
+                  {notPaidPlayers.length} чел. · {notPaidSum.toLocaleString()} монет
+                </span>
+                <span className="tax-queue-go">показать ›</span>
+              </button>
+            )}
+            {paidDelayedPlayers.length > 0 && (
+              <button
+                className="tax-queue"
+                onClick={() => setFilters((f) => ({ ...f, status: 'paid_delayed' }))}
+              >
+                <span className="tax-queue-label">
+                  <span className="tax-status-dot tax-status-delayed" />
+                  Оплатили с просрочкой
+                </span>
+                <span className="tax-queue-value">
+                  {paidDelayedPlayers.length} чел. · {delayedSum.toLocaleString()} монет
+                </span>
+                <span className="tax-queue-go">показать ›</span>
+              </button>
+            )}
+            {overpaidPlayers.length > 0 && (
+              <button
+                className="tax-queue"
+                onClick={() => setFilters((f) => ({ ...f, status: 'over' }))}
+              >
+                <span className="tax-queue-label">
+                  <span className="tax-status-dot tax-status-over" />
+                  Переплата — излишек переносится на следующий месяц
+                </span>
+                <span className="tax-queue-value">
+                  {overpaidPlayers.length} чел. · +{overpaySum.toLocaleString()} монет
+                </span>
+                <span className="tax-queue-go">показать ›</span>
+              </button>
+            )}
+            {futureMemberPlayers.length > 0 && (
+              <button
+                className="tax-queue tax-queue-muted"
+                onClick={() => setFilters((f) => ({ ...f, status: 'future_member' }))}
+              >
+                <span className="tax-queue-label">
+                  <span className="tax-status-dot" />
+                  Новички — норма начнётся со следующего месяца
+                </span>
+                <span className="tax-queue-value">{futureMemberPlayers.length} чел. · долга нет</span>
+                <span className="tax-queue-go">показать ›</span>
+              </button>
+            )}
+            {filters.status !== '' && (
+              <button
+                className="tax-queue tax-queue-reset"
+                onClick={() => setFilters((f) => ({ ...f, status: '' }))}
+              >
+                <span className="tax-queue-label">Фильтр включён — показаны не все</span>
+                <span className="tax-queue-go">снять фильтр ›</span>
+              </button>
+            )}
+          </div>
+
+          {/* Справочная строка: то, что не является исключением, но должно быть под рукой.
+              «Всего участников» — именно всего, а не «сколько попало под фильтр»:
+              иначе после клика по очереди цифра начинает врать. */}
+          <div className="tax-secondary">
+            Всего участников: {monthSummary ? monthSummary.players.length : 0}
+            {filteredPlayers.length !== (monthSummary ? monthSummary.players.length : 0) &&
+              <> (показано: {filteredPlayers.length})</>}{' '}
+            · заплатили в срок: {paidOnTimePlayers.length} · зачтено: {compensatedPlayers.length}
+            {totalCarriedIn > 0 && <> · перенос из прошлого месяца: {totalCarriedIn.toLocaleString()}</>}
           </div>
 
           {/* Числа — первыми: казначей заходит узнать «сколько собрали и кто должен».
@@ -899,8 +986,10 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
             >
               <option value="">Все статусы</option>
               <option value="paid">Заплатил</option>
-              <option value="paid_delayed">Заплатил + Задержано</option>
+              <option value="paid_delayed">Оплатил с просрочкой</option>
               <option value="not_paid">Не заплатил</option>
+              <option value="over">Переплата</option>
+              <option value="future_member">Новичок</option>
             </select>
             <select
               value={filters.hasCompensation}

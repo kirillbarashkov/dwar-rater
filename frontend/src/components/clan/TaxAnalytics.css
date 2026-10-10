@@ -739,3 +739,107 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* --- Обзор: покрытие, очереди исключений, справочная строка --- */
+
+.tax-coverage {
+  margin-bottom: 10px;
+}
+
+.tax-coverage-bar {
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.tax-coverage-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s;
+}
+
+.tax-coverage-line {
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.tax-coverage-note {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 4px;
+  padding-left: 7px;
+  border-left: 2px solid var(--border);
+}
+
+.tax-queues {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.tax-queue {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tax-queue:hover {
+  border-color: var(--accent);
+}
+
+.tax-queue-danger {
+  border-left-color: #ef4444;
+}
+
+.tax-queue-muted {
+  opacity: 0.75;
+}
+
+.tax-queue-reset {
+  border-left-color: var(--accent);
+  color: var(--accent);
+}
+
+.tax-queue-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tax-queue-value {
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.tax-queue-go {
+  color: var(--accent);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.tax-secondary {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+
+.tax-status-over {
+  background: #22c55e;
+}
