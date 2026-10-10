@@ -1120,24 +1120,36 @@ def restore_treasury_backup(clan_id):
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury", methods=["GET"])
 @require_permission("clan_info", "read")
 def get_treasury_operations(clan_id):
-    operations = (
-        TreasuryOperation.query.filter_by(clan_id=clan_id)
+    # Колонки, а не ORM-объекты: вкладка тянет всю историю (15 000+ строк), и
+    # создание инстансов SQLAlchemy — чистая накладная работа. Профиль в
+    # _tax_engine_inputs показал на этом 0.2 с из 0.6 с; здесь та же природа.
+    rows = (
+        db.session.query(
+            TreasuryOperation.id,
+            TreasuryOperation.date,
+            TreasuryOperation.nick,
+            TreasuryOperation.operation_type,
+            TreasuryOperation.object_name,
+            TreasuryOperation.quantity,
+            TreasuryOperation.compensation_flag,
+            TreasuryOperation.compensation_comment,
+        )
+        .filter(TreasuryOperation.clan_id == clan_id)
         .order_by(TreasuryOperation.id.desc())
-        .all()
     )
     return jsonify(
         [
             {
-                "id": op.id,
-                "date": op.date,
-                "nick": op.nick,
-                "operation_type": op.operation_type,
-                "object_name": op.object_name,
-                "quantity": op.quantity,
-                "compensation_flag": op.compensation_flag,
-                "compensation_comment": op.compensation_comment,
+                "id": row.id,
+                "date": row.date,
+                "nick": row.nick,
+                "operation_type": row.operation_type,
+                "object_name": row.object_name,
+                "quantity": row.quantity,
+                "compensation_flag": row.compensation_flag,
+                "compensation_comment": row.compensation_comment,
             }
-            for op in operations
+            for row in rows
         ]
     )
 
@@ -1989,17 +2001,29 @@ def _tax_carryover_decisions(clan_id):
 
 def _tax_engine_inputs(clan_id):
     """Load the engine inputs from the DB as plain dicts (engine stays pure)."""
+    # Колонки, а не ORM-объекты: движку нужны только значения полей, а создание
+    # 15 000 ORM-инстансов SQLAlchemy съедало 0.2 с из 0.6 с на один вызов
+    # (профиль), при том что сама БД отвечает за 3 мс. Тот же результат без
+    # обёрток — на порядок дешевле.
     operations = [
         {
-            "id": op.id,
-            "date": op.date,
-            "nick": op.nick,
-            "operation_type": op.operation_type,
-            "object_name": op.object_name,
-            "quantity": op.quantity,
-            "compensation_flag": op.compensation_flag,
+            "id": row.id,
+            "date": row.date,
+            "nick": row.nick,
+            "operation_type": row.operation_type,
+            "object_name": row.object_name,
+            "quantity": row.quantity,
+            "compensation_flag": row.compensation_flag,
         }
-        for op in TreasuryOperation.query.filter_by(clan_id=clan_id).all()
+        for row in db.session.query(
+            TreasuryOperation.id,
+            TreasuryOperation.date,
+            TreasuryOperation.nick,
+            TreasuryOperation.operation_type,
+            TreasuryOperation.object_name,
+            TreasuryOperation.quantity,
+            TreasuryOperation.compensation_flag,
+        ).filter(TreasuryOperation.clan_id == clan_id)
     ]
     members = [
         {
