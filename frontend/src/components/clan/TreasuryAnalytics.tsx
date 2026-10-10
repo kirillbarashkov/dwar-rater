@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getTreasuryOperations, getClanMembers, getTreasuryJournal } from '../../api/clanInfo';
 import type { TreasuryOperationData, ClanMemberData, ReasonCode } from '../../types/clanInfo';
+import { MONTHS_RU } from '../../utils/treasury';
 import { usePermission } from '../../hooks/useAuth';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { TaxAnalytics } from './TaxAnalytics';
@@ -10,6 +11,7 @@ import { MiscAnalytics } from './MiscAnalytics';
 import { TreasuryJournal } from './TreasuryJournal';
 import { TreasuryAnomalies } from './TreasuryAnomalies';
 import { NickTransferPanel } from './NickTransferPanel';
+import { MonthCloseControl } from './MonthCloseControl';
 import './TreasuryAnalytics.css';
 
 interface TreasuryAnalyticsProps {
@@ -43,6 +45,14 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
   const [reasonCodes, setReasonCodes] = useState<ReasonCode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('tax');
+  // Период раздела — один на все вкладки: иначе «Налоги» и «Переносы» показывают
+  // разные месяцы, и это читается как ошибка в цифрах, а не как разные фильтры.
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  // A frozen month (treasurer closed it) refuses writes server-side; the UI hides
+  // the row actions so the treasurer is not offered an action that will 400.
+  const [monthClosed, setMonthClosed] = useState(false);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -85,10 +95,44 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
 
   const visibleTabs = TABS.filter((tab) => tab.key !== 'journal' || canReadJournal);
 
+  const periodLabel = `${MONTHS_RU[selectedMonth]} ${selectedYear}`;
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 1) {
+      setSelectedMonth(12);
+      setSelectedYear((y) => y - 1);
+    } else {
+      setSelectedMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 12) {
+      setSelectedMonth(1);
+      setSelectedYear((y) => y + 1);
+    } else {
+      setSelectedMonth((m) => m + 1);
+    }
+  };
+
   return (
     <div className="treasury-analytics">
       <header className="treasury-analytics-header">
         <h2 className="treasury-analytics-title">Аналитика казны</h2>
+        {/* Период задаётся один раз здесь и наследуется вкладками. */}
+        <div className="tax-period-nav">
+          <button onClick={handlePrevMonth} title="Предыдущий месяц">←</button>
+          <span className="tax-period-label">{periodLabel}</span>
+          <button onClick={handleNextMonth} title="Следующий месяц">→</button>
+        </div>
+        <MonthCloseControl
+          clanId={clanId}
+          month={selectedMonth}
+          year={selectedYear}
+          canApprove={canApprove}
+          reasonCodes={reasonCodes}
+          onChanged={setMonthClosed}
+        />
       </header>
 
       <nav className="ta-tabs">
@@ -122,6 +166,9 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
             canApprove={canApprove}
             reasonCodes={reasonCodes}
             onRefresh={loadData}
+            month={selectedMonth}
+            year={selectedYear}
+            monthClosed={monthClosed}
           />
         )}
         {activeTab === 'talent' && <TalentAnalytics operations={operations} members={members} />}

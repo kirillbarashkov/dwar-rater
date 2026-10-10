@@ -14,7 +14,7 @@ import {
 import { copyText } from '../../utils/clipboard';
 import { TaxCarryoverPanel } from './TaxCarryoverPanel';
 import { ReassignButton } from './ReassignButton';
-import { MonthCloseControl } from './MonthCloseControl';
+
 import { BulkCompensationPanel } from './BulkCompensationPanel';
 import { TreasurySummaryPanel } from './TreasurySummaryPanel';
 import { HelpTip } from '../ui/HelpTip';
@@ -32,6 +32,14 @@ interface TaxAnalyticsProps {
   /** Reason codes served by the API (treasury journal) for correction dropdowns. */
   reasonCodes?: ReasonCode[];
   onRefresh?: () => void;
+  /**
+   * Период раздела. Раздел задаёт его один раз в своей шапке, вкладки наследуют:
+   * два селектора месяца на одном экране дают «а почему цифры другие?».
+   */
+  month: number;
+  year: number;
+  /** Заморозка месяца тоже приходит из шапки (там же кнопка закрытия). */
+  monthClosed?: boolean;
 }
 
 interface TaxPayment {
@@ -85,9 +93,18 @@ function getNormForLevel(level: number): number {
   return CLAN_TAX_NORM[level] || DEFAULT_NORM;
 }
 
-export function TaxAnalytics({ operations, members = [], clanId, canManage = false, canApprove = false, reasonCodes = [], onRefresh }: TaxAnalyticsProps) {
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+export function TaxAnalytics({
+  operations,
+  members = [],
+  clanId,
+  canManage = false,
+  canApprove = false,
+  reasonCodes = [],
+  onRefresh,
+  month: selectedMonth,
+  year: selectedYear,
+  monthClosed = false,
+}: TaxAnalyticsProps) {
   const [editingCompensation, setEditingCompensation] = useState<{
     nick: string;
     level: number;
@@ -110,9 +127,6 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<{ quantity: number; compensationFlag: boolean; compensationComment: string } | null>(null);
   const [editReason, setEditReason] = useState('');
-  // A frozen month (treasurer closed it) refuses writes server-side; the UI hides
-  // the row actions so the treasurer is not offered an action that will 400.
-  const [monthClosed, setMonthClosed] = useState(false);
   const [levelHistory, setLevelHistory] = useState<Record<string, Array<{ date: string; old_level: number; new_level: number }>>>({});
 
   useEffect(() => {
@@ -688,24 +702,6 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
     ? `${MONTHS_RU[monthSummary.month]} ${monthSummary.year}`
     : '';
 
-  const handlePrevMonth = () => {
-    if (selectedMonth === 1) {
-      setSelectedMonth(12);
-      setSelectedYear(y => y - 1);
-    } else {
-      setSelectedMonth(m => m - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (selectedMonth === 12) {
-      setSelectedMonth(1);
-      setSelectedYear(y => y + 1);
-    } else {
-      setSelectedMonth(m => m + 1);
-    }
-  };
-
   const handleCompensate = (nick: string, level: number, normAmount: number) => {
     setEditingCompensation({ nick, level, normAmount });
     setCompensationComment('');
@@ -784,23 +780,6 @@ export function TaxAnalytics({ operations, members = [], clanId, canManage = fal
 
   return (
     <div className="tax-analytics">
-      <header className="tax-header">
-        <h2 className="tax-title">Аналитика налогов</h2>
-        <div className="tax-period-nav">
-          <button onClick={handlePrevMonth}>←</button>
-          <span className="tax-period-label">{periodLabel}</span>
-          <button onClick={handleNextMonth}>→</button>
-        </div>
-        <MonthCloseControl
-          clanId={clanId}
-          month={selectedMonth}
-          year={selectedYear}
-          canApprove={canApprove}
-          reasonCodes={reasonCodes}
-          onChanged={setMonthClosed}
-        />
-      </header>
-
       {monthSummary && (
         <>
           <div className="tax-kpi">
