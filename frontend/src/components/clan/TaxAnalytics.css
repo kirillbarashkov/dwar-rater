@@ -843,3 +843,90 @@
 .tax-status-over {
   background: #22c55e;
 }
+
+/* --- Массовая работа по таблице: выделение строк и экшенбар --- */
+
+.tax-pick {
+  width: 32px;
+  text-align: center;
+  padding: 0 4px;
+}
+
+.tax-pick input {
+  cursor: pointer;
+}
+
+.tax-actionbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+}
+
+.tax-actionbar-count {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tax-actionbar-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tax-actionbar-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tax-actionbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tax-actionbar-ghost {
+  color: var(--text-muted);
+}
+
+.tax-actionbar-notice {
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.tax-bulkpreview {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.tax-bulkpreview-head {
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.tax-bulkpreview-reasons {
+  margin: 0 0 6px 16px;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.tax-bulkpreview-actions {
+  display: flex;
+  gap: 8px;
+}

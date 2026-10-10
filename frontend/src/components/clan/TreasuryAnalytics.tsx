@@ -62,8 +62,10 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
   // the row actions so the treasurer is not offered an action that will 400.
   const [monthClosed, setMonthClosed] = useState(false);
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
+  // silent=true — обновление ПОСЛЕ записи: без спиннера. Иначе вкладка
+  // размонтируется на время загрузки, и сообщение об успехе показать некому.
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const [opsData, membersData] = await Promise.all([
         getTreasuryOperations(clanId),
@@ -167,7 +169,7 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
             canManage={canManage}
             canApprove={canApprove}
             reasonCodes={reasonCodes}
-            onRefresh={loadData}
+            onRefresh={() => loadData(true)}
             month={selectedMonth}
             year={selectedYear}
             monthClosed={monthClosed}

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import type { TreasuryOperationData, TaxCarryoverMonth, ReasonCode } from '../../types/clanInfo';
+import type { TreasuryOperationData, TaxCarryoverMonth, ReasonCode, BulkCompensationPlan } from '../../types/clanInfo';
 import type { ClanMemberData } from '../../types/clanInfo';
 import { parseDate, formatDateKey, CLAN_TAX_NORM, MONTHS_RU } from '../../utils/treasury';
 import {
@@ -10,12 +10,12 @@ import {
   recomputeTaxCarryovers,
   reviewTaxCarryover,
   bulkReviewTaxCarryovers,
+  previewBulkCompensation,
+  applyBulkCompensation,
 } from '../../api/clanInfo';
 import { copyText } from '../../utils/clipboard';
 import { TaxCarryoverPanel } from './TaxCarryoverPanel';
 import { ReassignButton } from './ReassignButton';
-
-import { BulkCompensationPanel } from './BulkCompensationPanel';
 import { TreasurySummaryPanel } from './TreasurySummaryPanel';
 import { HelpTip } from '../ui/HelpTip';
 import { GuideSteps } from '../ui/GuideSteps';
@@ -136,6 +136,82 @@ export function TaxAnalytics({
   const [editingData, setEditingData] = useState<{ quantity: number; compensationFlag: boolean; compensationComment: string } | null>(null);
   const [editReason, setEditReason] = useState('');
   const [levelHistory, setLevelHistory] = useState<Record<string, Array<{ date: string; old_level: number; new_level: number }>>>({});
+  // Массовая работа идёт по таблице: выделил строки — появился экшенбар.
+  // Второго списка ников на экране нет (раньше рядом с таблицей жила отдельная
+  // панель зачёта со своим списком и своим селектором месяца).
+  const [selectedNicks, setSelectedNicks] = useState<string[]>([]);
+  const [bulkPlan, setBulkPlan] = useState<BulkCompensationPlan | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkNotice, setBulkNotice] = useState<string | null>(null);
+
+  const clearSelection = () => {
+    setSelectedNicks([]);
+    setBulkPlan(null);
+  };
+
+  const toggleSelected = (nick: string) => {
+    setBulkPlan(null);
+    setSelectedNicks((prev) =>
+      prev.includes(nick) ? prev.filter((n) => n !== nick) : [...prev, nick],
+    );
+  };
+
+  const handleBulkPreview = async () => {
+    if (!clanId || selectedNicks.length === 0) return;
+    setBulkBusy(true);
+    setBulkNotice(null);
+    try {
+      // Тот же планировщик, что и запись: предпросмотр физически не может обещать
+      // не то, что ляжет в базу (контракт §6-6 держится на этом).
+      setBulkPlan(
+        await previewBulkCompensation(clanId, {
+          nicks: selectedNicks,
+          months: [selectedMonth],
+          year: selectedYear,
+        }),
+      );
+    } catch {
+      setBulkNotice('Не удалось получить предпросмотр');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkApply = async () => {
+    if (!clanId || selectedNicks.length === 0) return;
+    setBulkBusy(true);
+    try {
+      const result = await applyBulkCompensation(clanId, {
+        nicks: selectedNicks,
+        months: [selectedMonth],
+        year: selectedYear,
+      });
+      setBulkPlan(null);
+      setSelectedNicks([]);
+      // Объявление — после перезагрузки данных: рефетч без спиннера (silent),
+      // иначе вкладка размонтируется и сообщение об успехе некому показать.
+      onRefresh?.();
+      setBulkNotice(
+        result.created > 0
+          ? `Зачтено: ${result.created} за ${MONTHS_RU[selectedMonth]} ${selectedYear}`
+          : 'Ничего не изменилось — зачёт уже стоял или пара отклонена',
+      );
+    } catch {
+      setBulkNotice('Не удалось применить зачёт');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleExportSelected = () => {
+    const rows = sortedFilteredPlayers
+      .filter((p) => selectedNicks.includes(p.nick))
+      .map((p) => [p.nick, p.playerLevel ?? '-', p.totalPaid, p.normAmount, p.status].join('\t'));
+    void copyText([['Игрок', 'Уровень', 'Уплачено', 'Норма', 'Статус'].join('\t'), ...rows].join('\n'))
+      .then((ok) => {
+        setBulkNotice(ok ? 'Выделенные скопированы' : 'Не удалось скопировать');
+      });
+  };
 
   useEffect(() => {
     if (!clanId) return;
@@ -956,6 +1032,56 @@ export function TaxAnalytics({
           )}
           {view === 'dues' && (
             <>
+            {/* Массовая работа — по таблице: выделил строки, появился экшенбар.
+                Второго списка ников на экране нет (раньше рядом с таблицей жила
+                отдельная панель зачёта со своим списком и своим селектором месяца). */}
+            {selectedNicks.length > 0 && (
+              <div className="tax-actionbar">
+                <span className="tax-actionbar-count">Выбрано: {selectedNicks.length}</span>
+                <button className="tax-actionbar-btn" onClick={handleBulkPreview} disabled={bulkBusy}>
+                  Зачесть выбранным за {MONTHS_RU[selectedMonth]}
+                </button>
+                <button className="tax-actionbar-btn" onClick={handleExportSelected} disabled={bulkBusy}>
+                  Скопировать выделенных
+                </button>
+                <button className="tax-actionbar-btn tax-actionbar-ghost" onClick={clearSelection} disabled={bulkBusy}>
+                  Снять выделение
+                </button>
+              </div>
+            )}
+
+            {bulkNotice && <div className="tax-actionbar-notice">{bulkNotice}</div>}
+
+            {bulkPlan && (
+              <div className="tax-bulkpreview">
+                <div className="tax-bulkpreview-head">
+                  Предпросмотр зачёта за {MONTHS_RU[selectedMonth]} {selectedYear}: будет зачтено{' '}
+                  {bulkPlan.totals.create}, уже зачтено {bulkPlan.totals.skip}, отказы {bulkPlan.totals.blocked}
+                </div>
+                {bulkPlan.totals.blocked > 0 && (
+                  <ul className="tax-bulkpreview-reasons">
+                    {Object.entries(bulkPlan.by_reason).map(([code, count]) => (
+                      <li key={code}>
+                        {bulkPlan.labels[code] || code}: {count}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="tax-bulkpreview-actions">
+                  <button
+                    className="tax-actionbar-btn"
+                    onClick={handleBulkApply}
+                    disabled={bulkBusy || bulkPlan.totals.create === 0}
+                  >
+                    {bulkBusy ? 'Применяю…' : `Применить (${bulkPlan.totals.create})`}
+                  </button>
+                  <button className="tax-actionbar-btn tax-actionbar-ghost" onClick={() => setBulkPlan(null)} disabled={bulkBusy}>
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="tax-filters">
               <input
                 type="text"
@@ -1025,6 +1151,21 @@ export function TaxAnalytics({
                   <table className="tax-table">
                     <thead>
                       <tr>
+                        <th className="tax-pick">
+                          <input
+                            type="checkbox"
+                            aria-label="Выделить всех показанных"
+                            checked={
+                              sortedFilteredPlayers.length > 0 &&
+                              sortedFilteredPlayers.every((p) => selectedNicks.includes(p.nick))
+                            }
+                            onChange={(e) =>
+                              setSelectedNicks(
+                                e.target.checked ? sortedFilteredPlayers.map((p) => p.nick) : [],
+                              )
+                            }
+                          />
+                        </th>
                         <th className="tax-sortable">#</th>
                         <th className="tax-sortable" onClick={() => handleSort('main', 'nick')}>Игрок {renderSortIcon('main', 'nick')}</th>
                         <th className="tax-sortable" onClick={() => handleSort('main', 'level')}>Уровень {renderSortIcon('main', 'level')}</th>
@@ -1053,6 +1194,14 @@ export function TaxAnalytics({
                     <tbody>
                       {sortedFilteredPlayers.map((p, idx) => (
                         <tr key={p.nick}>
+                          <td className="tax-pick">
+                            <input
+                              type="checkbox"
+                              aria-label={`Выделить ${p.nick}`}
+                              checked={selectedNicks.includes(p.nick)}
+                              onChange={() => toggleSelected(p.nick)}
+                            />
+                          </td>
                           <td className="tax-rank">{idx + 1}</td>
                           <td className="tax-nick">{p.nick}</td>
                           <td>{p.playerLevel ?? '-'}</td>
@@ -1368,18 +1517,6 @@ export function TaxAnalytics({
           onRecompute={handleRecomputeCarryover}
           onReview={handleReviewCarryover}
           onBulk={handleBulkCarryover}
-        />
-        </>
-      )}
-
-      {view === 'dues' && (
-        <>
-        <BulkCompensationPanel
-          clanId={clanId}
-          canManage={canManage}
-          members={members}
-          month={selectedMonth}
-          year={selectedYear}
         />
         </>
       )}
