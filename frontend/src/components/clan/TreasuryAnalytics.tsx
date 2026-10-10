@@ -18,15 +18,21 @@ interface TreasuryAnalyticsProps {
   clanId: number;
 }
 
-type TabType = 'tax' | 'ledger' | 'talent' | 'misc' | 'anomalies' | 'journal';
+type TabType = 'overview' | 'dues' | 'ledger' | 'carryover' | 'resources' | 'audit';
 
+/**
+ * Порядок вкладок — по рабочему циклу казначея: сначала «как дела» (Обзор), потом
+ * работа со взносами и переносами, потом справочное (Сальдо, ресурсы), и в конце
+ * служебное (Аудит). Диагностика и журнал — два под-уровня одной вкладки: и то и
+ * другое отвечает на вопрос «кто и что изменил», просто с разных сторон.
+ */
 const TABS: { key: TabType; label: string }[] = [
-  { key: 'tax', label: 'Налоги' },
+  { key: 'overview', label: 'Обзор' },
+  { key: 'dues', label: 'Взносы' },
   { key: 'ledger', label: 'Сальдо' },
-  { key: 'talent', label: 'Ресурсы талантов' },
-  { key: 'misc', label: 'Прочее' },
-  { key: 'anomalies', label: 'Диагностика' },
-  { key: 'journal', label: 'Журнал' },
+  { key: 'carryover', label: 'Переносы' },
+  { key: 'resources', label: 'Ресурсы и прочее' },
+  { key: 'audit', label: 'Аудит' },
 ];
 
 export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
@@ -44,7 +50,9 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
   const [members, setMembers] = useState<ClanMemberData[]>([]);
   const [reasonCodes, setReasonCodes] = useState<ReasonCode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabType>('tax');
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  // Второй уровень «Аудита»: диагностика находок и журнал правок.
+  const [auditTab, setAuditTab] = useState<'diagnostics' | 'journal'>('diagnostics');
   // Период раздела — один на все вкладки: иначе «Налоги» и «Переносы» показывают
   // разные месяцы, и это читается как ошибка в цифрах, а не как разные фильтры.
   const now = new Date();
@@ -93,8 +101,6 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
 
   if (isLoading) return <LoadingSpinner />;
 
-  const visibleTabs = TABS.filter((tab) => tab.key !== 'journal' || canReadJournal);
-
   const periodLabel = `${MONTHS_RU[selectedMonth]} ${selectedYear}`;
 
   const handlePrevMonth = () => {
@@ -136,7 +142,7 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
       </header>
 
       <nav className="ta-tabs">
-        {visibleTabs.map(tab => (
+        {TABS.map(tab => (
           <button
             key={tab.key}
             className={`ta-tab ${activeTab === tab.key ? 'ta-tab-active' : ''}`}
@@ -148,17 +154,13 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
       </nav>
 
       <div className="ta-tab-content">
-        {activeTab === 'ledger' && <TaxLedger clanId={clanId} />}
-        {activeTab === 'anomalies' && (
-          <>
-            <TreasuryAnomalies clanId={clanId} canManage={canManage} onPickNick={setTransferFrom} />
-            {canManage && (
-              <NickTransferPanel clanId={clanId} canManage={canManage} fromNick={transferFrom} />
-            )}
-          </>
-        )}
-        {activeTab === 'tax' && (
+        {/* Один TaxAnalytics на три вкладки. Между «Обзором», «Взносами» и
+            «Переносами» он не размонтируется (условие и key неизменны), поэтому
+            расчётная цепочка одна и фильтры при переключении не сбрасываются. */}
+        {(activeTab === 'overview' || activeTab === 'dues' || activeTab === 'carryover') && (
           <TaxAnalytics
+            key="treasury-tax"
+            view={activeTab}
             operations={operations}
             members={members}
             clanId={clanId}
@@ -171,10 +173,43 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
             monthClosed={monthClosed}
           />
         )}
-        {activeTab === 'talent' && <TalentAnalytics operations={operations} members={members} />}
-        {activeTab === 'misc' && <MiscAnalytics operations={operations} />}
-        {activeTab === 'journal' && canReadJournal && (
-          <TreasuryJournal clanId={clanId} canManage={canManage} reasonCodes={reasonCodes} />
+        {activeTab === 'ledger' && <TaxLedger clanId={clanId} />}
+        {activeTab === 'resources' && (
+          <>
+            <TalentAnalytics operations={operations} members={members} />
+            <MiscAnalytics operations={operations} />
+          </>
+        )}
+        {activeTab === 'audit' && (
+          <>
+            <nav className="ta-subtabs">
+              <button
+                className={`ta-subtab ${auditTab === 'diagnostics' ? 'ta-subtab-active' : ''}`}
+                onClick={() => setAuditTab('diagnostics')}
+              >
+                Диагностика
+              </button>
+              {canReadJournal && (
+                <button
+                  className={`ta-subtab ${auditTab === 'journal' ? 'ta-subtab-active' : ''}`}
+                  onClick={() => setAuditTab('journal')}
+                >
+                  Журнал правок
+                </button>
+              )}
+            </nav>
+            {auditTab === 'diagnostics' && (
+              <>
+                <TreasuryAnomalies clanId={clanId} canManage={canManage} onPickNick={setTransferFrom} />
+                {canManage && (
+                  <NickTransferPanel clanId={clanId} canManage={canManage} fromNick={transferFrom} />
+                )}
+              </>
+            )}
+            {auditTab === 'journal' && canReadJournal && (
+              <TreasuryJournal clanId={clanId} canManage={canManage} reasonCodes={reasonCodes} />
+            )}
+          </>
         )}
       </div>
     </div>

@@ -288,3 +288,32 @@
 .ta-tab-content {
   min-height: 400px;
 }
+
+/* Под-вкладки «Аудита»: копия .ta-tabs, но на ступень мельче — это второй уровень. */
+.ta-subtabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ta-subtab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: -1px;
+}
+
+.ta-subtab:hover {
+  color: var(--text-primary);
+}
+
+.ta-subtab-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}

@@ -40,6 +40,13 @@ interface TaxAnalyticsProps {
   year: number;
   /** Заморозка месяца тоже приходит из шапки (там же кнопка закрытия). */
   monthClosed?: boolean;
+  /**
+   * Что показывает вкладка: «Обзор» (цифры, покрытие, очереди, сводка),
+   * «Взносы» (фильтры, таблицы, массовый зачёт) или «Переносы».
+   * Один компонент на три вкладки — одна цепочка расчёта: цифры в «Обзоре» и
+   * строки во «Взносах» физически не могут разойтись.
+   */
+  view?: 'overview' | 'dues' | 'carryover';
 }
 
 interface TaxPayment {
@@ -104,6 +111,7 @@ export function TaxAnalytics({
   month: selectedMonth,
   year: selectedYear,
   monthClosed = false,
+  view = 'overview',
 }: TaxAnalyticsProps) {
   const [editingCompensation, setEditingCompensation] = useState<{
     nick: string;
@@ -782,556 +790,564 @@ export function TaxAnalytics({
     <div className="tax-analytics">
       {monthSummary && (
         <>
-          <div className="tax-kpi">
-            <div className="tax-kpi-card">
-              <span className="tax-kpi-value">{totalExpected.toLocaleString()}</span>
-              <span className="tax-kpi-label">
-                <HelpTip term="expected">Ожидалось</HelpTip>
-              </span>
-            </div>
-            <div className="tax-kpi-card">
-              <span className="tax-kpi-value">{totalCollected.toLocaleString()}</span>
-              <span className="tax-kpi-label">
-                <HelpTip term="collected">Собрано</HelpTip>
-              </span>
-            </div>
-            <div className="tax-kpi-card tax-kpi-danger">
-              <span className="tax-kpi-value">{totalNotCollected.toLocaleString()}</span>
-              <span className="tax-kpi-label">
-                <HelpTip term="missing">Не собрано</HelpTip>
-              </span>
-            </div>
-          </div>
-
-          {/* Полоса покрытия: одним взглядом видно, сколько начисленного уже в казне. */}
-          <div className="tax-coverage">
-            <div className="tax-coverage-bar">
-              <i style={{ width: `${coveragePercent}%` }} />
-            </div>
-            <div className="tax-coverage-line">
-              Собрано {totalCollected.toLocaleString()} из {totalExpected.toLocaleString()} · {coveragePercent}%
-            </div>
-            {(compensatedNorm > 0 || overpaySum > 0 || totalCarriedIn > 0) && (
-              <div className="tax-coverage-note">
-                Почему «собрано» не равно «ожидалось»: зачёт — не деньги, а пометка «взнос
-                не нужен»; переплата — наоборот, деньги сверх нормы; перенос закрывает
-                норму деньгами, которые пришли в прошлом месяце. Сходится так: ожидалось{' '}
-                {totalExpected.toLocaleString()} ={' '}
-                {[
-                  `собрано ${totalCollected.toLocaleString()}`,
-                  overpaySum > 0 ? `− переплата ${overpaySum.toLocaleString()}` : null,
-                  compensatedNorm > 0 ? `+ зачтено ${compensatedNorm.toLocaleString()}` : null,
-                  totalCarriedIn > 0 ? `+ перенос ${totalCarriedIn.toLocaleString()}` : null,
-                  totalNotCollected > 0 ? `+ не собрано ${totalNotCollected.toLocaleString()}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                .
+          {view === 'overview' && (
+            <>
+            <div className="tax-kpi">
+              <div className="tax-kpi-card">
+                <span className="tax-kpi-value">{totalExpected.toLocaleString()}</span>
+                <span className="tax-kpi-label">
+                  <HelpTip term="expected">Ожидалось</HelpTip>
+                </span>
               </div>
-            )}
-          </div>
+              <div className="tax-kpi-card">
+                <span className="tax-kpi-value">{totalCollected.toLocaleString()}</span>
+                <span className="tax-kpi-label">
+                  <HelpTip term="collected">Собрано</HelpTip>
+                </span>
+              </div>
+              <div className="tax-kpi-card tax-kpi-danger">
+                <span className="tax-kpi-value">{totalNotCollected.toLocaleString()}</span>
+                <span className="tax-kpi-label">
+                  <HelpTip term="missing">Не собрано</HelpTip>
+                </span>
+              </div>
+            </div>
 
-          {/* Исключения вперёд: очередь с нулём не рисуется — ноль не информация,
-              а занятое место. Каждая строка кликабельна и фильтрует таблицу. */}
-          <div className="tax-queues">
-            {notPaidPlayers.length > 0 && (
-              <button
-                className="tax-queue tax-queue-danger"
-                onClick={() => setFilters((f) => ({ ...f, status: 'not_paid' }))}
-              >
-                <span className="tax-queue-label">
-                  <span className="tax-status-dot tax-status-notpaid" />
-                  Не заплатили
-                </span>
-                <span className="tax-queue-value">
-                  {notPaidPlayers.length} чел. · {notPaidSum.toLocaleString()} монет
-                </span>
-                <span className="tax-queue-go">показать ›</span>
-              </button>
-            )}
-            {paidDelayedPlayers.length > 0 && (
-              <button
-                className="tax-queue"
-                onClick={() => setFilters((f) => ({ ...f, status: 'paid_delayed' }))}
-              >
-                <span className="tax-queue-label">
-                  <span className="tax-status-dot tax-status-delayed" />
-                  Оплатили с просрочкой
-                </span>
-                <span className="tax-queue-value">
-                  {paidDelayedPlayers.length} чел. · {delayedSum.toLocaleString()} монет
-                </span>
-                <span className="tax-queue-go">показать ›</span>
-              </button>
-            )}
-            {overpaidPlayers.length > 0 && (
-              <button
-                className="tax-queue"
-                onClick={() => setFilters((f) => ({ ...f, status: 'over' }))}
-              >
-                <span className="tax-queue-label">
-                  <span className="tax-status-dot tax-status-over" />
-                  Переплата — излишек переносится на следующий месяц
-                </span>
-                <span className="tax-queue-value">
-                  {overpaidPlayers.length} чел. · +{overpaySum.toLocaleString()} монет
-                </span>
-                <span className="tax-queue-go">показать ›</span>
-              </button>
-            )}
-            {futureMemberPlayers.length > 0 && (
-              <button
-                className="tax-queue tax-queue-muted"
-                onClick={() => setFilters((f) => ({ ...f, status: 'future_member' }))}
-              >
-                <span className="tax-queue-label">
-                  <span className="tax-status-dot" />
-                  Новички — норма начнётся со следующего месяца
-                </span>
-                <span className="tax-queue-value">{futureMemberPlayers.length} чел. · долга нет</span>
-                <span className="tax-queue-go">показать ›</span>
-              </button>
-            )}
-            {filters.status !== '' && (
-              <button
-                className="tax-queue tax-queue-reset"
-                onClick={() => setFilters((f) => ({ ...f, status: '' }))}
-              >
-                <span className="tax-queue-label">Фильтр включён — показаны не все</span>
-                <span className="tax-queue-go">снять фильтр ›</span>
-              </button>
-            )}
-          </div>
-
-          {/* Справочная строка: то, что не является исключением, но должно быть под рукой.
-              «Всего участников» — именно всего, а не «сколько попало под фильтр»:
-              иначе после клика по очереди цифра начинает врать. */}
-          <div className="tax-secondary">
-            Всего участников: {monthSummary ? monthSummary.players.length : 0}
-            {filteredPlayers.length !== (monthSummary ? monthSummary.players.length : 0) &&
-              <> (показано: {filteredPlayers.length})</>}{' '}
-            · заплатили в срок: {paidOnTimePlayers.length} · зачтено: {compensatedPlayers.length}
-            {totalCarriedIn > 0 && <> · перенос из прошлого месяца: {totalCarriedIn.toLocaleString()}</>}
-          </div>
-
-          {/* Числа — первыми: казначей заходит узнать «сколько собрали и кто должен».
-              Шаги-объяснения идут сразу за ними, а не перед: иначе инструкция
-              отодвигает цифры за нижнюю границу экрана. */}
-          <GuideSteps
-            title={`Как проходит месяц — ${periodLabel}`}
-            steps={[
-              {
-                text: 'Посмотрите три числа выше: «Ожидалось» — сколько должны собрать, «Собрано» — сколько реально пришло, «Не собрано» — сколько ещё недобрали.',
-              },
-              {
-                text: 'Разберите должников: отфильтруйте список по «Не заплатил», напомните людям про взнос — или зачтите его, если так решил совет.',
-                action: {
-                  label: 'Показать должников',
-                  onClick: () => setFilters((f) => ({ ...f, status: 'not_paid' })),
-                },
-              },
-              {
-                text: 'Сверьте переплату: лишние монеты переносятся на следующий месяц. Подтверждать перенос можно только после закрытия месяца.',
-              },
-              {
-                text: 'Закройте прошедший месяц, когда цифры сойдутся: после закрытия правки и импорт задним числом перестанут проходить.',
-              },
-              {
-                text: 'Скопируйте готовую сводку в клановый чат — блок «Сводка для чата» ниже.',
-              },
-            ]}
-          />
-
-          <div className="tax-filters">
-            <input
-              type="text"
-              className="tax-filter-search"
-              placeholder="Поиск по игроку..."
-              value={filters.search}
-              onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
-            />
-            <select
-              value={filters.level}
-              onChange={e => setFilters(f => ({ ...f, level: e.target.value }))}
-            >
-              <option value="">Все уровни</option>
-              {uniqueLevels.map(l => (
-                <option key={l} value={l}>Ур. {l}</option>
-              ))}
-            </select>
-            <select
-              value={filters.status}
-              onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
-            >
-              <option value="">Все статусы</option>
-              <option value="paid">Заплатил</option>
-              <option value="paid_delayed">Оплатил с просрочкой</option>
-              <option value="not_paid">Не заплатил</option>
-              <option value="over">Переплата</option>
-              <option value="future_member">Новичок</option>
-            </select>
-            <select
-              value={filters.hasCompensation}
-              onChange={e => setFilters(f => ({ ...f, hasCompensation: e.target.value }))}
-            >
-              <option value="">Все</option>
-              <option value="yes">С компенсацией</option>
-              <option value="no">Без компенсации</option>
-            </select>
-            {(filters.search || filters.level || filters.status || filters.hasCompensation) && (
-              <button
-                className="tax-filter-clear"
-                onClick={() => setFilters({ search: '', level: '', status: '', hasCompensation: '' })}
-              >
-                Сбросить
-              </button>
-            )}
-          </div>
-
-          <div className="tax-shortlists">
-            <section className="tax-section tax-section-wide">
-              <div className="tax-section-header">
-                <h3 className="tax-section-title">Сводная — {periodLabel}</h3>
-                <div className="tax-section-actions">
-                  {copyStatus && <span className="tax-copy-status">{copyStatus}</span>}
-                  <button 
-                    className="tax-copy-btn" 
-                    onClick={() => handleCopyTable(sortedFilteredPlayers, 'Сводная')}
-                    title="Копировать таблицу"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                    </svg>
-                  </button>
+            {/* Полоса покрытия: одним взглядом видно, сколько начисленного уже в казне. */}
+            <div className="tax-coverage">
+              <div className="tax-coverage-bar">
+                <i style={{ width: `${coveragePercent}%` }} />
+              </div>
+              <div className="tax-coverage-line">
+                Собрано {totalCollected.toLocaleString()} из {totalExpected.toLocaleString()} · {coveragePercent}%
+              </div>
+              {(compensatedNorm > 0 || overpaySum > 0 || totalCarriedIn > 0) && (
+                <div className="tax-coverage-note">
+                  Почему «собрано» не равно «ожидалось»: зачёт — не деньги, а пометка «взнос
+                  не нужен»; переплата — наоборот, деньги сверх нормы; перенос закрывает
+                  норму деньгами, которые пришли в прошлом месяце. Сходится так: ожидалось{' '}
+                  {totalExpected.toLocaleString()} ={' '}
+                  {[
+                    `собрано ${totalCollected.toLocaleString()}`,
+                    overpaySum > 0 ? `− переплата ${overpaySum.toLocaleString()}` : null,
+                    compensatedNorm > 0 ? `+ зачтено ${compensatedNorm.toLocaleString()}` : null,
+                    totalCarriedIn > 0 ? `+ перенос ${totalCarriedIn.toLocaleString()}` : null,
+                    totalNotCollected > 0 ? `+ не собрано ${totalNotCollected.toLocaleString()}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  .
                 </div>
-              </div>
-              {sortedFilteredPlayers.length > 0 ? (
-                <div className="tax-table-wrapper">
-                <table className="tax-table">
-                  <thead>
-                    <tr>
-                      <th className="tax-sortable">#</th>
-                      <th className="tax-sortable" onClick={() => handleSort('main', 'nick')}>Игрок {renderSortIcon('main', 'nick')}</th>
-                      <th className="tax-sortable" onClick={() => handleSort('main', 'level')}>Уровень {renderSortIcon('main', 'level')}</th>
-                      <th className="tax-sortable" onClick={() => handleSort('main', 'paid')}>Уплачено {renderSortIcon('main', 'paid')}</th>
-                      <th>
-                        <HelpTip term="carryover" marker={false} clickToToggle={false}>
-                          Перенос
-                        </HelpTip>
-                      </th>
-                      <th className="tax-sortable" onClick={() => handleSort('main', 'norm')}>
-                        <HelpTip term="norm" marker={false} clickToToggle={false}>
-                          Норма
-                        </HelpTip>{' '}
-                        {renderSortIcon('main', 'norm')}
-                      </th>
-                      <th className="tax-sortable" onClick={() => handleSort('main', 'status')}>Статус {renderSortIcon('main', 'status')}</th>
-                      <th>
-                        <HelpTip term="compensation" marker={false} clickToToggle={false}>
-                          Компенсация
-                        </HelpTip>
-                      </th>
-                      <th>Комментарий</th>
-                      <th>Действия</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedFilteredPlayers.map((p, idx) => (
-                      <tr key={p.nick}>
-                        <td className="tax-rank">{idx + 1}</td>
-                        <td className="tax-nick">{p.nick}</td>
-                        <td>{p.playerLevel ?? '-'}</td>
-                        {editingRow === p.nick ? (
-                          <>
-                            <td>
-                              <input
-                                type="number"
-                                className="tax-edit-input"
-                                value={editingData?.quantity ?? 0}
-                                onChange={(e) => setEditingData(prev => prev ? { ...prev, quantity: parseInt(e.target.value) || 0 } : null)}
-                                min="0"
-                              />
-                            </td>
-                            <td
-                              className={p.carriedIn > 0 ? 'tax-over' : ''}
-                              title={p.carriedIn > 0 ? 'Зачтена переплата за прошлый месяц' : undefined}
-                            >
-                              {p.carriedIn > 0 ? p.carriedIn : '—'}
-                            </td>
-                            <td>{p.normAmount}</td>
-                            <td>{renderStatusBadge(p)}</td>
-                            <td>
-                              <label className="tax-edit-checkbox">
-                                <input
-                                  type="checkbox"
-                                  checked={editingData?.compensationFlag ?? false}
-                                  onChange={(e) => setEditingData(prev => prev ? { ...prev, compensationFlag: e.target.checked } : null)}
-                                />
-                                Зачтено
-                              </label>
-                            </td>
-                            <td>
-                              <input
-                                type="text"
-                                className="tax-edit-input tax-edit-comment"
-                                value={editingData?.compensationComment ?? ''}
-                                onChange={(e) => setEditingData(prev => prev ? { ...prev, compensationComment: e.target.value } : null)}
-                                placeholder="Комментарий"
-                              />
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className={p.isOver ? 'tax-over' : 'tax-paid'}>{p.totalPaid}</td>
-                            <td
-                              className={p.carriedIn > 0 ? 'tax-over' : ''}
-                              title={p.carriedIn > 0 ? 'Зачтена переплата за прошлый месяц' : undefined}
-                            >
-                              {p.carriedIn > 0 ? p.carriedIn : '—'}
-                            </td>
-                            <td>{p.normAmount}</td>
-                            <td>{renderStatusBadge(p)}</td>
-                            <td>
-                              {canManage && p.status === 'not_paid' && (
-                                <button
-                                  className="tax-compensate-btn"
-                                  onClick={() => handleCompensate(p.nick, p.playerLevel || 1, p.normAmount)}
-                                >
-                                  Зачесть
-                                </button>
-                              )}
-                              {p.status === 'compensated' && (
-                                <span className="tax-compensated">Зачтено</span>
-                              )}
-                              {!canManage && p.status === 'compensated' && (
-                                <span className="tax-compensated">Да</span>
-                              )}
-                            </td>
-                            <td className="tax-comment-cell" title={p.compensationComment || undefined}>
-                              {p.compensationComment || '-'}
-                            </td>
-                          </>
-                        )}
-                        <td className="tax-actions">
-                          {canManage &&
-                            !monthClosed &&
-                            editingRow !== p.nick &&
-                            (p.paymentOpId || p.operationId) && (
-                            <button
-                              className="tax-edit-btn"
-                              onClick={() => startInlineEdit(p)}
-                              title="Редактировать"
-                            >
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                              </svg>
-                            </button>
-                          )}
-                          {canManage && !monthClosed && editingRow !== p.nick && (
-                            <ReassignButton
-                              clanId={clanId}
-                              operationId={p.paymentOpId}
-                              nick={p.nick}
-                              members={members}
-                              reasonCodes={reasonCodes}
-                              disabled={isSaving}
-                              onDone={() => onRefresh?.()}
-                            />
-                          )}
-                          {editingRow === p.nick && (
+              )}
+            </div>
+
+            {/* Исключения вперёд: очередь с нулём не рисуется — ноль не информация,
+                а занятое место. Каждая строка кликабельна и фильтрует таблицу. */}
+            <div className="tax-queues">
+              {notPaidPlayers.length > 0 && (
+                <button
+                  className="tax-queue tax-queue-danger"
+                  onClick={() => setFilters((f) => ({ ...f, status: 'not_paid' }))}
+                >
+                  <span className="tax-queue-label">
+                    <span className="tax-status-dot tax-status-notpaid" />
+                    Не заплатили
+                  </span>
+                  <span className="tax-queue-value">
+                    {notPaidPlayers.length} чел. · {notPaidSum.toLocaleString()} монет
+                  </span>
+                  <span className="tax-queue-go">показать ›</span>
+                </button>
+              )}
+              {paidDelayedPlayers.length > 0 && (
+                <button
+                  className="tax-queue"
+                  onClick={() => setFilters((f) => ({ ...f, status: 'paid_delayed' }))}
+                >
+                  <span className="tax-queue-label">
+                    <span className="tax-status-dot tax-status-delayed" />
+                    Оплатили с просрочкой
+                  </span>
+                  <span className="tax-queue-value">
+                    {paidDelayedPlayers.length} чел. · {delayedSum.toLocaleString()} монет
+                  </span>
+                  <span className="tax-queue-go">показать ›</span>
+                </button>
+              )}
+              {overpaidPlayers.length > 0 && (
+                <button
+                  className="tax-queue"
+                  onClick={() => setFilters((f) => ({ ...f, status: 'over' }))}
+                >
+                  <span className="tax-queue-label">
+                    <span className="tax-status-dot tax-status-over" />
+                    Переплата — излишек переносится на следующий месяц
+                  </span>
+                  <span className="tax-queue-value">
+                    {overpaidPlayers.length} чел. · +{overpaySum.toLocaleString()} монет
+                  </span>
+                  <span className="tax-queue-go">показать ›</span>
+                </button>
+              )}
+              {futureMemberPlayers.length > 0 && (
+                <button
+                  className="tax-queue tax-queue-muted"
+                  onClick={() => setFilters((f) => ({ ...f, status: 'future_member' }))}
+                >
+                  <span className="tax-queue-label">
+                    <span className="tax-status-dot" />
+                    Новички — норма начнётся со следующего месяца
+                  </span>
+                  <span className="tax-queue-value">{futureMemberPlayers.length} чел. · долга нет</span>
+                  <span className="tax-queue-go">показать ›</span>
+                </button>
+              )}
+              {filters.status !== '' && (
+                <button
+                  className="tax-queue tax-queue-reset"
+                  onClick={() => setFilters((f) => ({ ...f, status: '' }))}
+                >
+                  <span className="tax-queue-label">Фильтр включён — показаны не все</span>
+                  <span className="tax-queue-go">снять фильтр ›</span>
+                </button>
+              )}
+            </div>
+
+            {/* Справочная строка: то, что не является исключением, но должно быть под рукой.
+                «Всего участников» — именно всего, а не «сколько попало под фильтр»:
+                иначе после клика по очереди цифра начинает врать. */}
+            <div className="tax-secondary">
+              Всего участников: {monthSummary ? monthSummary.players.length : 0}
+              {filteredPlayers.length !== (monthSummary ? monthSummary.players.length : 0) &&
+                <> (показано: {filteredPlayers.length})</>}{' '}
+              · заплатили в срок: {paidOnTimePlayers.length} · зачтено: {compensatedPlayers.length}
+              {totalCarriedIn > 0 && <> · перенос из прошлого месяца: {totalCarriedIn.toLocaleString()}</>}
+            </div>
+
+            {/* Числа — первыми: казначей заходит узнать «сколько собрали и кто должен».
+                Шаги-объяснения идут сразу за ними, а не перед: иначе инструкция
+                отодвигает цифры за нижнюю границу экрана. */}
+            <GuideSteps
+              title={`Как проходит месяц — ${periodLabel}`}
+              steps={[
+                {
+                  text: 'Посмотрите три числа выше: «Ожидалось» — сколько должны собрать, «Собрано» — сколько реально пришло, «Не собрано» — сколько ещё недобрали.',
+                },
+                {
+                  text: 'Разберите должников: отфильтруйте список по «Не заплатил», напомните людям про взнос — или зачтите его, если так решил совет.',
+                  action: {
+                    label: 'Показать должников',
+                    onClick: () => setFilters((f) => ({ ...f, status: 'not_paid' })),
+                  },
+                },
+                {
+                  text: 'Сверьте переплату: лишние монеты переносятся на следующий месяц. Подтверждать перенос можно только после закрытия месяца.',
+                },
+                {
+                  text: 'Закройте прошедший месяц, когда цифры сойдутся: после закрытия правки и импорт задним числом перестанут проходить.',
+                },
+                {
+                  text: 'Скопируйте готовую сводку в клановый чат — блок «Сводка для чата» ниже.',
+                },
+              ]}
+            />
+
+            </>
+          )}
+          {view === 'dues' && (
+            <>
+            <div className="tax-filters">
+              <input
+                type="text"
+                className="tax-filter-search"
+                placeholder="Поиск по игроку..."
+                value={filters.search}
+                onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
+              />
+              <select
+                value={filters.level}
+                onChange={e => setFilters(f => ({ ...f, level: e.target.value }))}
+              >
+                <option value="">Все уровни</option>
+                {uniqueLevels.map(l => (
+                  <option key={l} value={l}>Ур. {l}</option>
+                ))}
+              </select>
+              <select
+                value={filters.status}
+                onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
+              >
+                <option value="">Все статусы</option>
+                <option value="paid">Заплатил</option>
+                <option value="paid_delayed">Оплатил с просрочкой</option>
+                <option value="not_paid">Не заплатил</option>
+                <option value="over">Переплата</option>
+                <option value="future_member">Новичок</option>
+              </select>
+              <select
+                value={filters.hasCompensation}
+                onChange={e => setFilters(f => ({ ...f, hasCompensation: e.target.value }))}
+              >
+                <option value="">Все</option>
+                <option value="yes">С компенсацией</option>
+                <option value="no">Без компенсации</option>
+              </select>
+              {(filters.search || filters.level || filters.status || filters.hasCompensation) && (
+                <button
+                  className="tax-filter-clear"
+                  onClick={() => setFilters({ search: '', level: '', status: '', hasCompensation: '' })}
+                >
+                  Сбросить
+                </button>
+              )}
+            </div>
+
+            <div className="tax-shortlists">
+              <section className="tax-section tax-section-wide">
+                <div className="tax-section-header">
+                  <h3 className="tax-section-title">Сводная — {periodLabel}</h3>
+                  <div className="tax-section-actions">
+                    {copyStatus && <span className="tax-copy-status">{copyStatus}</span>}
+                    <button 
+                      className="tax-copy-btn" 
+                      onClick={() => handleCopyTable(sortedFilteredPlayers, 'Сводная')}
+                      title="Копировать таблицу"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                {sortedFilteredPlayers.length > 0 ? (
+                  <div className="tax-table-wrapper">
+                  <table className="tax-table">
+                    <thead>
+                      <tr>
+                        <th className="tax-sortable">#</th>
+                        <th className="tax-sortable" onClick={() => handleSort('main', 'nick')}>Игрок {renderSortIcon('main', 'nick')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('main', 'level')}>Уровень {renderSortIcon('main', 'level')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('main', 'paid')}>Уплачено {renderSortIcon('main', 'paid')}</th>
+                        <th>
+                          <HelpTip term="carryover" marker={false} clickToToggle={false}>
+                            Перенос
+                          </HelpTip>
+                        </th>
+                        <th className="tax-sortable" onClick={() => handleSort('main', 'norm')}>
+                          <HelpTip term="norm" marker={false} clickToToggle={false}>
+                            Норма
+                          </HelpTip>{' '}
+                          {renderSortIcon('main', 'norm')}
+                        </th>
+                        <th className="tax-sortable" onClick={() => handleSort('main', 'status')}>Статус {renderSortIcon('main', 'status')}</th>
+                        <th>
+                          <HelpTip term="compensation" marker={false} clickToToggle={false}>
+                            Компенсация
+                          </HelpTip>
+                        </th>
+                        <th>Комментарий</th>
+                        <th>Действия</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedFilteredPlayers.map((p, idx) => (
+                        <tr key={p.nick}>
+                          <td className="tax-rank">{idx + 1}</td>
+                          <td className="tax-nick">{p.nick}</td>
+                          <td>{p.playerLevel ?? '-'}</td>
+                          {editingRow === p.nick ? (
                             <>
-                              <select
-                                className="tax-edit-input tax-edit-reason"
-                                value={editReason}
-                                onChange={(e) => setEditReason(e.target.value)}
-                                title="Причина правки — попадёт в журнал корректировок"
+                              <td>
+                                <input
+                                  type="number"
+                                  className="tax-edit-input"
+                                  value={editingData?.quantity ?? 0}
+                                  onChange={(e) => setEditingData(prev => prev ? { ...prev, quantity: parseInt(e.target.value) || 0 } : null)}
+                                  min="0"
+                                />
+                              </td>
+                              <td
+                                className={p.carriedIn > 0 ? 'tax-over' : ''}
+                                title={p.carriedIn > 0 ? 'Зачтена переплата за прошлый месяц' : undefined}
                               >
-                                <option value="">Причина…</option>
-                                {reasonCodes.map((r) => (
-                                  <option key={r.code} value={r.code}>{r.label}</option>
-                                ))}
-                              </select>
-                              <button
-                                className="tax-save-btn"
-                                onClick={() => saveInlineEdit(p)}
-                                disabled={isSaving}
-                                title="Сохранить"
+                                {p.carriedIn > 0 ? p.carriedIn : '—'}
+                              </td>
+                              <td>{p.normAmount}</td>
+                              <td>{renderStatusBadge(p)}</td>
+                              <td>
+                                <label className="tax-edit-checkbox">
+                                  <input
+                                    type="checkbox"
+                                    checked={editingData?.compensationFlag ?? false}
+                                    onChange={(e) => setEditingData(prev => prev ? { ...prev, compensationFlag: e.target.checked } : null)}
+                                  />
+                                  Зачтено
+                                </label>
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  className="tax-edit-input tax-edit-comment"
+                                  value={editingData?.compensationComment ?? ''}
+                                  onChange={(e) => setEditingData(prev => prev ? { ...prev, compensationComment: e.target.value } : null)}
+                                  placeholder="Комментарий"
+                                />
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className={p.isOver ? 'tax-over' : 'tax-paid'}>{p.totalPaid}</td>
+                              <td
+                                className={p.carriedIn > 0 ? 'tax-over' : ''}
+                                title={p.carriedIn > 0 ? 'Зачтена переплата за прошлый месяц' : undefined}
                               >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <polyline points="20 6 9 17 4 12"/>
-                                </svg>
-                              </button>
-                              <button
-                                className="tax-cancel-btn"
-                                onClick={cancelInlineEdit}
-                                disabled={isSaving}
-                                title="Отмена"
-                              >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <line x1="18" y1="6" x2="6" y2="18"/>
-                                  <line x1="6" y1="6" x2="18" y2="18"/>
-                                </svg>
-                              </button>
+                                {p.carriedIn > 0 ? p.carriedIn : '—'}
+                              </td>
+                              <td>{p.normAmount}</td>
+                              <td>{renderStatusBadge(p)}</td>
+                              <td>
+                                {canManage && p.status === 'not_paid' && (
+                                  <button
+                                    className="tax-compensate-btn"
+                                    onClick={() => handleCompensate(p.nick, p.playerLevel || 1, p.normAmount)}
+                                  >
+                                    Зачесть
+                                  </button>
+                                )}
+                                {p.status === 'compensated' && (
+                                  <span className="tax-compensated">Зачтено</span>
+                                )}
+                                {!canManage && p.status === 'compensated' && (
+                                  <span className="tax-compensated">Да</span>
+                                )}
+                              </td>
+                              <td className="tax-comment-cell" title={p.compensationComment || undefined}>
+                                {p.compensationComment || '-'}
+                              </td>
                             </>
                           )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              ) : (
-                <div className="tax-empty">Нет данных за период</div>
-              )}
-            </section>
-
-            <section className="tax-section">
-              <div className="tax-section-header">
-                <h3 className="tax-section-title">
-                  <span className="tax-status-dot tax-status-notpaid" />
-                  Не заплатил ({sortedNotPaidPlayers.length})
-                </h3>
-                {sortedNotPaidPlayers.length > 0 && (
-                  <div className="tax-section-actions">
-                    <button 
-                      className="tax-copy-btn" 
-                      onClick={() => {
-                        const headers = ['Игрок', 'Уровень', 'Норма'];
-                        const rows = sortedNotPaidPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.normAmount].join('\t')).join('\n');
-                        void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
-                      }}
-                      title="Копировать таблицу"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                      </svg>
-                    </button>
+                          <td className="tax-actions">
+                            {canManage &&
+                              !monthClosed &&
+                              editingRow !== p.nick &&
+                              (p.paymentOpId || p.operationId) && (
+                              <button
+                                className="tax-edit-btn"
+                                onClick={() => startInlineEdit(p)}
+                                title="Редактировать"
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                              </button>
+                            )}
+                            {canManage && !monthClosed && editingRow !== p.nick && (
+                              <ReassignButton
+                                clanId={clanId}
+                                operationId={p.paymentOpId}
+                                nick={p.nick}
+                                members={members}
+                                reasonCodes={reasonCodes}
+                                disabled={isSaving}
+                                onDone={() => onRefresh?.()}
+                              />
+                            )}
+                            {editingRow === p.nick && (
+                              <>
+                                <select
+                                  className="tax-edit-input tax-edit-reason"
+                                  value={editReason}
+                                  onChange={(e) => setEditReason(e.target.value)}
+                                  title="Причина правки — попадёт в журнал корректировок"
+                                >
+                                  <option value="">Причина…</option>
+                                  {reasonCodes.map((r) => (
+                                    <option key={r.code} value={r.code}>{r.label}</option>
+                                  ))}
+                                </select>
+                                <button
+                                  className="tax-save-btn"
+                                  onClick={() => saveInlineEdit(p)}
+                                  disabled={isSaving}
+                                  title="Сохранить"
+                                >
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                  </svg>
+                                </button>
+                                <button
+                                  className="tax-cancel-btn"
+                                  onClick={cancelInlineEdit}
+                                  disabled={isSaving}
+                                  title="Отмена"
+                                >
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                   </div>
+                ) : (
+                  <div className="tax-empty">Нет данных за период</div>
                 )}
-              </div>
-              {sortedNotPaidPlayers.length > 0 ? (
-                <div className="tax-table-wrapper">
-                <table className="tax-table">
-                  <thead>
-                    <tr>
-                      <th className="tax-sortable" onClick={() => handleSort('notPaid', 'nick')}>Игрок {renderSortIcon('notPaid', 'nick')}</th>
-                      <th className="tax-sortable" onClick={() => handleSort('notPaid', 'level')}>Уровень {renderSortIcon('notPaid', 'level')}</th>
-                      <th className="tax-sortable" onClick={() => handleSort('notPaid', 'norm')}>Норма {renderSortIcon('notPaid', 'norm')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedNotPaidPlayers.map(p => (
-                      <tr key={p.nick}>
-                        <td className="tax-nick">{p.nick}</td>
-                        <td>{p.playerLevel ?? '-'}</td>
-                        <td className="tax-debt">{p.normAmount}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              </section>
+
+              <section className="tax-section">
+                <div className="tax-section-header">
+                  <h3 className="tax-section-title">
+                    <span className="tax-status-dot tax-status-notpaid" />
+                    Не заплатил ({sortedNotPaidPlayers.length})
+                  </h3>
+                  {sortedNotPaidPlayers.length > 0 && (
+                    <div className="tax-section-actions">
+                      <button 
+                        className="tax-copy-btn" 
+                        onClick={() => {
+                          const headers = ['Игрок', 'Уровень', 'Норма'];
+                          const rows = sortedNotPaidPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.normAmount].join('\t')).join('\n');
+                          void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
+                        }}
+                        title="Копировать таблицу"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="tax-empty">Нет должников</div>
+                {sortedNotPaidPlayers.length > 0 ? (
+                  <div className="tax-table-wrapper">
+                  <table className="tax-table">
+                    <thead>
+                      <tr>
+                        <th className="tax-sortable" onClick={() => handleSort('notPaid', 'nick')}>Игрок {renderSortIcon('notPaid', 'nick')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('notPaid', 'level')}>Уровень {renderSortIcon('notPaid', 'level')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('notPaid', 'norm')}>Норма {renderSortIcon('notPaid', 'norm')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedNotPaidPlayers.map(p => (
+                        <tr key={p.nick}>
+                          <td className="tax-nick">{p.nick}</td>
+                          <td>{p.playerLevel ?? '-'}</td>
+                          <td className="tax-debt">{p.normAmount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  </div>
+                ) : (
+                  <div className="tax-empty">Нет должников</div>
+                )}
+              </section>
+
+              {compensatedPlayers.length > 0 && (
+                <section className="tax-section">
+                  <div className="tax-section-header">
+                    <h3 className="tax-section-title">
+                      <span className="tax-status-dot tax-status-compensated" />
+                      Зачтено ({sortedCompensatedPlayers.length})
+                    </h3>
+                    <div className="tax-section-actions">
+                      <button 
+                        className="tax-copy-btn" 
+                        onClick={() => {
+                          const headers = ['Игрок', 'Уровень', 'Сумма'];
+                          const rows = sortedCompensatedPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.normAmount].join('\t')).join('\n');
+                          void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
+                        }}
+                        title="Копировать таблицу"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="tax-table-wrapper">
+                  <table className="tax-table">
+                    <thead>
+                      <tr>
+                        <th className="tax-sortable" onClick={() => handleSort('compensated', 'nick')}>Игрок {renderSortIcon('compensated', 'nick')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('compensated', 'level')}>Уровень {renderSortIcon('compensated', 'level')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('compensated', 'norm')}>Сумма {renderSortIcon('compensated', 'norm')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedCompensatedPlayers.map(p => (
+                        <tr key={p.nick}>
+                          <td className="tax-nick">{p.nick}</td>
+                          <td>{p.playerLevel ?? '-'}</td>
+                          <td className="tax-paid">{p.normAmount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  </div>
+                </section>
               )}
-            </section>
 
-            {compensatedPlayers.length > 0 && (
-              <section className="tax-section">
-                <div className="tax-section-header">
-                  <h3 className="tax-section-title">
-                    <span className="tax-status-dot tax-status-compensated" />
-                    Зачтено ({sortedCompensatedPlayers.length})
-                  </h3>
-                  <div className="tax-section-actions">
-                    <button 
-                      className="tax-copy-btn" 
-                      onClick={() => {
-                        const headers = ['Игрок', 'Уровень', 'Сумма'];
-                        const rows = sortedCompensatedPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.normAmount].join('\t')).join('\n');
-                        void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
-                      }}
-                      title="Копировать таблицу"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                      </svg>
-                    </button>
+              {paidDelayedPlayers.length > 0 && (
+                <section className="tax-section">
+                  <div className="tax-section-header">
+                    <h3 className="tax-section-title">
+                      <span className="tax-status-dot tax-status-delayed" />
+                      Заплатил + Задержано ({sortedPaidDelayedPlayers.length})
+                    </h3>
+                    <div className="tax-section-actions">
+                      <button 
+                        className="tax-copy-btn" 
+                        onClick={() => {
+                          const headers = ['Игрок', 'Уровень', 'Уплачено'];
+                          const rows = sortedPaidDelayedPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.totalPaid].join('\t')).join('\n');
+                          void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
+                        }}
+                        title="Копировать таблицу"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="tax-table-wrapper">
-                <table className="tax-table">
-                  <thead>
-                    <tr>
-                      <th className="tax-sortable" onClick={() => handleSort('compensated', 'nick')}>Игрок {renderSortIcon('compensated', 'nick')}</th>
-                      <th className="tax-sortable" onClick={() => handleSort('compensated', 'level')}>Уровень {renderSortIcon('compensated', 'level')}</th>
-                      <th className="tax-sortable" onClick={() => handleSort('compensated', 'norm')}>Сумма {renderSortIcon('compensated', 'norm')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedCompensatedPlayers.map(p => (
-                      <tr key={p.nick}>
-                        <td className="tax-nick">{p.nick}</td>
-                        <td>{p.playerLevel ?? '-'}</td>
-                        <td className="tax-paid">{p.normAmount}</td>
+                  <div className="tax-table-wrapper">
+                  <table className="tax-table">
+                    <thead>
+                      <tr>
+                        <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'nick')}>Игрок {renderSortIcon('paidDelayed', 'nick')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'level')}>Уровень {renderSortIcon('paidDelayed', 'level')}</th>
+                        <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'paid')}>Уплачено {renderSortIcon('paidDelayed', 'paid')}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </section>
-            )}
-
-            {paidDelayedPlayers.length > 0 && (
-              <section className="tax-section">
-                <div className="tax-section-header">
-                  <h3 className="tax-section-title">
-                    <span className="tax-status-dot tax-status-delayed" />
-                    Заплатил + Задержано ({sortedPaidDelayedPlayers.length})
-                  </h3>
-                  <div className="tax-section-actions">
-                    <button 
-                      className="tax-copy-btn" 
-                      onClick={() => {
-                        const headers = ['Игрок', 'Уровень', 'Уплачено'];
-                        const rows = sortedPaidDelayedPlayers.map(p => [p.nick, p.playerLevel ?? '-', p.totalPaid].join('\t')).join('\n');
-                        void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
-                      }}
-                      title="Копировать таблицу"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                      </svg>
-                    </button>
+                    </thead>
+                    <tbody>
+                      {sortedPaidDelayedPlayers.map(p => (
+                        <tr key={p.nick}>
+                          <td className="tax-nick">{p.nick}</td>
+                          <td>{p.playerLevel ?? '-'}</td>
+                          <td className="tax-paid">{p.totalPaid}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                   </div>
-                </div>
-                <div className="tax-table-wrapper">
-                <table className="tax-table">
-                  <thead>
-                    <tr>
-                      <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'nick')}>Игрок {renderSortIcon('paidDelayed', 'nick')}</th>
-                      <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'level')}>Уровень {renderSortIcon('paidDelayed', 'level')}</th>
-                      <th className="tax-sortable" onClick={() => handleSort('paidDelayed', 'paid')}>Уплачено {renderSortIcon('paidDelayed', 'paid')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedPaidDelayedPlayers.map(p => (
-                      <tr key={p.nick}>
-                        <td className="tax-nick">{p.nick}</td>
-                        <td>{p.playerLevel ?? '-'}</td>
-                        <td className="tax-paid">{p.totalPaid}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </section>
-            )}
-          </div>
+                </section>
+              )}
+            </div>
+            </>
+          )}
         </>
       )}
 
@@ -1341,26 +1357,38 @@ export function TaxAnalytics({
           инструментов, 1414px содержимого в окне 569px). Переезд в свои вкладки
           («Переносы», «Взносы» в режиме выделения) — следующий этап плана
           development-roadmap/treasury-ux-restructure-v1.0.md. */}
-      <TaxCarryoverPanel
-        month={selectedMonth}
-        year={selectedYear}
-        data={carryover}
-        canApprove={canApprove}
-        isSaving={isSaving}
-        onRecompute={handleRecomputeCarryover}
-        onReview={handleReviewCarryover}
-        onBulk={handleBulkCarryover}
-      />
+      {view === 'carryover' && (
+        <>
+        <TaxCarryoverPanel
+          month={selectedMonth}
+          year={selectedYear}
+          data={carryover}
+          canApprove={canApprove}
+          isSaving={isSaving}
+          onRecompute={handleRecomputeCarryover}
+          onReview={handleReviewCarryover}
+          onBulk={handleBulkCarryover}
+        />
+        </>
+      )}
 
-      <BulkCompensationPanel
-        clanId={clanId}
-        canManage={canManage}
-        members={members}
-        month={selectedMonth}
-        year={selectedYear}
-      />
+      {view === 'dues' && (
+        <>
+        <BulkCompensationPanel
+          clanId={clanId}
+          canManage={canManage}
+          members={members}
+          month={selectedMonth}
+          year={selectedYear}
+        />
+        </>
+      )}
 
-      <TreasurySummaryPanel clanId={clanId} month={selectedMonth} year={selectedYear} />
+      {view === 'overview' && (
+        <>
+        <TreasurySummaryPanel clanId={clanId} month={selectedMonth} year={selectedYear} />
+        </>
+      )}
 
       {editingCompensation && (
         <div className="tax-modal-overlay">
