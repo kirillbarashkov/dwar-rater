@@ -6,6 +6,9 @@ import './TaxLedger.css';
 
 interface TaxLedgerProps {
   clanId: number;
+  /** Период раздела задаёт, по какой месяц смотрим («До»). */
+  month: number;
+  year: number;
 }
 
 const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -18,12 +21,12 @@ function signed(value: number): string {
   return `${value > 0 ? '+' : ''}${money(value)}`;
 }
 
-export function TaxLedger({ clanId }: TaxLedgerProps) {
+export function TaxLedger({ clanId, month: periodMonth, year: periodYear }: TaxLedgerProps) {
   const now = new Date();
   const [fromMonth, setFromMonth] = useState(1);
-  const [fromYear, setFromYear] = useState(now.getFullYear());
-  const [toMonth, setToMonth] = useState(now.getMonth() + 1);
-  const [toYear, setToYear] = useState(now.getFullYear());
+  const [fromYear, setFromYear] = useState(periodYear);
+  const [toMonth, setToMonth] = useState(periodMonth);
+  const [toYear, setToYear] = useState(periodYear);
   const [data, setData] = useState<TaxLedgerResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');

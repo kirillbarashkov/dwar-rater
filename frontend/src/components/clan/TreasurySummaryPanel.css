@@ -19,6 +19,25 @@
   margin-bottom: 10px;
 }
 
+/* Сводка свёрнута по умолчанию: заголовок работает как переключатель. */
+.ts-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ts-chevron {
+  color: var(--accent);
+  width: 12px;
+}
+
 .ts-title {
   font-size: 14px;
   font-weight: 600;

@@ -175,11 +175,27 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
             monthClosed={monthClosed}
           />
         )}
-        {activeTab === 'ledger' && <TaxLedger clanId={clanId} />}
+        {activeTab === 'ledger' && (
+          // key от периода: при смене месяца в шапке раздел пересоздаёт вкладку,
+          // и «До» в диапазоне снова смотрит на выбранный месяц. Без key это
+          // пришлось бы делать эффектом, а синхронизация состояния эффектом
+          // ловится линтом (react-hooks/set-state-in-effect).
+          <TaxLedger
+            key={`ledger-${selectedYear}-${selectedMonth}`}
+            clanId={clanId}
+            month={selectedMonth}
+            year={selectedYear}
+          />
+        )}
         {activeTab === 'resources' && (
           <>
-            <TalentAnalytics operations={operations} members={members} />
-            <MiscAnalytics operations={operations} />
+            <TalentAnalytics
+              operations={operations}
+              members={members}
+              month={selectedMonth}
+              year={selectedYear}
+            />
+            <MiscAnalytics operations={operations} month={selectedMonth} year={selectedYear} />
           </>
         )}
         {activeTab === 'audit' && (

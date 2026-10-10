@@ -28,6 +28,9 @@ const FALLBACK_LABELS: Record<string, string> = {
  */
 export function TreasurySummaryPanel({ clanId, month, year }: TreasurySummaryPanelProps) {
   const [kind, setKind] = useState('totals');
+  // Сводка — вспомогательный инструмент: свёрнута, пока не нужна. Иначе первый
+  // экран «Обзора» занимает текст, который читают раз в день.
+  const [open, setOpen] = useState(false);
   const [data, setData] = useState<TreasurySummaryResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -66,7 +69,11 @@ export function TreasurySummaryPanel({ clanId, month, year }: TreasurySummaryPan
   return (
     <section className="ts-panel">
       <div className="ts-header">
-        <h3 className="ts-title">Сводка для чата</h3>
+        <button className="ts-toggle" onClick={() => setOpen((v) => !v)}>
+          <span className="ts-chevron" aria-hidden="true">{open ? '▾' : '▸'}</span>
+          Сводка для чата
+        </button>
+        {open && (
         <div className="ts-controls">
           <select
             className="ts-select"
@@ -90,8 +97,11 @@ export function TreasurySummaryPanel({ clanId, month, year }: TreasurySummaryPan
             {copied ? 'Скопировано' : 'Скопировать'}
           </button>
         </div>
+        )}
       </div>
 
+      {open && (
+        <>
       {error && <div className="ts-error">{error}</div>}
 
       {data?.markdown ? (
@@ -106,6 +116,8 @@ export function TreasurySummaryPanel({ clanId, month, year }: TreasurySummaryPan
         </>
       ) : (
         !error && <div className="ts-muted">Загрузка…</div>
+      )}
+        </>
       )}
     </section>
   );

@@ -6,6 +6,9 @@ import './MiscAnalytics.css';
 
 interface MiscAnalyticsProps {
   operations: TreasuryOperationData[];
+  /** Период раздела задаёт «текущий месяц» фильтра этой вкладки. */
+  month: number;
+  year: number;
 }
 
 type PeriodType = 'all' | 'today' | 'month' | 'range';
@@ -30,10 +33,13 @@ const INITIAL_FILTERS = {
   rangeEnd: '',
 };
 
-export function MiscAnalytics({ operations }: MiscAnalyticsProps) {
+export function MiscAnalytics({ operations, month: initialMonth, year: initialYear }: MiscAnalyticsProps) {
   const [filters, setFilters] = useState(INITIAL_FILTERS);
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+  // Период раздела — источник истины: своего листателя у вкладки нет, значения
+  // берутся из пропсов напрямую — без состояния и без эффекта синхронизации
+  // (правило react-hooks/set-state-in-effect запрещает и то и другое).
+  const currentYear = initialYear;
+  const currentMonth = initialMonth;
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({
     key: 'date',
     dir: 'desc',
@@ -189,20 +195,6 @@ export function MiscAnalytics({ operations }: MiscAnalyticsProps) {
     setFilters(INITIAL_FILTERS);
   };
 
-  const handlePrevMonth = () => {
-    const newMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-    const newYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-    setCurrentYear(newYear);
-    setCurrentMonth(newMonth);
-  };
-
-  const handleNextMonth = () => {
-    const newMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-    const newYear = currentMonth === 12 ? currentYear + 1 : currentYear;
-    setCurrentYear(newYear);
-    setCurrentMonth(newMonth);
-  };
-
   const getSortIndicator = (key: SortKey) => {
     if (sortConfig.key !== key) return null;
     return sortConfig.dir === 'asc' ? ' ↑' : ' ↓';
@@ -301,17 +293,9 @@ export function MiscAnalytics({ operations }: MiscAnalyticsProps) {
           )}
 
           {filterPeriod === 'month' && (
-            <nav className="misc-month-nav" aria-label="Навигация по месяцам">
-              <button onClick={handlePrevMonth} aria-label="Предыдущий месяц" type="button">
-                ←
-              </button>
-              <span className="misc-month-label">
-                {MONTHS_RU[currentMonth]} {currentYear}
-              </span>
-              <button onClick={handleNextMonth} aria-label="Следующий месяц" type="button">
-                →
-              </button>
-            </nav>
+            <span className="misc-month-label">
+              {MONTHS_RU[currentMonth]} {currentYear} — период из шапки раздела
+            </span>
           )}
 
           <div className="misc-filter-group">

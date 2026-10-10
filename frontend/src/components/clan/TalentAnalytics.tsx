@@ -7,6 +7,9 @@ import './TalentAnalytics.css';
 interface TalentAnalyticsProps {
   operations: TreasuryOperationData[];
   members?: ClanMemberData[];
+  /** Период раздела: вкладка наследует его, своего листателя не держит. */
+  month: number;
+  year: number;
 }
 
 interface PlayerTalentSummary {
@@ -114,9 +117,12 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'clan_mkk', label: 'Клановые + МКК' },
 ];
 
-export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsProps) {
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+export function TalentAnalytics({
+  operations,
+  members = [],
+  month: selectedMonth,
+  year: selectedYear,
+}: TalentAnalyticsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('universal');
   const [filters, setFilters] = useState({
     search: '',
@@ -210,24 +216,6 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
   const notSubmittedPlayers = filteredPlayers.filter(p => p.status === 'not_submitted');
 
   const periodLabel = `${MONTHS_RU[selectedMonth]} ${selectedYear}`;
-
-  const handlePrevMonth = () => {
-    if (selectedMonth === 1) {
-      setSelectedMonth(12);
-      setSelectedYear(y => y - 1);
-    } else {
-      setSelectedMonth(m => m - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (selectedMonth === 12) {
-      setSelectedMonth(1);
-      setSelectedYear(y => y + 1);
-    } else {
-      setSelectedMonth(m => m + 1);
-    }
-  };
 
   const getResourceValue = (player: PlayerTalentSummary, resKey: string): number => {
     if (resKey === 'treaties') {
@@ -348,11 +336,6 @@ export function TalentAnalytics({ operations, members = [] }: TalentAnalyticsPro
     <div className="talent-analytics">
       <header className="talent-header">
         <h2 className="talent-title">Ресурсы талантов</h2>
-        <div className="talent-period-nav">
-          <button onClick={handlePrevMonth}>←</button>
-          <span className="talent-period-label">{periodLabel}</span>
-          <button onClick={handleNextMonth}>→</button>
-        </div>
       </header>
 
       <div className="talent-kpi">
