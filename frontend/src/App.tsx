@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-
 import { useCharacterAnalysis } from './hooks/useCharacterAnalysis';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
+import { TREASURY_TABS } from './utils/constants';
 import { Button } from './components/ui/Button';
 import { Input } from './components/ui/Input';
 import { Modal } from './components/ui/Modal';
@@ -298,8 +299,14 @@ function HomePage() {
 function ClanPageWrapper() {
   const { clanId } = useParams();
   const [chatOpen, setChatOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('info');
-  const [activeGroup, setActiveGroup] = useState('clan');
+  // Вкладка может прийти в URL: с «Персонажа», «Анализа» или «Трека» клик по
+  // «Казначейству» ведёт сюда переходом, а состояние вкладки при перемонтировании
+  // терялось — страница открывалась на «Клане» вместо «Казначейства».
+  const requestedTab = new URLSearchParams(window.location.search).get('tab') ?? '';
+  const [activeTab, setActiveTab] = useState(requestedTab || 'info');
+  const [activeGroup, setActiveGroup] = useState(
+    TREASURY_TABS.includes(requestedTab) ? 'treasury-nav' : 'clan',
+  );
 
   const handleToggleChat = useCallback(() => setChatOpen((prev) => !prev), []);
 

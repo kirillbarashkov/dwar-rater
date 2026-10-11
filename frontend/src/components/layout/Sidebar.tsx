@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePermission } from '../../hooks/useAuth';
+import { TREASURY_TABS } from '../../utils/constants';
 import './Sidebar.css';
 
 interface TabItem {
@@ -18,7 +19,6 @@ interface TabGroup {
 
 /** Tabs that belong to the treasurer's own section (see navGroups). */
 const TREASURY_GROUP_KEY = 'treasury-nav';
-const TREASURY_TABS = ['treasury', 'analytics', 'treasury-import'];
 
 interface SidebarProps {
   tabGroups?: TabGroup[];
@@ -99,6 +99,12 @@ export function Sidebar({
       setExpandedGroup(willExpand ? groupKey : '');
       if (willExpand && groupKey === 'clan' && !isClanPage) {
         navigate('/clan/2315');
+      } else if (willExpand && groupKey === TREASURY_GROUP_KEY && !isClanPage) {
+        // Содержимое «Казначейства» рендерится раскладкой клановой страницы, а её
+        // состояние вкладки живёт в самом компоненте: без перехода клик с
+        // «Персонажа», «Анализа» или «Трека» оставлял пустой экран. Вкладку несём
+        // в URL — иначе при перемонтировании она сбросится на «Клан».
+        navigate(`/clan/2315?tab=${children[0]?.key || 'treasury'}`);
       } else if (willExpand && groupKey === 'character' && !isCharacterPage) {
         navigate('/character');
       } else if (willExpand && groupKey === 'analysis' && (isClanPage || isCharacterPage)) {
