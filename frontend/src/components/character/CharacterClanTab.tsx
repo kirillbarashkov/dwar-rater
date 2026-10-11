@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { TreasuryOperationData, ClanMemberData } from '../../types/clanInfo';
-import { getTreasuryOperations, getClanMembers, getLevelHistory } from '../../api/clanInfo';
+import { getTreasuryOperations, getClanMembers, getLevelHistory, getTreasuryTotals } from '../../api/clanInfo';
 import { useAuth } from '../../hooks/useAuth';
 import {
   MONTHS_RU,
@@ -63,15 +63,25 @@ export function CharacterClanTab() {
 
   const [operations, setOperations] = useState<TreasuryOperationData[]>([]);
   const [members, setMembers] = useState<ClanMemberData[]>([]);
+  // Итоги за всё время приходят отдельным агрегатом (см. totalAllTime): тянуть ради
+  // двух чисел всю историю клана — 15 000+ строк ≈ 3,5 МБ — незачем.
+  const [totals, setTotals] = useState<{ operation_type: string; object_name: string; total: number }[]>([]);
   const [levelHistory, setLevelHistory] = useState<Record<string, Array<{ date: string; old_level: number; new_level: number }>>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Первая загрузка — со спиннером, смена месяца — тихая: старые цифры остаются на
+  // экране, пока не придут новые, иначе вкладка мигает на каждый клик по месяцу.
+  const firstLoad = useRef(true);
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    const silent = !firstLoad.current;
+    firstLoad.current = false;
+    if (!silent) setLoading(true);
     Promise.all([
-      getTreasuryOperations(CLAN_ID),
+      // Только выбранный месяц: вкладка работает по одному месяцу, а история целиком
+      // — это 15 000+ строк ≈ 3,5 МБ.
+      getTreasuryOperations(CLAN_ID, { month: selectedMonth, year: selectedYear }),
       getClanMembers(CLAN_ID),
       getLevelHistory(CLAN_ID),
     ])
@@ -86,8 +96,17 @@ export function CharacterClanTab() {
         setError(err?.response?.data?.error ?? 'Ошибка загрузки данных клана');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; }
+  }, [selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    if (!myNick) return;
+    let cancelled = false;
+    getTreasuryTotals(CLAN_ID, myNick)
+      .then((data) => { if (!cancelled) setTotals(data); })
+      .catch(() => { if (!cancelled) setTotals([]); });
     return () => { cancelled = true; };
-  }, []);
+  }, [myNick]);
 
   const myNickLower = myNick.toLowerCase();
   const myMember = useMemo(() => members.find((m) => m.nick.toLowerCase() === myNickLower), [members, myNickLower]);
@@ -245,21 +264,21 @@ export function CharacterClanTab() {
     return results;
   }, [operations, myNick, myNickLower, selectedMonth, selectedYear]);
 
+  // Сводка за всё время — из агрегата. Группы сумм разбираются теми же правилами,
+  // что и операции: isTaxOperation/isTalentOperation остаются в одном месте, бэкенд
+  // отдаёт только суммы по типу и объекту.
   const totalAllTime = useMemo(() => {
-    if (!myNick) return { tax: 0, resources: 0 };
     let tax = 0;
     let resources = 0;
-    for (const op of operations) {
-      if (op.nick.toLowerCase() !== myNickLower) continue;
-      if (op.quantity <= 0) continue;
-      if (isTaxOperation(op)) {
-        tax += op.quantity;
-      } else if (isTalentOperation(op)) {
-        resources += op.quantity;
+    for (const group of totals) {
+      if (isTaxOperation(group)) {
+        tax += group.total;
+      } else if (isTalentOperation(group)) {
+        resources += group.total;
       }
     }
     return { tax, resources };
-  }, [operations, myNick, myNickLower]);
+  }, [totals]);
 
   const daysToDeadline = useMemo(() => {
     const today = new Date();

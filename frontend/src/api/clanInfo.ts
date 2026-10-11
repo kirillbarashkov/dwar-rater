@@ -28,6 +28,21 @@ export async function updateClanInfo(clanId: number, data: Partial<ClanInfoData>
   return response.data;
 }
 
+/**
+ * Итоги по одному участнику за всё время: суммы, сгруппированные по типу операции и
+ * объекту. Именно группы, а не готовые «налог» и «ресурсы»: список ресурсов талантов
+ * живёт во фронте, и второй его экземпляр на бэкенде разошёлся бы с первым.
+ */
+export async function getTreasuryTotals(
+  clanId: number,
+  nick: string,
+): Promise<{ operation_type: string; object_name: string; total: number }[]> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury/totals`, {
+    params: { nick },
+  });
+  return response.data?.groups ?? [];
+}
+
 export async function getClanMembers(clanId: number): Promise<ClanMemberData[]> {
   const response = await apiClient.get(`/api/clan/${clanId}/members`);
   return response.data;

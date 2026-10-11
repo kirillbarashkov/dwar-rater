@@ -1171,6 +1171,49 @@ def get_treasury_operations(clan_id):
     )
 
 
+@clan_info_bp.route("/api/clan/<int:clan_id>/treasury/totals", methods=["GET"])
+@require_permission("clan_info", "read")
+def get_treasury_totals(clan_id):
+    """Итоги по одному участнику за всё время, сгруппированные по типу и объекту.
+
+    Вкладке персонажа нужна «Сводка за всё время», а ради двух чисел тянуть всю
+    историю клана (15 000+ строк ≈ 3,5 МБ) незачем. Отдаём группы, а не готовые
+    «налог» и «ресурсы»: список ресурсов талантов живёт во фронте, и второй его
+    экземпляр на бэкенде разошёлся бы с первым — в tax_engine.py про это прямо
+    написано. Здесь только суммы, правило остаётся в одном месте.
+    """
+    nick = (request.args.get("nick") or "").strip()
+    if not nick:
+        return jsonify({"error": "nick обязателен"}), 400
+
+    rows = (
+        db.session.query(
+            TreasuryOperation.operation_type,
+            TreasuryOperation.object_name,
+            db.func.sum(TreasuryOperation.quantity).label("total"),
+        )
+        .filter(
+            TreasuryOperation.clan_id == clan_id,
+            db.func.lower(TreasuryOperation.nick) == nick.lower(),
+            TreasuryOperation.quantity > 0,
+        )
+        .group_by(TreasuryOperation.operation_type, TreasuryOperation.object_name)
+    )
+    return jsonify(
+        {
+            "nick": nick,
+            "groups": [
+                {
+                    "operation_type": row.operation_type or "",
+                    "object_name": row.object_name or "",
+                    "total": int(row.total or 0),
+                }
+                for row in rows
+            ],
+        }
+    )
+
+
 @clan_info_bp.route(
     "/api/clan/<int:clan_id>/treasury/<int:operation_id>", methods=["PUT"]
 )
