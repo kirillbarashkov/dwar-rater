@@ -1120,23 +1120,40 @@ def restore_treasury_backup(clan_id):
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury", methods=["GET"])
 @require_permission("clan_info", "read")
 def get_treasury_operations(clan_id):
+    # Период — опционально. Вкладка аналитики работает по месяцу и раньше тянула
+    # всю историю (15 000+ строк ≈ 3,5 МБ), хотя за месяц их 526–2 256. Экранам
+    # импорта, «Казна» и вкладке персонажа нужна вся история, поэтому без
+    # параметров поведение прежнее.
+    month_raw = request.args.get("month")
+    year_raw = request.args.get("year")
+    period = None
+    if month_raw is not None or year_raw is not None:
+        if month_raw is None or year_raw is None:
+            return jsonify({"error": "month и year задаются вместе"}), 400
+        month = _as_int(month_raw, 0)
+        year = _as_int(year_raw, 0)
+        if not (1 <= month <= 12) or year < 2000:
+            return jsonify({"error": "Некорректный месяц/год"}), 400
+        period = (month, year)
+
     # Колонки, а не ORM-объекты: вкладка тянет всю историю (15 000+ строк), и
     # создание инстансов SQLAlchemy — чистая накладная работа. Профиль в
     # _tax_engine_inputs показал на этом 0.2 с из 0.6 с; здесь та же природа.
-    rows = (
-        db.session.query(
-            TreasuryOperation.id,
-            TreasuryOperation.date,
-            TreasuryOperation.nick,
-            TreasuryOperation.operation_type,
-            TreasuryOperation.object_name,
-            TreasuryOperation.quantity,
-            TreasuryOperation.compensation_flag,
-            TreasuryOperation.compensation_comment,
-        )
-        .filter(TreasuryOperation.clan_id == clan_id)
-        .order_by(TreasuryOperation.id.desc())
-    )
+    rows = db.session.query(
+        TreasuryOperation.id,
+        TreasuryOperation.date,
+        TreasuryOperation.nick,
+        TreasuryOperation.operation_type,
+        TreasuryOperation.object_name,
+        TreasuryOperation.quantity,
+        TreasuryOperation.compensation_flag,
+        TreasuryOperation.compensation_comment,
+    ).filter(TreasuryOperation.clan_id == clan_id)
+    if period:
+        # Дата в таблице — текст DD.MM.YYYY HH:MM, поэтому сравнение по шаблону.
+        month, year = period
+        rows = rows.filter(TreasuryOperation.date.like(f"%.{month:02d}.{year} %"))
+    rows = rows.order_by(TreasuryOperation.id.desc())
     return jsonify(
         [
             {

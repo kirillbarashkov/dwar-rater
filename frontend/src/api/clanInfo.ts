@@ -92,8 +92,19 @@ export async function getTreasuryDateCoverage(clanId: number): Promise<DateCover
   return response.data;
 }
 
-export async function getTreasuryOperations(clanId: number): Promise<TreasuryOperationData[]> {
-  const response = await apiClient.get(`/api/clan/${clanId}/treasury`);
+/**
+ * Операции казны. Без периода — вся история: она нужна импорту, «Казне» и вкладке
+ * персонажа (там «Сводка за всё время»). С периодом — только этот месяц, что и
+ * делает вкладка аналитики: вся история это 15 000+ строк ≈ 3,5 МБ, а за месяц
+ * их 526–2 256.
+ */
+export async function getTreasuryOperations(
+  clanId: number,
+  period?: { month: number; year: number },
+): Promise<TreasuryOperationData[]> {
+  const response = await apiClient.get(`/api/clan/${clanId}/treasury`, {
+    params: period ? { month: period.month, year: period.year } : undefined,
+  });
   return response.data;
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getTreasuryOperations, getClanMembers, getTreasuryJournal } from '../../api/clanInfo';
 import type { TreasuryOperationData, ClanMemberData, ReasonCode } from '../../types/clanInfo';
 import { MONTHS_RU } from '../../utils/treasury';
@@ -67,8 +67,11 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
+      // Только выбранный месяц: вся история — это 15 000+ строк и 3,5 МБ, а вкладка
+      // работает по одному месяцу. Импорт, «Казна» и вкладка персонажа зовут этот
+      // же эндпоинт без периода и по-прежнему получают историю целиком.
       const [opsData, membersData] = await Promise.all([
-        getTreasuryOperations(clanId),
+        getTreasuryOperations(clanId, { month: selectedMonth, year: selectedYear }),
         getClanMembers(clanId).catch(() => []),
       ]);
       setOperations(opsData);
@@ -79,10 +82,14 @@ export function TreasuryAnalytics({ clanId }: TreasuryAnalyticsProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [clanId]);
+  }, [clanId, selectedMonth, selectedYear]);
 
+  // Первая загрузка — со спиннером, смена месяца — тихая: старые цифры остаются на
+  // экране, пока не придут новые. Иначе вкладка мигает на каждый клик по месяцу.
+  const firstLoad = useRef(true);
   useEffect(() => {
-    loadData();
+    loadData(!firstLoad.current);
+    firstLoad.current = false;
   }, [loadData]);
 
   // Reason codes come from the API (one source of truth for the dropdowns).
