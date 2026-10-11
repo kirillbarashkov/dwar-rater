@@ -1,5 +1,5 @@
-# v2.21.0
+# v2.22.0
 
 ## Прочее
-- perf(treasury): gzip в nginx и отказ от ORM-обёрток в горячем пути казны [bump:minor]
+- perf(treasury): вкладка аналитики грузит только выбранный месяц [bump:minor]
 
