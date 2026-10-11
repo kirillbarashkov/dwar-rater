@@ -132,13 +132,15 @@ export function Sidebar({
     if (children && children.length > 0) {
       const willExpand = expandedGroup !== groupKey;
       setManualGroup(willExpand ? groupKey : '');
-      if (willExpand && groupKey === 'clan' && !isClanPage) {
-        navigate('/clan/2315');
-      } else if (willExpand && groupKey === TREASURY_GROUP_KEY && !isClanPage) {
-        // Содержимое «Казначейства» рендерится раскладкой клановой страницы, а её
-        // состояние вкладки живёт в самом компоненте: без перехода клик с
-        // «Персонажа», «Анализа» или «Трека» оставлял пустой экран. Вкладку несём
-        // в URL — иначе при перемонтировании она сбросится на «Клан».
+      if (willExpand && groupKey === 'clan') {
+        // Переход обязателен ВСЕГДА, а не только с чужой страницы: подсветка
+        // сайдбара выводится из адреса, поэтому без navigate адрес не менялся и
+        // фокус оставался на прежнем разделе («Клан» ↔ «Казначейство»).
+        navigate(`/clan/2315?tab=${children[0]?.key || 'info'}`);
+      } else if (willExpand && groupKey === TREASURY_GROUP_KEY) {
+        // Содержимое «Казначейства» рендерит раскладка клановой страницы, а её
+        // вкладка живёт в адресе. Раньше переход был только с чужой страницы —
+        // из-за этого баг воспроизводился лишь при «Клан → Казначейство».
         navigate(`/clan/2315?tab=${children[0]?.key || 'treasury'}`);
       } else if (willExpand && groupKey === 'character' && !isCharacterPage) {
         navigate('/character');
@@ -160,7 +162,9 @@ export function Sidebar({
     // Пункт раздела может жить на другой странице. Без перехода клик менял только
     // состояние: на чужой странице либо ничего не происходило, либо оставался
     // пустой экран (как с «Казначейством» и «Треком улучшений»).
-    if ((groupKey === 'clan' || groupKey === TREASURY_GROUP_KEY) && !isClanPage) {
+    if (groupKey === 'clan' || groupKey === TREASURY_GROUP_KEY) {
+      // Всегда, даже находясь на клановой странице: иначе адрес не меняется и
+      // подсветка раздела остаётся на прежнем пункте.
       navigate(`/clan/2315?tab=${tabKey}`);
     } else if (groupKey === 'character' && !isCharacterPage) {
       navigate('/character');
