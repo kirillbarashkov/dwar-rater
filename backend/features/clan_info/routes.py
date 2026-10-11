@@ -797,6 +797,22 @@ def import_clan_members(clan_id):
             failed += 1
             data_logger.error(f"[IMPORT] Error on member {i + 1}: {str(e)}")
 
+    # Аудит импорта (TD-6): без записи в audit_log нельзя понять, какой импорт занёс
+    # мусор в состав. _audit только готовит запись — пишет её следующий commit().
+    _audit(
+        "clan_members_import",
+        target_type="clan_members",
+        target_id=clan_id,
+        clan_id=clan_id,
+        new={
+            "incoming": len(members_data),
+            "overwrite": bool(overwrite),
+            "success": success,
+            "skipped": skipped,
+            "failed": failed,
+        },
+    )
+
     db.session.commit()
 
     final_count = ClanMemberInfo.query.filter_by(

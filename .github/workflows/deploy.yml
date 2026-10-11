@@ -218,7 +218,21 @@ jobs:
             # "no space left on device" — which used to be invisible because the
             # SSH action did not stop on error. Cap it before every build.
             docker builder prune -f --keep-storage 3GB >/dev/null 2>&1 || true
-            docker compose -f docker-compose.prod.yml up -d --build
+            # Docker Hub иногда отдаёт транзиентный TLS handshake timeout на
+            # library/node — без повтора это роняет весь деплой (TD-3).
+            deploy_ok=0
+            for attempt in 1 2 3; do
+              if docker compose -f docker-compose.prod.yml up -d --build; then
+                deploy_ok=1
+                break
+              fi
+              echo "Попытка $attempt не удалась, повтор через 15с..."
+              sleep 15
+            done
+            if [ "$deploy_ok" != "1" ]; then
+              echo "Деплой не удался после 3 попыток"
+              exit 1
+            fi
             docker image prune -f
 
       - name: Wait for health check (via SSH inside VM)

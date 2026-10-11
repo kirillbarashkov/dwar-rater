@@ -10,11 +10,25 @@
 #   make status       — Show container and database status
 #   make logs         — Show backend logs
 #   make restore      — Restore from latest backup
+#   make fe           — Rebuild only the frontend container
+#   make be           — Rebuild only the backend container
 
-.PHONY: start stop restart backup migrate destroy status logs restore
+.PHONY: start stop restart backup migrate destroy status logs restore fe be
 
 start:
 	docker compose up -d
+
+# Пересборка ТОЛЬКО изменённого сервиса (TD-4): полная сборка backend+frontend ~13
+# минут, а правится обычно один — гонять оба незачем.
+fe:
+	@echo "Rebuilding frontend only..."
+	docker compose build frontend && docker compose up -d frontend
+	@echo "Frontend rebuilt. Hard-refresh the browser (Ctrl+F5)."
+
+be:
+	@echo "Rebuilding backend only..."
+	docker compose build backend && docker compose up -d backend
+	@echo "Backend rebuilt."
 
 stop:
 	docker compose stop
