@@ -11,11 +11,16 @@ import './SnapshotHistory.css';
 
 interface SnapshotHistoryProps {
   onLoad: (snapshot: Snapshot & Record<string, unknown>) => void;
+  /**
+   * Предзаполнить поиск по нику. Нужно экрану ошибки анализа: если персонаж закрыт
+   * и с сайта данных нет, показываем его слепки — снятые, пока он был открыт.
+   */
+  initialNick?: string;
 }
 
-export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
+export function SnapshotHistory({ onLoad, initialNick = '' }: SnapshotHistoryProps) {
   const isAdmin = usePermission('snapshots', 'delete') === 'full';
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialNick);
   const [page, setPage] = useState(1);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -29,7 +34,7 @@ export function SnapshotHistory({ onLoad }: SnapshotHistoryProps) {
 
   useEffect(() => {
     if (!hasFetched) {
-      loadSnapshots(1, '');
+      loadSnapshots(1, initialNick);
     }
   }, []);
 

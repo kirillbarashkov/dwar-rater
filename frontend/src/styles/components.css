@@ -101,6 +101,18 @@
   font-size: 0.95rem;
 }
 
+/* Ошибка анализа с предложением слепков (персонаж закрыт). Отдельный блок под
+   баннером: баннер — flex-строка, внутри список встал бы сбоку от сообщения. */
+.error-snapshots {
+  margin-bottom: 28px;
+}
+
+.error-snapshots-note {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin: 0 0 12px;
+}
+
 .current-actions {
   display: flex;
   gap: 16px;

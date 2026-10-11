@@ -114,11 +114,19 @@ function HomePage() {
   const [snapshotName, setSnapshotName] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
   // Вкладка может прийти в URL: клик по «Треку улучшений» в боковом меню ведёт сюда
-  // переходом, а состояние при монтировании сбрасывалось на «Анализ персонажа»
-  // (значение по умолчанию). Приём тот же, что в AdminPage и ClanPageWrapper.
+  // переходом. Читаем её при инициализации — ДО эффектов. Это существенно: у эффекта
+  // ниже есть ранний выход на отложенный анализ, а после анализа вкладка выставляется
+  // в 'stats' («Анализ персонажа»). С уже установленным 'track' код проекта трек
+  // сохраняет (prev === 'track' ? 'track' : 'stats'), поэтому инициализация решает.
   const requestedTab = new URLSearchParams(window.location.search).get('tab') ?? '';
   const [activeTab, setActiveTab] = useState(requestedTab || 'stats');
   const [pendingAnalyzeUrl, setPendingAnalyzeUrl] = useState<string | null>(null);
+  // Последний запрошенный адрес: нужен, чтобы при ошибке анализа (персонаж закрыт)
+  // предложить слепки именно этого персонажа.
+  const [lastAnalyzedUrl, setLastAnalyzedUrl] = useState('');
+  // Ник из последнего адреса (/user_info.php?nick=…) — по нему ищем слепки.
+  const snapshotNickMatch = lastAnalyzedUrl.match(/nick=([^&\s]+)/i);
+  const snapshotNick = snapshotNickMatch ? decodeURIComponent(snapshotNickMatch[1]) : '';
   const analyzeTriggered = useRef(false);
   const sessionChecked = useRef(false);
 
@@ -145,7 +153,9 @@ function HomePage() {
     const tabParam = params.get('tab');
     if (tabParam) {
       setActiveTab(tabParam);
-      params.delete('tab');
+      // Вкладку применяем, но из адреса НЕ удаляем: иначе F5 вернёт пользователя на
+      // «Анализ персонажа». Параметр `analyze` выше удаляется намеренно — он
+      // одноразовый, а вкладка это состояние экрана, и ей место в URL.
       window.history.replaceState({}, '', params.toString() ? `/?${params.toString()}` : '/');
     }
   }, []);
@@ -155,6 +165,7 @@ function HomePage() {
     
     const urlToAnalyze = pendingAnalyzeUrl;
     setPendingAnalyzeUrl(null);
+    setLastAnalyzedUrl(urlToAnalyze);
     analyze(decodeURIComponent(urlToAnalyze));
   }, [pendingAnalyzeUrl, isLoading, result, error, analyze]);
 
@@ -242,7 +253,7 @@ function HomePage() {
             <CharacterPanel
               character={currentResult || undefined}
               lastAnalyzed={lastAnalyzed}
-              onAnalyze={(url) => analyze(url)}
+              onAnalyze={(url) => { setLastAnalyzedUrl(url); analyze(url); }}
               isLoading={isLoading}
               onSave={() => {
                 const defaultName = currentResult?.name || 'Персонаж';
@@ -262,6 +273,20 @@ function HomePage() {
             <div className="error-banner">
               <p>{error}</p>
               <Button variant="ghost" onClick={() => { setCurrentResult(null); setLastAnalyzed(null); }}>Закрыть</Button>
+            </div>
+          )}
+          {/* Персонаж может быть закрыт: с сайта данные не приходят, но слепки, снятые
+              пока он был открыт, в базе остаются. Показываем их — иначе пользователю
+              неоткуда взять информацию. Если слепков нет, компонент скажет об этом прямо.
+              Блок отдельный, а не внутри баннера: баннер — flex-строка, и список встал бы
+              сбоку от сообщения. */}
+          {error && snapshotNick && (
+            <div className="error-snapshots">
+              <p className="error-snapshots-note">
+                Данные с сайта получить не удалось. Ниже — слепки персонажа
+                «{snapshotNick}» из базы: если он раньше был открыт, выберите нужный.
+              </p>
+              <SnapshotHistory onLoad={handleLoadSnapshot} initialNick={snapshotNick} />
             </div>
           )}
 
