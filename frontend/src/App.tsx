@@ -113,7 +113,11 @@ function HomePage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [snapshotName, setSnapshotName] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('stats');
+  // Вкладка может прийти в URL: клик по «Треку улучшений» в боковом меню ведёт сюда
+  // переходом, а состояние при монтировании сбрасывалось на «Анализ персонажа»
+  // (значение по умолчанию). Приём тот же, что в AdminPage и ClanPageWrapper.
+  const requestedTab = new URLSearchParams(window.location.search).get('tab') ?? '';
+  const [activeTab, setActiveTab] = useState(requestedTab || 'stats');
   const [pendingAnalyzeUrl, setPendingAnalyzeUrl] = useState<string | null>(null);
   const analyzeTriggered = useRef(false);
   const sessionChecked = useRef(false);

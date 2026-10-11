@@ -91,6 +91,9 @@ export function Sidebar({
   const isClanPage = location.pathname.startsWith('/clan');
   const isCharacterPage = location.pathname.startsWith('/character');
   const isAnalyzePage = location.pathname.startsWith('/analyze');
+  // Главная страница несёт «Анализ персонажа» и «Трек улучшений»: без этого флага
+  // клик по пункту «Трека» с клановой страницы не делал перехода.
+  const isHomePage = location.pathname === '/';
 
   const handleGroupClick = (groupKey: string, children?: TabItem[], disabled = false) => {
     if (disabled) return;
@@ -122,6 +125,16 @@ export function Sidebar({
 
   const handleTabClick = (groupKey: string, tabKey: string) => {
     setExpandedGroup(groupKey);
+    // Пункт раздела может жить на другой странице. Без перехода клик менял только
+    // состояние: на чужой странице либо ничего не происходило, либо оставался
+    // пустой экран (как с «Казначейством» и «Треком улучшений»).
+    if ((groupKey === 'clan' || groupKey === TREASURY_GROUP_KEY) && !isClanPage) {
+      navigate(`/clan/2315?tab=${tabKey}`);
+    } else if (groupKey === 'character' && !isCharacterPage) {
+      navigate('/character');
+    } else if (groupKey === 'track' && !isHomePage) {
+      navigate(`/?tab=${tabKey}`);
+    }
     onTabChange?.(groupKey, tabKey);
   };
 
