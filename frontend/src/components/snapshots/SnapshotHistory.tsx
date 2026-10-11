@@ -16,9 +16,14 @@ interface SnapshotHistoryProps {
    * и с сайта данных нет, показываем его слепки — снятые, пока он был открыт.
    */
   initialNick?: string;
+  /**
+   * Встроенный режим: без «Управления кэшем» и массовых удалений. Нужен там, где
+   * история показывается рядом с персонажем, а не отдельной страницей «История слепков».
+   */
+  compact?: boolean;
 }
 
-export function SnapshotHistory({ onLoad, initialNick = '' }: SnapshotHistoryProps) {
+export function SnapshotHistory({ onLoad, initialNick = '', compact = false }: SnapshotHistoryProps) {
   const isAdmin = usePermission('snapshots', 'delete') === 'full';
   const [search, setSearch] = useState(initialNick);
   const [page, setPage] = useState(1);
@@ -196,7 +201,7 @@ export function SnapshotHistory({ onLoad, initialNick = '' }: SnapshotHistoryPro
 
   return (
     <div className="snapshot-history">
-      {isAdmin && (
+      {isAdmin && !compact && (
         <div className="sh-section">
           <h3 className="sh-section-title">Управление кэшем</h3>
           <div className="sh-section-description">
@@ -236,7 +241,7 @@ export function SnapshotHistory({ onLoad, initialNick = '' }: SnapshotHistoryPro
         </div>
       )}
 
-      <div className="sh-divider" />
+      {!compact && <div className="sh-divider" />}
 
       <div className="sh-section">
         <h3 className="sh-section-title">История слепков</h3>
@@ -258,22 +263,24 @@ export function SnapshotHistory({ onLoad, initialNick = '' }: SnapshotHistoryPro
             />
             <button type="submit" className="btn btn-secondary btn-sm">Найти</button>
           </form>
-          <div className="sh-actions">
-            <label className="sh-select-all-label">
-              <input
-                type="checkbox"
-                checked={selectedIds.size === snapshots.length && snapshots.length > 0}
-                onChange={handleSelectAll}
-              />
-              Выбрать все
-            </label>
-            <Button variant="ghost" size="small" onClick={handleGroupDeleteClick} disabled={selectedIds.size === 0}>
-              Удалить выбранные ({selectedIds.size})
-            </Button>
-            <Button variant="danger" size="small" onClick={() => setDeleteId(-1)}>
-              Удалить все
-            </Button>
-          </div>
+          {!compact && (
+            <div className="sh-actions">
+              <label className="sh-select-all-label">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === snapshots.length && snapshots.length > 0}
+                  onChange={handleSelectAll}
+                />
+                Выбрать все
+              </label>
+              <Button variant="ghost" size="small" onClick={handleGroupDeleteClick} disabled={selectedIds.size === 0}>
+                Удалить выбранные ({selectedIds.size})
+              </Button>
+              <Button variant="danger" size="small" onClick={() => setDeleteId(-1)}>
+                Удалить все
+              </Button>
+            </div>
+          )}
         </div>
 
         {isLoading && <LoadingSpinner />}

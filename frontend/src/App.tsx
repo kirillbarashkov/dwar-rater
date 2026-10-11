@@ -291,7 +291,7 @@ function HomePage() {
                 Ниже — слепки персонажа «{snapshotNick}» из базы: если он раньше был
                 открыт, выберите нужный.
               </p>
-              <SnapshotHistory onLoad={handleLoadSnapshot} initialNick={snapshotNick} />
+              <SnapshotHistory onLoad={handleLoadSnapshot} initialNick={snapshotNick} compact />
             </div>
           )}
 

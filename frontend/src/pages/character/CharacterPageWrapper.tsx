@@ -109,10 +109,33 @@ export function CharacterPageWrapper() {
     }
   };
 
+  // Слепки — только на «Информации» и НИЖЕ карточки персонажа: на «Боевом» и
+  // «Клановом» блока быть не должно, а сверху он отодвигал персонажа вниз.
+  // compact — без «Управления кэшем» и массовых удалений: это страница персонажа,
+  // а не админский раздел «История слепков».
+  const snapshotsBlock = !loading && error !== 'character_url_not_set' &&
+    (error || character?.profile_closed) && boundNick ? (
+    <div className="error-snapshots">
+      <p className="error-snapshots-note">
+        {character?.profile_closed
+          ? 'Персонаж закрыт: с сайта доступна только основная информация.'
+          : 'Данные с сайта получить не удалось.'}{' '}
+        Ниже — слепки персонажа «{boundNick}» из базы: если он раньше был открыт,
+        выберите нужный.
+      </p>
+      <SnapshotHistory onLoad={handleLoadSnapshot} initialNick={boundNick} compact />
+    </div>
+  ) : null;
+
   const renderContent = () => {
     if (activeGroup === 'character') {
       switch (activeTab) {
-        case 'info': return <CharacterInfoTab character={character} fetchedAt={fetchedAt} onRefresh={handleRefresh} refreshing={refreshing} />;
+        case 'info': return (
+          <>
+            <CharacterInfoTab character={character} fetchedAt={fetchedAt} onRefresh={handleRefresh} refreshing={refreshing} />
+            {snapshotsBlock}
+          </>
+        );
         case 'combat': return <CharacterCombatTab character={character} />;
         case 'clan': return <CharacterClanTab />;
       }
@@ -170,25 +193,6 @@ export function CharacterPageWrapper() {
                 <Button variant="ghost" onClick={handleRefresh} disabled={refreshing}>
                   {refreshing ? 'Обновление...' : 'Повторить'}
                 </Button>
-              </div>
-            )}
-
-            {/* Персонаж закрыт или недоступен: полных данных с сайта нет, но слепки,
-                снятые пока он был открыт, в базе остаются. Показываем их — иначе
-                информацию о своём персонаже взять неоткуда. Если слепков нет,
-                компонент скажет об этом прямо.
-                Важно: закрытый профиль — НЕ ошибка, бэкенд отдаёт урезанный
-                результат с profile_closed, поэтому проверяем и его. */}
-            {!loading && error !== 'character_url_not_set' && (error || character?.profile_closed) && boundNick && (
-              <div className="error-snapshots">
-                <p className="error-snapshots-note">
-                  {character?.profile_closed
-                    ? 'Персонаж закрыт: с сайта доступна только основная информация.'
-                    : 'Данные с сайта получить не удалось.'}{' '}
-                  Ниже — слепки персонажа «{boundNick}» из базы: если он раньше был
-                  открыт, выберите нужный.
-                </p>
-                <SnapshotHistory onLoad={handleLoadSnapshot} initialNick={boundNick} />
               </div>
             )}
 
