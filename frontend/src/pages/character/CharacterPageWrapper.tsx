@@ -10,6 +10,7 @@ import { CharacterCombatTab } from '../../components/character/CharacterCombatTa
 import { CharacterClanTab } from '../../components/character/CharacterClanTab';
 import { useAuth } from '../../hooks/useAuth';
 import { getMyCharacter, refreshMyCharacter } from '../../api/character';
+import { SnapshotHistory } from '../../components/snapshots/SnapshotHistory';
 import { showToast } from '../../components/ui/Toast';
 import type { AnalysisResult } from '../../types/character';
 import './CharacterPageWrapper.css';
@@ -20,7 +21,11 @@ export function CharacterPageWrapper() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [chatOpen, setChatOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('info');
+  // Вкладка приходит в адресе: после логина пользователь попадает на «Персонаж →
+  // Информация», и F5 не должен сбрасывать выбранную вкладку.
+  const [activeTab, setActiveTab] = useState(
+    () => new URLSearchParams(window.location.search).get('tab') || 'info'
+  );
   const [activeGroup, setActiveGroup] = useState('character');
 
   const [character, setCharacter] = useState<AnalysisResult | null>(null);
@@ -31,6 +36,18 @@ export function CharacterPageWrapper() {
   const [isCacheStale, setIsCacheStale] = useState(false);
 
   const hasBinding = !!user?.character_url;
+  // Ник привязанного персонажа: по нему ищем слепки, если персонаж закрыт и с
+  // сайта данные не приходят.
+  const boundNickMatch = (user?.character_url ?? '').match(/nick=([^&\s]+)/i);
+  const boundNick = boundNickMatch ? decodeURIComponent(boundNickMatch[1]) : '';
+
+  // Загрузка слепка: показываем его вместо недоступного персонажа.
+  const handleLoadSnapshot = useCallback((data: unknown) => {
+    setCharacter(data as AnalysisResult);
+    setFetchedAt(new Date());
+    setError(null);
+    showToast('Слепок загружен', 'success');
+  }, []);
 
   useEffect(() => {
     if (!hasBinding) {
@@ -86,6 +103,10 @@ export function CharacterPageWrapper() {
   const handleTabChange = (groupKey: string, tabKey: string) => {
     setActiveGroup(groupKey);
     setActiveTab(tabKey);
+    // Вкладка — производная адреса: иначе F5 и кнопка «назад» теряли её.
+    if (groupKey === 'character') {
+      navigate(`/character?tab=${tabKey}`, { replace: true });
+    }
   };
 
   const renderContent = () => {
@@ -149,6 +170,20 @@ export function CharacterPageWrapper() {
                 <Button variant="ghost" onClick={handleRefresh} disabled={refreshing}>
                   {refreshing ? 'Обновление...' : 'Повторить'}
                 </Button>
+              </div>
+            )}
+
+            {/* Персонаж может быть закрыт: с сайта данные не приходят, но слепки,
+                снятые пока он был открыт, в базе остаются. Показываем их — иначе
+                информацию о своём персонаже взять неоткуда. Если слепков нет,
+                компонент скажет об этом прямо. */}
+            {!loading && error && error !== 'character_url_not_set' && boundNick && (
+              <div className="error-snapshots">
+                <p className="error-snapshots-note">
+                  Данные с сайта получить не удалось. Ниже — слепки персонажа
+                  «{boundNick}» из базы: если он раньше был открыт, выберите нужный.
+                </p>
+                <SnapshotHistory onLoad={handleLoadSnapshot} initialNick={boundNick} />
               </div>
             )}
 

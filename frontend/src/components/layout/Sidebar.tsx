@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { usePermission } from '../../hooks/useAuth';
+import { useAuth, usePermission } from '../../hooks/useAuth';
 import { TREASURY_TABS } from '../../utils/constants';
 import './Sidebar.css';
 
@@ -81,25 +81,57 @@ export function Sidebar({
   // tab — greyed out with an explanation — so the feature is discoverable and the
   // reason for its absence is obvious rather than mysterious.
   const canTreasury = usePermission('treasury', 'read') === 'full';
+  // Ворота привязки (решение пользователя): пока персонаж не привязан, остальные
+  // фичи недоступны — пользователь остаётся на «Персонаж → Информация» и
+  // привязывает персонажа. Чат не блокируем: он не про персонажа.
+  const { user } = useAuth();
+  const noBinding = !user?.character_url;
   const isGroupDisabled = (group: TabGroup) =>
-    group.key === TREASURY_GROUP_KEY && !canTreasury;
-  const [expandedGroup, setExpandedGroup] = useState<string>(() =>
-    location.pathname.startsWith('/clan') ? 'clan'
-    : location.pathname.startsWith('/character') ? 'character'
-    : 'analysis'
-  );
+    (group.key === TREASURY_GROUP_KEY && !canTreasury) ||
+    (noBinding && group.key !== 'character' && group.key !== 'chat');
+  // Раскрытие и подсветка выводятся из АДРЕСА, а не из локального состояния.
+  // Раньше клик по разделу, содержимое которого рендерит другая страница, применял
+  // состояние к уходящему экземпляру сайдбара (у каждой страницы своя раскладка),
+  // а смонтированный заново инициализировался из пути: «Казначейство» на
+  // /clan/2315 подсвечивало ещё и «Клан».
+  const urlTab = new URLSearchParams(location.search).get('tab') || '';
+  const groupForTab = (tab: string): string => {
+    if (!tab) return '';
+    if (TREASURY_TABS.includes(tab)) return TREASURY_GROUP_KEY;
+    if (['track', 'compare', 'compare-list'].includes(tab)) return 'track';
+    if (['stats', 'equipment', 'effects', 'medals', 'records', 'other', 'closed', 'history', 'export'].includes(tab)) return 'analysis';
+    // Ключи 'info'/'clan' есть и у клана, и у персонажа — различаем по пути.
+    if (location.pathname.startsWith('/character')) return 'character';
+    if (location.pathname.startsWith('/clan')) return 'clan';
+    return '';
+  };
+  // Ручное раскрытие/сворачивание пользователем. Значение по умолчанию — из адреса,
+  // поэтому подсветка и раскрытие не расходятся между экземплярами сайдбара (у каждой
+  // страницы своя раскладка). В эффекте это держать нельзя: setState в эффекте даёт
+  // каскадные перерисовки (правило react-hooks), а при перемонтировании состояние
+  // всё равно сбрасывалось — отсюда и бралась двойная подсветка.
+  const [manualGroup, setManualGroup] = useState<string | null>(null);
+  const expandedGroup = manualGroup ??
+    (groupForTab(urlTab) ||
+     (location.pathname.startsWith('/clan') ? 'clan'
+     : location.pathname.startsWith('/character') ? 'character'
+     : 'analysis'));
   const isClanPage = location.pathname.startsWith('/clan');
   const isCharacterPage = location.pathname.startsWith('/character');
-  const isAnalyzePage = location.pathname.startsWith('/analyze');
   // Главная страница несёт «Анализ персонажа» и «Трек улучшений»: без этого флага
   // клик по пункту «Трека» с клановой страницы не делал перехода.
   const isHomePage = location.pathname === '/';
+  // Активная группа — тоже производная адреса: она решает и подсветку раздела,
+  // и подсветку подпункта (иначе 'info' подсвечивался сразу в двух группах).
+  const activeGroupKey =
+    groupForTab(urlTab) ||
+    (isClanPage ? 'clan' : isCharacterPage ? 'character' : isHomePage ? 'analysis' : '');
 
   const handleGroupClick = (groupKey: string, children?: TabItem[], disabled = false) => {
     if (disabled) return;
     if (children && children.length > 0) {
       const willExpand = expandedGroup !== groupKey;
-      setExpandedGroup(willExpand ? groupKey : '');
+      setManualGroup(willExpand ? groupKey : '');
       if (willExpand && groupKey === 'clan' && !isClanPage) {
         navigate('/clan/2315');
       } else if (willExpand && groupKey === TREASURY_GROUP_KEY && !isClanPage) {
@@ -124,7 +156,7 @@ export function Sidebar({
   };
 
   const handleTabClick = (groupKey: string, tabKey: string) => {
-    setExpandedGroup(groupKey);
+    setManualGroup(groupKey);
     // Пункт раздела может жить на другой странице. Без перехода клик менял только
     // состояние: на чужой странице либо ничего не происходило, либо оставался
     // пустой экран (как с «Казначейством» и «Треком улучшений»).
@@ -145,20 +177,17 @@ export function Sidebar({
           <span className="sidebar-section-title">Навигация</span>
           {tabGroups.map((group) => {
             const groupDisabled = isGroupDisabled(group);
-            // On the clan page the treasury is its own section: highlight it (and
-            // not «Клан») while one of its tabs is open.
-            const inTreasurySection =
-              isClanPage && Boolean(activeTab) && TREASURY_TABS.includes(activeTab as string);
-            const isActive = (isClanPage && group.key === 'clan' && !inTreasurySection) ||
-                            (isClanPage && group.key === TREASURY_GROUP_KEY && inTreasurySection) ||
-                            (isCharacterPage && group.key === 'character') ||
-                            (group.key === 'analysis' && isAnalyzePage) ||
+            const isActive = group.key === activeGroupKey ||
                             (group.key === 'chat' && chatOpen);
-            const hint = groupDisabled ? 'Доступно админу и казначею' : undefined;
+            const hint = groupDisabled
+              ? (noBinding && group.key !== TREASURY_GROUP_KEY
+                  ? 'Привяжите персонажа, чтобы открыть раздел'
+                  : 'Доступно админу и казначею')
+              : undefined;
             return (
               <div key={group.key}>
                 <button
-                  className={`sidebar-item ${isActive || expandedGroup === group.key ? 'active' : ''} ${groupDisabled ? 'sidebar-item-disabled' : ''}`}
+                  className={`sidebar-item ${isActive ? 'active' : ''} ${groupDisabled ? 'sidebar-item-disabled' : ''}`}
                   onClick={() => handleGroupClick(group.key, group.children, groupDisabled)}
                   disabled={groupDisabled}
                   title={hint}
@@ -172,7 +201,7 @@ export function Sidebar({
                     {group.children.map((tab) => (
                       <button
                         key={tab.key}
-                        className={`sidebar-item ${activeTab === tab.key ? 'active' : ''} ${groupDisabled ? 'sidebar-item-disabled' : ''}`}
+                        className={`sidebar-item ${activeTab === tab.key && group.key === activeGroupKey ? 'active' : ''} ${groupDisabled ? 'sidebar-item-disabled' : ''}`}
                         onClick={() => handleTabClick(group.key, tab.key)}
                         disabled={groupDisabled}
                         title={hint}

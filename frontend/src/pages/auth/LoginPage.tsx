@@ -32,7 +32,7 @@ export function LoginPage() {
         setChangePasswordUsername(username);
         setMustChangePassword(true);
       } else {
-        navigate('/', { replace: true });
+        navigate('/character?tab=info', { replace: true });
       }
     } catch {
       setError('Неверный логин или пароль');
@@ -47,7 +47,7 @@ export function LoginPage() {
     setLoading(true);
     try {
       await login2fa(userId2fa, code2fa);
-      navigate('/', { replace: true });
+      navigate('/character?tab=info', { replace: true });
     } catch {
       setError('Неверный код');
     } finally {
@@ -69,7 +69,7 @@ export function LoginPage() {
     setLoading(true);
     try {
       await changePassword(newPassword);
-      navigate('/', { replace: true });
+      navigate('/character?tab=info', { replace: true });
     } catch {
       setError('Ошибка смены пароля');
     } finally {
