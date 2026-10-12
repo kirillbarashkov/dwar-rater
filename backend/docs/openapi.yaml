@@ -2558,6 +2558,774 @@ paths:
                   snapshot_id:
                     type: integer
 
+  /api/admin/audit:
+    get:
+      summary: Журнал аудита
+      tags:
+        - Admin
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/audit/filters:
+    get:
+      summary: Справочники для фильтров аудита
+      tags:
+        - Admin
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/backups:
+    get:
+      summary: Список резервных копий
+      tags:
+        - Admin
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+    post:
+      summary: Создать резервную копию
+      tags:
+        - Admin
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/backups/{filename}:
+    delete:
+      summary: Удалить резервную копию
+      tags:
+        - Admin
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/backups/{filename}/download:
+    get:
+      summary: Скачать резервную копию
+      tags:
+        - Admin
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/backups/{filename}/restore:
+    post:
+      summary: Восстановить базу из резервной копии
+      tags:
+        - Admin
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/features:
+    get:
+      summary: Матрица доступа по фичам
+      tags:
+        - Admin
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/permissions:
+    get:
+      summary: Список прав
+      tags:
+        - Admin
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/permissions/deprecated:
+    delete:
+      summary: Удалить устаревшие записи прав
+      tags:
+        - Admin
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/permissions/role/{role_id}:
+    put:
+      summary: Обновить права роли
+      tags:
+        - Admin
+      parameters:
+        - name: role_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/permissions/user/{user_id}:
+    get:
+      summary: Права пользователя
+      tags:
+        - Admin
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+    put:
+      summary: Обновить права пользователя
+      tags:
+        - Admin
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/users:
+    get:
+      summary: Список пользователей
+      tags:
+        - Admin
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+    post:
+      summary: Создать пользователя
+      tags:
+        - Admin
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/users/sync:
+    post:
+      summary: Синхронизировать пользователей с ролями
+      tags:
+        - Admin
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/users/{user_id}:
+    delete:
+      summary: Удалить пользователя
+      tags:
+        - Admin
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+    put:
+      summary: Обновить пользователя
+      tags:
+        - Admin
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/users/{user_id}/character:
+    delete:
+      summary: Снять привязку персонажа с пользователя
+      tags:
+        - Admin
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/users/{user_id}/sessions:
+    get:
+      summary: Сессии пользователя
+      tags:
+        - Admin
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/users/{user_id}/sessions/others:
+    delete:
+      summary: Завершить все прочие сессии пользователя
+      tags:
+        - Admin
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/admin/users/{user_id}/sessions/{session_id}:
+    delete:
+      summary: Завершить сессию пользователя
+      tags:
+        - Admin
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/2fa/disable:
+    post:
+      summary: Отключить 2FA
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/2fa/setup:
+    post:
+      summary: Начать настройку 2FA
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/2fa/verify:
+    post:
+      summary: Подтвердить код 2FA
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/change-password:
+    post:
+      summary: Сменить пароль
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/login:
+    post:
+      summary: Вход в систему
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/login/2fa:
+    post:
+      summary: Вход с кодом двухфакторной аутентификации
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/logout:
+    post:
+      summary: Выход из системы
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/me:
+    get:
+      summary: Текущий пользователь
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/me/character:
+    get:
+      summary: Персонаж текущего пользователя
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/me/character/refresh:
+    post:
+      summary: Обновить данные своего персонажа
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/profile:
+    put:
+      summary: Обновить свой профиль
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/sessions:
+    get:
+      summary: Свои активные сессии
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/auth/sessions/{session_id}:
+    delete:
+      summary: Завершить свою сессию
+      tags:
+        - Auth
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/level-events:
+    get:
+      summary: События изменения уровня клана
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/level-events/import-stream:
+    get:
+      summary: Поток импорта событий уровня
+      description: |
+        Отдаёт события по мере разбора. Ответ — не JSON, а поток
+        (text/event-stream): тело ответа в Swagger не показано намеренно.
+        Ошибки разбора приходят сообщениями внутри потока, а не HTTP-кодом.
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/level-events/save:
+    post:
+      summary: Сохранить события изменения уровня
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/level-history:
+    get:
+      summary: История уровней клана
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/members/auto-fetch-stream:
+    get:
+      summary: Поток авто-получения состава
+      description: |
+        Отдаёт прогресс по мере обхода страниц состава. Ответ — не JSON, а поток
+        (text/event-stream): тело ответа в Swagger не показано намеренно.
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/members/diff-import:
+    post:
+      summary: Импорт состава по разнице
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/members/events:
+    get:
+      summary: События состава клана (вход и выход)
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/members/history-import:
+    post:
+      summary: Импорт истории состава
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/auto-fetch:
+    post:
+      summary: Авто-получение операций казны
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/auto-fetch-json:
+    post:
+      summary: Авто-получение операций казны (JSON)
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/auto-fetch-stream:
+    get:
+      summary: Поток авто-получения операций казны
+      description: |
+        Отдаёт прогресс по мере обхода страниц казны. Ответ — не JSON, а поток
+        (text/event-stream): тело ответа в Swagger не показано намеренно.
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/cookies/save:
+    post:
+      summary: Сохранить cookies для доступа к казне
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/cookies/status:
+    get:
+      summary: Статус cookies для доступа к казне
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/date-coverage:
+    get:
+      summary: Покрытие операций казны по датам
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/estimate:
+    post:
+      summary: Оценка взносов участников
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/totals:
+    get:
+      summary: Итоги по участнику казны за всё время
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/export/character:
+    post:
+      summary: Экспорт данных персонажа
+      tags:
+        - Export
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/version:
+    get:
+      summary: Версия приложения
+      tags:
+        - Version
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
 components:
   securitySchemes:
     BasicAuth:

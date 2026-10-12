@@ -6,6 +6,7 @@ import { PermissionMatrix } from './PermissionMatrix';
 import { AuditLogTable } from './AuditLogTable';
 import { FeatureMatrix } from './FeatureMatrix';
 import { BackupManager } from './BackupManager';
+import { ApiDocsTab } from '../../components/admin/ApiDocsTab';
 import './AdminPage.css';
 
 interface TabDef {
@@ -20,6 +21,7 @@ const ALL_TABS: TabDef[] = [
   { key: 'backups', label: 'Бэкапы БД', requiredLevel: 'read' },
   { key: 'audit', label: 'Audit Log', requiredLevel: 'admin' },
   { key: 'features', label: 'Матрица фич', requiredLevel: 'read' },
+  { key: 'api', label: 'API (Swagger)', requiredLevel: 'read' },
 ];
 
 export function AdminPage() {
@@ -73,6 +75,7 @@ export function AdminPage() {
         {currentTab.key === 'backups' && <BackupManager />}
         {currentTab.key === 'audit' && <AuditLogTable />}
         {currentTab.key === 'features' && <FeatureMatrix />}
+        {currentTab.key === 'api' && <ApiDocsTab />}
       </div>
     </div>
   );

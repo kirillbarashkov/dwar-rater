@@ -92,8 +92,65 @@ def extract_paths_from_openapi(filepath):
     return routes
 
 
+TAG_BY_PREFIX = (
+    ('/api/admin', 'Admin'),
+    ('/api/auth', 'Auth'),
+    ('/api/clan', 'Clan'),
+    ('/api/treasury', 'Treasury'),
+    ('/api/export', 'Export'),
+    ('/api/version', 'Version'),
+)
+
+
+def tag_for(path):
+    """Тег раздела по префиксу пути."""
+    for prefix, tag in TAG_BY_PREFIX:
+        if path.startswith(prefix):
+            return tag
+    return 'Other'
+
+
+def emit_skeleton(missing):
+    """Печатает YAML-скелет для путей, которых нет в спеке.
+
+    Пути и параметры берутся из кода (url_map), а не набираются руками: опечатка
+    в пути даёт EXTRA и красный CI. Скелет — только заготовка для переноса в
+    openapi.yaml: summary и описания ответов дописываются по смыслу, потому что
+    проверка сравнивает лишь пути и «зелёная» спека ещё не значит полезная.
+    """
+    by_path = {}
+    for route in sorted(missing):
+        method, path = route.split(' ', 1)
+        by_path.setdefault(path, []).append(method)
+
+    for path in sorted(by_path):
+        print(f"  {path}:")
+        params = re.findall(r'\{(\w+)\}', path)
+        for method in sorted(by_path[path]):
+            print(f"    {method.lower()}:")
+            print(f"      summary: TODO — {method} {path}")
+            print("      tags:")
+            print(f"        - {tag_for(path)}")
+            if params:
+                print("      parameters:")
+                for name in params:
+                    ptype = 'integer' if (name == 'id' or name.endswith('_id')) else 'string'
+                    print(f"        - name: {name}")
+                    print("          in: path")
+                    print("          required: true")
+                    print("          schema:")
+                    print(f"            type: {ptype}")
+            print("      responses:")
+            print('        "200":')
+            print("          description: OK")
+            print('        "401":')
+            print("          description: Не авторизован")
+            print()
+
+
 def main():
     check_mode = '--check' in sys.argv
+    emit_mode = '--emit-missing' in sys.argv
 
     all_routes = extract_routes_from_features(FEATURES_DIR)
 
@@ -105,6 +162,10 @@ def main():
 
     missing = all_routes - openapi_routes
     extra = openapi_routes - all_routes
+
+    if emit_mode:
+        emit_skeleton(missing)
+        return
 
     print(f"Routes in code:    {len(all_routes)}")
     print(f"Routes in OpenAPI: {len(openapi_routes)}")
