@@ -1,0 +1,221 @@
+/* Очередь пар казны. Базовые классы (treasury-*, ta-*) переиспользуются из казны,
+   здесь только специфика пары: две стороны, связь и решения. */
+
+.treasury-pairs {
+  padding: 0;
+}
+
+.tp-total {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.tp-card {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--card-bg, #ffffff);
+}
+
+.tp-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tp-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 12px;
+  cursor: help;
+}
+
+.tp-status-candidate {
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-text, #92400e);
+}
+
+.tp-status-confirmed {
+  background: var(--success-bg, #d1fae5);
+  color: var(--success-text, #065f46);
+}
+
+.tp-status-rejected {
+  background: var(--muted-bg, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
+}
+
+.tp-kind {
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--accent-soft, #e0e7ff);
+  color: var(--accent-text, #3730a3);
+  cursor: help;
+}
+
+.tp-comment {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  font-style: italic;
+}
+
+.tp-sides {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+
+.tp-side {
+  flex: 1 1 220px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--surface-bg, #fafafa);
+}
+
+.tp-side-missing {
+  color: var(--text-secondary, #6b7280);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tp-side-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tp-side-nick {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.tp-side-date {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.tp-side-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.tp-side-type {
+  color: var(--text-secondary, #6b7280);
+}
+
+.tp-side-object {
+  font-weight: 500;
+}
+
+.tp-side-qty {
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tp-side-qty-in {
+  color: var(--success-text, #065f46);
+}
+
+.tp-side-qty-out {
+  color: var(--danger-text, #991b1b);
+}
+
+.tp-side-flag {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--accent-text, #3730a3);
+  cursor: help;
+}
+
+.tp-arrow {
+  align-self: center;
+  font-size: 20px;
+  color: var(--text-secondary, #9ca3af);
+  cursor: help;
+}
+
+.tp-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color, #f3f4f6);
+}
+
+.tp-actions-label {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.tp-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-primary, #374151);
+  cursor: pointer;
+}
+
+.tp-btn-ghost:hover {
+  background: var(--hover-bg, #f9fafb);
+}
+
+.tp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.tp-modal {
+  background: var(--card-bg, #ffffff);
+  border-radius: 10px;
+  padding: 20px 22px;
+  width: min(460px, 92vw);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.tp-modal-title {
+  margin: 0 0 14px;
+  font-size: 16px;
+}
+
+.tp-modal-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.tp-modal-label {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+  cursor: help;
+}
+
+.tp-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}

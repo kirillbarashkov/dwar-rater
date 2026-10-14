@@ -39,6 +39,7 @@ const navGroups: TabGroup[] = [
   { key: TREASURY_GROUP_KEY, label: 'Казначейство', icon: '💰', children: [
     { key: 'treasury', label: 'Казна', icon: '💰' },
     { key: 'analytics', label: 'Аналитика налогов', icon: '📊' },
+    { key: 'treasury-pairs', label: 'Обмены и долги', icon: '⇄' },
     { key: 'treasury-import', label: 'Импорт / Экспорт', icon: '📥' },
   ]},
   { key: 'character', label: 'Персонаж', icon: '🧙', children: [

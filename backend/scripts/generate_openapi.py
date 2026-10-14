@@ -37,8 +37,12 @@ def extract_routes_from_file(filepath):
     #   @bp.route(
     #       '/path', methods=['GET']
     #   )
+    #   @bp.route(
+    #       '/path',
+    #       methods=['GET'],
+    #   )            <- завершающая запятая тоже встречается
     pattern = re.compile(
-        r"@(\w+)\.route\(\s*['\"]([^'\"]+)['\"](?:,\s*methods=\[([^\]]+)\])?\s*\)",
+        r"@(\w+)\.route\(\s*['\"]([^'\"]+)['\"](?:,\s*methods=\[([^\]]+)\])?\s*,?\s*\)",
         re.DOTALL
     )
     for match in pattern.finditer(content):
@@ -148,6 +152,26 @@ def emit_skeleton(missing):
             print()
 
 
+def validate_yaml(filepath):
+    """Проверяет, что спека вообще парсится.
+
+    Проверка путей выше работает регулярками и не видит синтаксических ошибок YAML:
+    незакавыченное двоеточие в summary («Очередь пар: обмены») делает файл невалидным,
+    а проверка путей при этом остаётся зелёной. PyYAML в проекте есть, поэтому
+    валидируем по-настоящему.
+    """
+    try:
+        import yaml
+    except ImportError:
+        return None
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            yaml.safe_load(f)
+    except Exception as exc:  # noqa: BLE001 — сообщение важнее типа
+        return str(exc)
+    return None
+
+
 def main():
     check_mode = '--check' in sys.argv
     emit_mode = '--emit-missing' in sys.argv
@@ -156,6 +180,11 @@ def main():
 
     if not os.path.exists(OPENAPI_PATH):
         print(f"ERROR: OpenAPI spec not found at {OPENAPI_PATH}")
+        sys.exit(1)
+
+    yaml_error = validate_yaml(OPENAPI_PATH)
+    if yaml_error:
+        print(f"ERROR: openapi.yaml не парсится как YAML:\n  {yaml_error}")
         sys.exit(1)
 
     openapi_routes = extract_paths_from_openapi(OPENAPI_PATH)

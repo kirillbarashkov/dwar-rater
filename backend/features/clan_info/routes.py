@@ -26,6 +26,15 @@ from shared.services.data_logger import data_logger
 from shared.services.treasury_anomalies import LABELS as ANOMALY_LABELS
 from shared.services.treasury_anomalies import detect_anomalies
 from shared.services.treasury_bulk import CREATE, plan_compensations
+from shared.services.treasury_pair_service import (
+    PairError,
+    confirm_pair,
+    pair_as_dict,
+    reject_pair,
+    revise_pair,
+    unconfirm_pair,
+)
+from shared.services.treasury_pairs import DEFAULT_WINDOW_DAYS, find_candidates
 from shared.services.treasury_summary import (
     CARRYOVERS,
     DEBTORS,
@@ -37,6 +46,7 @@ from shared.models.clan_info import (
     ClanInfo,
     ClanMemberInfo,
     TreasuryOperation,
+    TreasuryOperationPair,
     TaxCarryover,
     ClanCookie,
     ClanMembershipEvent,
@@ -1185,6 +1195,207 @@ def get_treasury_operations(clan_id):
             for row in rows
         ]
     )
+
+
+@clan_info_bp.route("/api/clan/<int:clan_id>/treasury/pairs", methods=["GET"])
+@require_permission("treasury", "read")
+def get_treasury_pairs(clan_id):
+    """Очередь пар казны: предложения автоматики и решения казначея."""
+    status = request.args.get("status") or ""
+    kind = request.args.get("kind") or ""
+    nick = (request.args.get("nick") or "").strip().lower()
+    try:
+        limit = min(int(request.args.get("limit", 100)), 500)
+        offset = max(int(request.args.get("offset", 0)), 0)
+    except ValueError:
+        return jsonify({"error": "limit и offset должны быть числами"}), 400
+
+    query = TreasuryOperationPair.query.filter_by(clan_id=clan_id)
+    if status:
+        query = query.filter(TreasuryOperationPair.status == status)
+    if kind:
+        query = query.filter(TreasuryOperationPair.kind == kind)
+
+    items = [
+        pair_as_dict(pair)
+        for pair in query.order_by(TreasuryOperationPair.id).all()
+    ]
+    if nick:
+        items = [
+            item
+            for item in items
+            if nick in ((item["first"] or {}).get("nick") or "").lower()
+            or nick in ((item["second"] or {}).get("nick") or "").lower()
+        ]
+    return jsonify({"total": len(items), "items": items[offset:offset + limit]})
+
+
+def _get_pair_or_none(clan_id, pair_id):
+    return TreasuryOperationPair.query.filter_by(id=pair_id, clan_id=clan_id).first()
+
+
+def _current_user_id():
+    from flask import g
+
+    user = getattr(g, "current_user", None)
+    return user.id if user else None
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/pairs/<int:pair_id>/confirm", methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def confirm_treasury_pair(clan_id, pair_id):
+    """Подтверждение пары. Тип (обмен или долг) выбирает казначей."""
+    pair = _get_pair_or_none(clan_id, pair_id)
+    if not pair:
+        return jsonify({"error": "пара не найдена"}), 404
+
+    data = request.get_json(silent=True) or {}
+    try:
+        confirm_pair(pair, data.get("kind") or pair.kind, user_id=_current_user_id())
+    except PairError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    _audit(
+        "treasury_pair_confirm",
+        target_type="treasury_pair",
+        target_id=pair.id,
+        clan_id=clan_id,
+        old={"status": "candidate"},
+        new={"status": pair.status, "kind": pair.kind},
+    )
+    db.session.commit()
+    return jsonify(pair_as_dict(pair))
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/pairs/<int:pair_id>/reject", methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def reject_treasury_pair(clan_id, pair_id):
+    """Отклонение пары: операции остаются учитываемыми."""
+    pair = _get_pair_or_none(clan_id, pair_id)
+    if not pair:
+        return jsonify({"error": "пара не найдена"}), 404
+    try:
+        reject_pair(pair)
+    except PairError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    _audit(
+        "treasury_pair_reject",
+        target_type="treasury_pair",
+        target_id=pair.id,
+        clan_id=clan_id,
+        old={"status": "candidate"},
+        new={"status": pair.status},
+    )
+    db.session.commit()
+    return jsonify(pair_as_dict(pair))
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/pairs/<int:pair_id>/unconfirm", methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def unconfirm_treasury_pair(clan_id, pair_id):
+    """Отмена подтверждения: операции возвращаются в учитываемые."""
+    pair = _get_pair_or_none(clan_id, pair_id)
+    if not pair:
+        return jsonify({"error": "пара не найдена"}), 404
+    try:
+        unconfirm_pair(pair)
+    except PairError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    _audit(
+        "treasury_pair_unconfirm",
+        target_type="treasury_pair",
+        target_id=pair.id,
+        clan_id=clan_id,
+        old={"status": "confirmed"},
+        new={"status": pair.status},
+    )
+    db.session.commit()
+    return jsonify(pair_as_dict(pair))
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/pairs/<int:pair_id>", methods=["PUT"]
+)
+@require_permission("treasury", "approve")
+def revise_treasury_pair(clan_id, pair_id):
+    """Корректировка пары. История изменений пишется в treasury_pair_revision."""
+    pair = _get_pair_or_none(clan_id, pair_id)
+    if not pair:
+        return jsonify({"error": "пара не найдена"}), 404
+
+    data = request.get_json(silent=True) or {}
+    old = {"kind": pair.kind, "status": pair.status}
+    try:
+        revise_pair(
+            pair,
+            data.get("kind") or pair.kind,
+            comment=data.get("comment") or "",
+            user_id=_current_user_id(),
+        )
+    except PairError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    _audit(
+        "treasury_pair_revise",
+        target_type="treasury_pair",
+        target_id=pair.id,
+        clan_id=clan_id,
+        old=old,
+        new={"kind": pair.kind, "status": pair.status},
+    )
+    db.session.commit()
+    return jsonify(pair_as_dict(pair))
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/operations/<int:op_id>/candidates",
+    methods=["GET"],
+)
+@require_permission("treasury", "read")
+def get_operation_candidates(clan_id, op_id):
+    """Кандидаты на вторую сторону для конкретной операции.
+
+    Процесс, описанный владельцем: автоматика определяет первое событие и
+    подставляет набор кандидатов на второе, казначей выбирает и подтверждает.
+    """
+    op = TreasuryOperation.query.filter_by(id=op_id, clan_id=clan_id).first()
+    if not op:
+        return jsonify({"error": "операция не найдена"}), 404
+
+    rows = [
+        {
+            "id": item.id,
+            "date": item.date,
+            "nick": item.nick,
+            "operation_type": item.operation_type,
+            "object_name": item.object_name,
+            "quantity": item.quantity,
+        }
+        for item in TreasuryOperation.query.filter_by(clan_id=clan_id).all()
+    ]
+    first = next((row for row in rows if row["id"] == op_id), None)
+    if not first:
+        return jsonify({"error": "операция не найдена"}), 404
+
+    raw_window = request.args.get("window_days")
+    try:
+        window_days = int(raw_window) if raw_window else DEFAULT_WINDOW_DAYS
+    except ValueError:
+        return jsonify({"error": "window_days должен быть числом"}), 400
+
+    candidates = [
+        {"score": score, **candidate}
+        for score, candidate in find_candidates(first, rows, window_days)
+    ]
+    return jsonify({"first": first, "candidates": candidates})
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/totals", methods=["GET"])

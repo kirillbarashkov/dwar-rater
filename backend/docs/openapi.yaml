@@ -3326,6 +3326,133 @@ paths:
         "401":
           description: Не авторизован
 
+  /api/clan/{clan_id}/treasury/operations/{op_id}/candidates:
+    get:
+      summary: Кандидаты на вторую сторону операции
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: op_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/pairs:
+    get:
+      summary: "Очередь пар казны: обмены и долги"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/pairs/{pair_id}:
+    put:
+      summary: Скорректировать пару
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: pair_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/pairs/{pair_id}/confirm:
+    post:
+      summary: Подтвердить пару (обмен или долг)
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: pair_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/pairs/{pair_id}/reject:
+    post:
+      summary: Отклонить пару
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: pair_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/pairs/{pair_id}/unconfirm:
+    post:
+      summary: Отменить подтверждение пары
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: pair_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
 components:
   securitySchemes:
     BasicAuth:
