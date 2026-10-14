@@ -155,6 +155,18 @@
   color: var(--text-secondary) !important;
 }
 
+/* Метка нейтральной операции: отнесена к обмену или долгу, в налог не идёт. */
+.treasury-neutral-flag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  background: var(--accent-soft, #e0e7ff);
+  color: var(--accent-text, #3730a3);
+  cursor: help;
+}
+
 .treasury-object {
   max-width: 200px;
   overflow: hidden;

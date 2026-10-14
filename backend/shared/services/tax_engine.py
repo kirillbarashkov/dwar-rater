@@ -194,11 +194,17 @@ def level_at_month_end(events: Sequence[Mapping[str, Any]], month: int, year: in
 
 
 def is_real_payment(op: Mapping[str, Any]) -> bool:
-    """Money actually paid into the treasury (not a «зачёт» marker)."""
+    """Money actually paid into the treasury (not a «зачёт» marker).
+
+    Нейтральные операции (подтверждённый обмен или долг) в налог не идут: они
+    прошли через казну, но сдачей не являются. До подтверждения пары казначеем
+    `op_class` остаётся 'tax', поэтому поведение не меняется.
+    """
     return (
         is_money_operation(op)
         and _as_int(op.get("quantity")) > 0
         and not op.get("compensation_flag")
+        and op.get("op_class") != "neutral"
     )
 
 
@@ -227,6 +233,10 @@ def _classify(operations: Iterable[Mapping[str, Any]]):
         month, year = key
         op_indexes.append(ym_index(month, year))
         if not is_money_operation(op):
+            continue
+        # Подтверждённая пара делает операцию нейтральной: она участвует в обмене
+        # или долге и сдачей не является. У старых записей поля нет — считаем как раньше.
+        if op.get("op_class") == "neutral":
             continue
         quantity = _as_int(op.get("quantity"))
         if quantity <= 0:

@@ -447,7 +447,17 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
                       <td className="treasury-nick treasury-link" onClick={() => handleAnalyze(op.nick)}>
                         {op.nick}
                       </td>
-                      <td className="treasury-type">{op.operation_type}</td>
+                      <td className="treasury-type">
+                        {op.operation_type}
+                        {op.op_class === 'neutral' && (
+                          <span
+                            className="treasury-neutral-flag"
+                            title="Операция отнесена к обмену или долгу: в налог и ресурсы не идёт"
+                          >
+                            нейтральная
+                          </span>
+                        )}
+                      </td>
                       <td className="treasury-object">{op.object_name}</td>
                       <td
                         className={`treasury-quantity ${op.quantity >= 0 ? 'positive' : 'negative'}`}

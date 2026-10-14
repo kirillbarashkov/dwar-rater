@@ -1174,6 +1174,7 @@ def get_treasury_operations(clan_id):
         TreasuryOperation.quantity,
         TreasuryOperation.compensation_flag,
         TreasuryOperation.compensation_comment,
+        TreasuryOperation.op_class,
     ).filter(TreasuryOperation.clan_id == clan_id)
     if period:
         # Дата в таблице — текст DD.MM.YYYY HH:MM, поэтому сравнение по шаблону.
@@ -1191,6 +1192,7 @@ def get_treasury_operations(clan_id):
                 "quantity": row.quantity,
                 "compensation_flag": row.compensation_flag,
                 "compensation_comment": row.compensation_comment,
+                "op_class": row.op_class,
             }
             for row in rows
         ]
@@ -1423,6 +1425,9 @@ def get_treasury_totals(clan_id):
             TreasuryOperation.clan_id == clan_id,
             db.func.lower(TreasuryOperation.nick) == nick.lower(),
             TreasuryOperation.quantity > 0,
+            # Подтверждённый обмен или долг — не сдача ресурсов. У записей,
+            # не прошедших классификацию, op_class = 'tax', поведение не меняется.
+            TreasuryOperation.op_class != "neutral",
         )
         .group_by(TreasuryOperation.operation_type, TreasuryOperation.object_name)
     )
@@ -2301,6 +2306,9 @@ def _tax_engine_inputs(clan_id):
             "object_name": row.object_name,
             "quantity": row.quantity,
             "compensation_flag": row.compensation_flag,
+            # Нужен движку: подтверждённый обмен или долг (op_class='neutral')
+            # в налог не идёт.
+            "op_class": row.op_class,
         }
         for row in db.session.query(
             TreasuryOperation.id,
@@ -2310,6 +2318,7 @@ def _tax_engine_inputs(clan_id):
             TreasuryOperation.object_name,
             TreasuryOperation.quantity,
             TreasuryOperation.compensation_flag,
+            TreasuryOperation.op_class,
         ).filter(TreasuryOperation.clan_id == clan_id)
     ]
     members = [

@@ -107,6 +107,8 @@ export interface TreasuryOperationData {
   quantity: number;
   compensation_flag: boolean;
   compensation_comment: string;
+  /** 'tax' — учитывается в налоге и ресурсах, 'neutral' — отнесена к обмену или долгу. */
+  op_class: string;
 }
 
 export interface MembershipEvent {
