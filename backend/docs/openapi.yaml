@@ -3453,6 +3453,23 @@ paths:
         "401":
           description: Не авторизован
 
+  /api/clan/{clan_id}/treasury/member-status:
+    get:
+      summary: "Состояние дел участника за месяц: налог, ресурсы, обмены, история"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
 components:
   securitySchemes:
     BasicAuth:

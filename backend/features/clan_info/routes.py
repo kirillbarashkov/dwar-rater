@@ -1400,6 +1400,123 @@ def get_operation_candidates(clan_id, op_id):
     return jsonify({"first": first, "candidates": candidates})
 
 
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/member-status", methods=["GET"]
+)
+@require_permission("treasury", "read")
+def get_member_status(clan_id):
+    """Состояние дел участника за месяц — для вкладки «Статус персонажа».
+
+    Собирает в одном ответе то, что казначею нужно видеть сразу: налог (норма,
+    сдано, зачёт, перенос, долг, сальдо), сдачу ресурсов, обмены и долги участника
+    и его последние операции. Налог берётся из того же реестра, что и «Сальдо»,
+    поэтому цифры не могут разойтись со вкладкой.
+
+    Ресурсы считаются за выбранный месяц и без нейтральных операций: подтверждённый
+    обмен — не сдача.
+    """
+    nick = (request.args.get("nick") or "").strip()
+    if not nick:
+        return jsonify({"error": "nick обязателен"}), 400
+
+    today = date.today()
+    month = _as_int(request.args.get("month"), today.month)
+    year = _as_int(request.args.get("year"), today.year)
+
+    ledger = _compute_tax_ledger(clan_id, month, year, month, year, today=today)
+    row = next(
+        (
+            item
+            for item in ledger.get("rows", [])
+            if (item.get("nick") or "").lower() == nick.lower()
+        ),
+        None,
+    )
+
+    def _num(key):
+        return _as_int(row.get(key)) if row else 0
+
+    tax = {
+        "norm": _num("norm_total"),
+        "paid": _num("paid_total"),
+        "compensation": _num("compensation_total"),
+        "carried_in": _num("carried_in_total"),
+        "debt": _num("debt"),
+        "balance": _num("balance"),
+        "level": row.get("level") if row else None,
+    }
+    # Сальдо со знаком плюс — это переплата, которую участник переносит дальше.
+    tax["credit"] = max(0, tax["balance"])
+
+    resource_rows = (
+        db.session.query(
+            TreasuryOperation.operation_type,
+            TreasuryOperation.object_name,
+            db.func.sum(TreasuryOperation.quantity).label("total"),
+        )
+        .filter(
+            TreasuryOperation.clan_id == clan_id,
+            db.func.lower(TreasuryOperation.nick) == nick.lower(),
+            TreasuryOperation.quantity > 0,
+            TreasuryOperation.op_class != "neutral",
+            TreasuryOperation.date.like(f"%.{month:02d}.{year} %"),
+        )
+        .group_by(TreasuryOperation.operation_type, TreasuryOperation.object_name)
+        .all()
+    )
+    resources = [
+        {
+            "operation_type": item.operation_type or "",
+            "object_name": item.object_name or "",
+            "total": int(item.total or 0),
+        }
+        for item in resource_rows
+    ]
+
+    pairs = []
+    for pair in TreasuryOperationPair.query.filter_by(clan_id=clan_id).all():
+        sides = [pair.first_op, pair.second_op]
+        if not any(
+            side and (side.nick or "").lower() == nick.lower() for side in sides
+        ):
+            continue
+        pairs.append(pair_as_dict(pair))
+
+    history = [
+        {
+            "id": op.id,
+            "date": op.date,
+            "operation_type": op.operation_type,
+            "object_name": op.object_name,
+            "quantity": op.quantity,
+            "op_class": op.op_class,
+        }
+        for op in TreasuryOperation.query.filter(
+            TreasuryOperation.clan_id == clan_id,
+            db.func.lower(TreasuryOperation.nick) == nick.lower(),
+        )
+        .order_by(TreasuryOperation.id.desc())
+        .limit(30)
+        .all()
+    ]
+
+    return jsonify(
+        {
+            "nick": nick,
+            "month": month,
+            "year": year,
+            "tax": tax,
+            "resources": resources,
+            "pairs": {
+                "confirmed": [item for item in pairs if item["status"] == "confirmed"],
+                "candidates": [item for item in pairs if item["status"] == "candidate"],
+                "rejected": [item for item in pairs if item["status"] == "rejected"],
+            },
+            "history": history,
+        }
+    )
+
+
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/totals", methods=["GET"])
 @require_permission("clan_info", "read")
 def get_treasury_totals(clan_id):
