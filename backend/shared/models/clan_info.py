@@ -81,12 +81,66 @@ class TreasuryOperation(db.Model):
     quantity = db.Column(db.Integer, default=0)
     compensation_flag = db.Column(db.Boolean, default=False)
     compensation_comment = db.Column(db.String(500), default='')
+    # Классификация: денормализованное отражение подтверждённых пар. Источник истины —
+    # TreasuryOperationPair, эти поля пересчитывает сервис. По умолчанию tax, поэтому
+    # до классификации цифры не меняются.
+    op_class = db.Column(db.String(20), default='tax')       # tax | neutral
+    class_kind = db.Column(db.String(20), default='')        # exchange | loan | ''
+    class_source = db.Column(db.String(20), default='')      # auto | manual | ''
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     clan = db.relationship('ClanInfo', foreign_keys=[clan_id], primaryjoin='TreasuryOperation.clan_id == ClanInfo.clan_id')
 
     def __repr__(self):
         return f'<TreasuryOperation {self.date} {self.nick}>'
+
+
+class TreasuryOperationPair(db.Model):
+    """Пара операций казны: обмен или долг.
+
+    Источник истины для классификации. Пока пара не подтверждена казначеем, обе
+    операции считаются обычными (`op_class = tax`) — молча в нейтральные ничего не
+    переводится, автоматика лишь предлагает кандидатов.
+    """
+
+    __tablename__ = 'treasury_operation_pair'
+    id = db.Column(db.Integer, primary_key=True)
+    clan_id = db.Column(db.Integer, db.ForeignKey('clan_info.clan_id'), nullable=False, index=True)
+    first_op_id = db.Column(db.Integer, db.ForeignKey('treasury_operations.id'), nullable=False)
+    second_op_id = db.Column(db.Integer, db.ForeignKey('treasury_operations.id'), nullable=True)
+    kind = db.Column(db.String(20), default='exchange')      # exchange | loan
+    status = db.Column(db.String(20), default='candidate')   # candidate | confirmed | rejected
+    comment = db.Column(db.String(500), default='')
+    created_by = db.Column(db.Integer, db.ForeignKey('app_user.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    confirmed_by = db.Column(db.Integer, db.ForeignKey('app_user.id'), nullable=True)
+    confirmed_at = db.Column(db.DateTime, nullable=True)
+
+    first_op = db.relationship('TreasuryOperation', foreign_keys=[first_op_id])
+    second_op = db.relationship('TreasuryOperation', foreign_keys=[second_op_id])
+
+    def __repr__(self):
+        return f'<TreasuryOperationPair {self.kind} {self.status} {self.first_op_id}/{self.second_op_id}>'
+
+
+class TreasuryPairRevision(db.Model):
+    """Лог корректировок пары.
+
+    Требование владельца: история изменений пары сохраняется. Форма повторяет
+    `audit_log`, чтобы не заводить второй механизм истории в проекте.
+    """
+
+    __tablename__ = 'treasury_pair_revision'
+    id = db.Column(db.Integer, primary_key=True)
+    pair_id = db.Column(db.Integer, db.ForeignKey('treasury_operation_pair.id'), nullable=False, index=True)
+    changed_by = db.Column(db.Integer, db.ForeignKey('app_user.id'), nullable=True)
+    changed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    old_value = db.Column(db.Text, default='')
+    new_value = db.Column(db.Text, default='')
+    comment = db.Column(db.String(500), default='')
+
+    def __repr__(self):
+        return f'<TreasuryPairRevision pair={self.pair_id}>'
 
 
 class ClanMembershipEvent(db.Model):
