@@ -37,6 +37,9 @@ const KIND_HINTS: Record<string, string> = {
 const NEUTRAL_HINT =
   'Нейтральная операция: она не уменьшает и не увеличивает сдачу налога и ресурсов, потому что участвует в обмене или долге.';
 
+/** Сколько пар показывать на странице. Очередь на проде — тысячи записей, тянуть всё сразу незачем. */
+const PAGE_SIZE = 50;
+
 interface Props {
   clanId: number;
 }
@@ -46,6 +49,12 @@ export function TreasuryPairsQueue({ clanId }: Props) {
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState('candidate');
   const [nick, setNick] = useState('');
+  const [kind, setKind] = useState('');
+  const [opType, setOpType] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sort, setSort] = useState('old');
+  const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null,
@@ -61,8 +70,14 @@ export function TreasuryPairsQueue({ clanId }: Props) {
     try {
       const data = await getTreasuryPairs(clanId, {
         status: status || undefined,
+        kind: kind || undefined,
         nick: nick.trim() || undefined,
-        limit: 200,
+        op_type: opType || undefined,
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        sort,
+        limit: PAGE_SIZE,
+        offset,
       });
       setPairs(data.items);
       setTotal(data.total);
@@ -71,7 +86,13 @@ export function TreasuryPairsQueue({ clanId }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [clanId, status, nick]);
+  }, [clanId, status, kind, nick, opType, dateFrom, dateTo, sort, offset]);
+
+  // Смена фильтров возвращает на первую страницу: иначе легко оказаться
+  // на странице, которой у нового отбора уже нет.
+  useEffect(() => {
+    setOffset(0);
+  }, [status, kind, nick, opType, dateFrom, dateTo, sort]);
 
   useEffect(() => {
     load();
@@ -211,6 +232,86 @@ export function TreasuryPairsQueue({ clanId }: Props) {
               placeholder="часть ника"
               onChange={(event) => setNick(event.target.value)}
             />
+          </div>
+          <div className="ta-filter-group">
+            <label className="ta-filter-label" htmlFor="tp-kind" title="Что это: обмен или долг">
+              Тип пары
+            </label>
+            <select
+              id="tp-kind"
+              className="ta-filter-input"
+              value={kind}
+              onChange={(event) => setKind(event.target.value)}
+            >
+              <option value="">Любой</option>
+              <option value="exchange">Обмен</option>
+              <option value="loan">Долг</option>
+            </select>
+          </div>
+          <div className="ta-filter-group">
+            <label
+              className="ta-filter-label"
+              htmlFor="tp-optype"
+              title="Тип операции на любой стороне пары: так отделяются деньги от ресурсов"
+            >
+              Операция
+            </label>
+            <select
+              id="tp-optype"
+              className="ta-filter-input"
+              value={opType}
+              onChange={(event) => setOpType(event.target.value)}
+            >
+              <option value="">Любая</option>
+              <option value="Деньги">Деньги</option>
+              <option value="Предмет">Предмет</option>
+            </select>
+          </div>
+          <div className="ta-filter-group">
+            <label
+              className="ta-filter-label"
+              htmlFor="tp-from"
+              title="Показывать пары с операциями не раньше этого месяца"
+            >
+              Период с
+            </label>
+            <input
+              id="tp-from"
+              className="ta-filter-input"
+              type="month"
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+            />
+          </div>
+          <div className="ta-filter-group">
+            <label
+              className="ta-filter-label"
+              htmlFor="tp-to"
+              title="Показывать пары с операциями не позже этого месяца"
+            >
+              по
+            </label>
+            <input
+              id="tp-to"
+              className="ta-filter-input"
+              type="month"
+              value={dateTo}
+              onChange={(event) => setDateTo(event.target.value)}
+            />
+          </div>
+          <div className="ta-filter-group">
+            <label className="ta-filter-label" htmlFor="tp-sort" title="Порядок разбора очереди">
+              Порядок
+            </label>
+            <select
+              id="tp-sort"
+              className="ta-filter-input"
+              value={sort}
+              onChange={(event) => setSort(event.target.value)}
+            >
+              <option value="old">По порядку импорта</option>
+              <option value="new">Сначала новые</option>
+            </select>
           </div>
         </div>
       </div>
@@ -356,6 +457,31 @@ export function TreasuryPairsQueue({ clanId }: Props) {
             )}
           </div>
         ))}
+
+      {!loading && total > PAGE_SIZE && (
+        <div className="tp-pagination">
+          <button
+            type="button"
+            className="tp-btn-ghost"
+            disabled={offset === 0}
+            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+          >
+            ← Назад
+          </button>
+          <span className="tp-page-info" title="Сколько пар показано из общего числа">
+            Страница {Math.floor(offset / PAGE_SIZE) + 1} из {Math.ceil(total / PAGE_SIZE)}
+            {' · '}показано {pairs.length} из {total}
+          </span>
+          <button
+            type="button"
+            className="tp-btn-ghost"
+            disabled={offset + PAGE_SIZE >= total}
+            onClick={() => setOffset(offset + PAGE_SIZE)}
+          >
+            Вперёд →
+          </button>
+        </div>
+      )}
 
       {reviseTarget && (
         <div className="tp-modal-backdrop" onClick={() => setReviseTarget(null)}>

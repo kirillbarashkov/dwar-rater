@@ -3359,6 +3359,51 @@ paths:
           required: true
           schema:
             type: integer
+        - name: status
+          in: query
+          description: candidate, confirmed или rejected
+          schema:
+            type: string
+        - name: kind
+          in: query
+          description: exchange или loan
+          schema:
+            type: string
+        - name: nick
+          in: query
+          description: Часть ника участника — ищется по обеим сторонам пары
+          schema:
+            type: string
+        - name: op_type
+          in: query
+          description: Тип операции на любой стороне пары (например, Деньги)
+          schema:
+            type: string
+        - name: date_from
+          in: query
+          description: Месяц YYYY-MM — нижняя граница периода по датам операций
+          schema:
+            type: string
+        - name: date_to
+          in: query
+          description: Месяц YYYY-MM — верхняя граница периода
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: old — по порядку импорта, new — сначала новые
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Размер страницы, по умолчанию 50, максимум 200
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          description: Сколько пар пропустить — постраничный вывод
+          schema:
+            type: integer
       responses:
         "200":
           description: OK

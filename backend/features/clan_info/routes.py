@@ -1206,30 +1206,77 @@ def get_treasury_pairs(clan_id):
     status = request.args.get("status") or ""
     kind = request.args.get("kind") or ""
     nick = (request.args.get("nick") or "").strip().lower()
+    op_type = (request.args.get("op_type") or "").strip()
+    date_from = (request.args.get("date_from") or "").strip()
+    date_to = (request.args.get("date_to") or "").strip()
+    sort = (request.args.get("sort") or "old").strip()
+
     try:
-        limit = min(int(request.args.get("limit", 100)), 500)
+        limit = min(int(request.args.get("limit", 50)), 200)
         offset = max(int(request.args.get("offset", 0)), 0)
     except ValueError:
         return jsonify({"error": "limit и offset должны быть числами"}), 400
+
+    def _month_index(value):
+        """'YYYY-MM' → сравнимый индекс месяца; иначе None."""
+        if not value:
+            return None
+        try:
+            year_str, month_str = value.split("-")[:2]
+            return int(year_str) * 12 + int(month_str)
+        except (ValueError, IndexError):
+            return None
+
+    from_month = _month_index(date_from)
+    to_month = _month_index(date_to)
 
     query = TreasuryOperationPair.query.filter_by(clan_id=clan_id)
     if status:
         query = query.filter(TreasuryOperationPair.status == status)
     if kind:
         query = query.filter(TreasuryOperationPair.kind == kind)
+    if sort == "new":
+        query = query.order_by(TreasuryOperationPair.id.desc())
+    else:
+        query = query.order_by(TreasuryOperationPair.id)
 
-    items = [
-        pair_as_dict(pair)
-        for pair in query.order_by(TreasuryOperationPair.id).all()
-    ]
-    if nick:
-        items = [
-            item
-            for item in items
-            if nick in ((item["first"] or {}).get("nick") or "").lower()
-            or nick in ((item["second"] or {}).get("nick") or "").lower()
-        ]
-    return jsonify({"total": len(items), "items": items[offset:offset + limit]})
+    items = [pair_as_dict(pair) for pair in query.all()]
+
+    def _matches(item):
+        first = item["first"] or {}
+        second = item["second"] or {}
+
+        if nick and nick not in (first.get("nick") or "").lower() \
+                and nick not in (second.get("nick") or "").lower():
+            return False
+
+        if op_type:
+            types = {first.get("operation_type"), second.get("operation_type")}
+            if op_type not in types:
+                return False
+
+        if from_month or to_month:
+            dates = [first.get("date"), second.get("date")]
+            key = min((value for value in dates if value), default=None)
+            if not key:
+                return False
+            # Дата хранится текстом DD.MM.YYYY[ HH:MM] — берём месяц и год.
+            parts = key.split(".")[:3]
+            if len(parts) < 3:
+                return False
+            try:
+                index = int(parts[2][:4]) * 12 + int(parts[1])
+            except ValueError:
+                return False
+            if from_month and index < from_month:
+                return False
+            if to_month and index > to_month:
+                return False
+
+        return True
+
+    filtered = [item for item in items if _matches(item)]
+    return jsonify({"total": len(filtered), "items": filtered[offset:offset + limit]})
 
 
 def _get_pair_or_none(clan_id, pair_id):

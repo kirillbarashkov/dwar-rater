@@ -12,6 +12,13 @@ export async function getTreasuryPairs(
     status?: string;
     kind?: string;
     nick?: string;
+    /** Тип операции на любой стороне пары: «Деньги», «Предмет» и т.п. */
+    op_type?: string;
+    /** Месяц в формате YYYY-MM — границы периода по датам операций. */
+    date_from?: string;
+    date_to?: string;
+    /** 'old' — порядок импорта, 'new' — сначала новые. */
+    sort?: string;
     limit?: number;
     offset?: number;
   } = {},

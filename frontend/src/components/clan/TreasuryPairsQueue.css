@@ -1,5 +1,9 @@
-/* Очередь пар казны. Базовые классы (treasury-*, ta-*) переиспользуются из казны,
-   здесь только специфика пары: две стороны, связь и решения. */
+/* Очередь пар казны. Базовые классы (treasury-*, ta-*) переиспользуются из казны.
+
+   Токены берутся только реальные из styles/tokens.css. Выдуманное имя переменной
+   проваливается в фолбэк, и на тёмной теме появляются белые карточки — так и вышло
+   с --card-bg, --border-color, --surface-bg. Фолбэки здесь не нужны: переменные
+   всегда определены. */
 
 .treasury-pairs {
   padding: 0;
@@ -7,15 +11,20 @@
 
 .tp-total {
   font-size: 13px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
 }
 
 .tp-card {
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 14px 16px;
   margin-bottom: 12px;
-  background: var(--card-bg, #ffffff);
+  background: var(--bg-card);
+  transition: var(--transition);
+}
+
+.tp-card:hover {
+  border-color: var(--accent);
 }
 
 .tp-card-head {
@@ -34,32 +43,32 @@
 }
 
 .tp-status-candidate {
-  background: var(--warning-bg, #fef3c7);
-  color: var(--warning-text, #92400e);
+  background: rgba(255, 200, 87, 0.15);
+  color: var(--gold);
 }
 
 .tp-status-confirmed {
-  background: var(--success-bg, #d1fae5);
-  color: var(--success-text, #065f46);
+  background: rgba(80, 250, 123, 0.15);
+  color: var(--green);
 }
 
 .tp-status-rejected {
-  background: var(--muted-bg, #f3f4f6);
-  color: var(--text-secondary, #6b7280);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
 }
 
 .tp-kind {
   font-size: 12px;
   padding: 2px 10px;
   border-radius: 12px;
-  background: var(--accent-soft, #e0e7ff);
-  color: var(--accent-text, #3730a3);
+  background: var(--accent-subtle);
+  color: var(--accent);
   cursor: help;
 }
 
 .tp-comment {
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -73,14 +82,14 @@
 
 .tp-side {
   flex: 1 1 220px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
-  background: var(--surface-bg, #fafafa);
+  background: var(--bg-secondary);
 }
 
 .tp-side-missing {
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-muted);
   font-style: italic;
   display: flex;
   align-items: center;
@@ -98,11 +107,12 @@
 .tp-side-nick {
   font-weight: 600;
   font-size: 13px;
+  color: var(--text-primary);
 }
 
 .tp-side-date {
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
 }
 
 .tp-side-body {
@@ -114,11 +124,12 @@
 }
 
 .tp-side-type {
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
 }
 
 .tp-side-object {
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .tp-side-qty {
@@ -128,24 +139,24 @@
 }
 
 .tp-side-qty-in {
-  color: var(--success-text, #065f46);
+  color: var(--green);
 }
 
 .tp-side-qty-out {
-  color: var(--danger-text, #991b1b);
+  color: var(--red);
 }
 
 .tp-side-flag {
   margin-top: 6px;
   font-size: 11px;
-  color: var(--accent-text, #3730a3);
+  color: var(--accent);
   cursor: help;
 }
 
 .tp-arrow {
   align-self: center;
   font-size: 20px;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-muted);
   cursor: help;
 }
 
@@ -155,32 +166,46 @@
   gap: 8px;
   flex-wrap: wrap;
   padding-top: 10px;
-  border-top: 1px solid var(--border-color, #f3f4f6);
+  border-top: 1px solid var(--border-light);
 }
 
 .tp-actions-label {
   font-size: 13px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
 }
 
 .tp-btn-ghost {
   background: transparent;
-  border: 1px solid var(--border-color, #d1d5db);
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   padding: 6px 12px;
   font-size: 13px;
-  color: var(--text-primary, #374151);
+  color: var(--text-primary);
   cursor: pointer;
+  transition: var(--transition);
 }
 
 .tp-btn-ghost:hover {
-  background: var(--hover-bg, #f9fafb);
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+.tp-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 8px;
+}
+
+.tp-page-info {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .tp-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -188,16 +213,18 @@
 }
 
 .tp-modal {
-  background: var(--card-bg, #ffffff);
-  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 20px 22px;
   width: min(460px, 92vw);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow);
 }
 
 .tp-modal-title {
   margin: 0 0 14px;
   font-size: 16px;
+  color: var(--text-primary);
 }
 
 .tp-modal-row {
@@ -209,7 +236,7 @@
 
 .tp-modal-label {
   font-size: 13px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   cursor: help;
 }
 

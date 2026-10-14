@@ -162,8 +162,8 @@
   padding: 1px 6px;
   border-radius: 8px;
   font-size: 11px;
-  background: var(--accent-soft, #e0e7ff);
-  color: var(--accent-text, #3730a3);
+  background: var(--accent-subtle);
+  color: var(--accent);
   cursor: help;
 }
 

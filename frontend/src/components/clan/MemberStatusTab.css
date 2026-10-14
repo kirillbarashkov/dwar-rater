@@ -1,5 +1,6 @@
 /* Вкладка «Статус персонажа»: состояние дел участника за месяц.
-   Базовые классы (treasury-*, ta-*, tp-*) переиспользуются из казны. */
+   Базовые классы (treasury-*, ta-*, tp-*) переиспользуются из казны.
+   Токены — реальные из styles/tokens.css (см. пояснение в TreasuryPairsQueue.css). */
 
 .member-status {
   padding: 0;
@@ -14,26 +15,27 @@
 
 .ms-card {
   flex: 1 1 110px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 10px 12px;
-  background: var(--card-bg, #ffffff);
+  background: var(--bg-card);
   cursor: help;
+  transition: var(--transition);
 }
 
 .ms-card-bad {
-  border-color: var(--danger-text, #991b1b);
-  background: var(--danger-bg, #fee2e2);
+  border-color: var(--red);
+  background: rgba(255, 85, 85, 0.12);
 }
 
 .ms-card-good {
-  border-color: var(--success-text, #065f46);
-  background: var(--success-bg, #d1fae5);
+  border-color: var(--green);
+  background: rgba(80, 250, 123, 0.12);
 }
 
 .ms-card-label {
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
@@ -41,12 +43,14 @@
   font-size: 18px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
 .ms-section {
   margin: 18px 0 8px;
   font-size: 15px;
   cursor: help;
+  color: var(--text-primary);
 }
 
 .ms-chips {
@@ -59,8 +63,9 @@
   padding: 3px 10px;
   border-radius: 12px;
   font-size: 13px;
-  background: var(--surface-bg, #f3f4f6);
-  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
 }
 
 .ms-pairs {
@@ -79,4 +84,5 @@
 
 .ms-pair-side {
   font-weight: 500;
+  color: var(--text-primary);
 }

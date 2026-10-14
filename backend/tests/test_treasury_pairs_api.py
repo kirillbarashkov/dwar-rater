@@ -120,3 +120,53 @@ def test_candidates_endpoint_returns_candidates(client, admin_headers, app):
     assert data['first']['id'] == op1_id
     assert len(data['candidates']) >= 1
     assert data['candidates'][0]['score'] >= 6
+
+
+def test_queue_filters_by_period(client, admin_headers, app):
+    """Период считается по месяцу операций: мимо дат — пусто."""
+    _seed(app)
+
+    hit = client.get(
+        f"/api/clan/{CLAN}/treasury/pairs?status=candidate"
+        f"&date_from=2026-10&date_to=2026-10",
+        headers=admin_headers,
+    )
+    assert hit.status_code == 200, hit.get_data(as_text=True)
+    assert hit.get_json()['total'] >= 1
+
+    miss = client.get(
+        f"/api/clan/{CLAN}/treasury/pairs?status=candidate&date_from=2027-01",
+        headers=admin_headers,
+    )
+    assert miss.get_json()['total'] == 0
+
+
+def test_queue_filters_by_operation_type(client, admin_headers, app):
+    """Тип операции ищется на любой стороне пары."""
+    _seed(app)
+
+    money = client.get(
+        f"/api/clan/{CLAN}/treasury/pairs?status=candidate&op_type=Деньги",
+        headers=admin_headers,
+    )
+    assert money.get_json()['total'] >= 1
+
+    nothing = client.get(
+        f"/api/clan/{CLAN}/treasury/pairs?status=candidate&op_type=Такого нет",
+        headers=admin_headers,
+    )
+    assert nothing.get_json()['total'] == 0
+
+
+def test_queue_pagination_limits_page(client, admin_headers, app):
+    """Страница отдаёт не больше запрошенного, а total — общее число."""
+    _seed(app)
+
+    resp = client.get(
+        f"/api/clan/{CLAN}/treasury/pairs?status=candidate&limit=1&offset=0",
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    data = resp.get_json()
+    assert len(data['items']) == 1
+    assert data['total'] >= 1
