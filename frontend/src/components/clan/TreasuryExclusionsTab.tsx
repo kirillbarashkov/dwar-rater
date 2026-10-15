@@ -266,13 +266,13 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
               )}
             </div>
 
-            <div className="tp-actions">
-              <button type="button" className="tp-btn-ghost" onClick={() => openEdit(group)}>
+            <div className="ex-actions">
+              <button type="button" className="ex-btn-ghost" onClick={() => openEdit(group)}>
                 Изменить
               </button>
               <button
                 type="button"
-                className="tp-btn-ghost"
+                className="ex-btn-ghost"
                 title="Выключенная группа не действует при применении правил"
                 onClick={() => handleToggleActive(group)}
               >
@@ -280,17 +280,17 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
               </button>
               {pendingDelete === group.id ? (
                 <>
-                  <span className="tp-actions-label">Удалить группу?</span>
+                  <span className="ex-actions-label">Удалить группу?</span>
                   <button
                     type="button"
-                    className="tp-btn-ghost"
+                    className="ex-btn-ghost"
                     onClick={() => handleDelete(group)}
                   >
                     Да, удалить
                   </button>
                   <button
                     type="button"
-                    className="tp-btn-ghost"
+                    className="ex-btn-ghost"
                     onClick={() => setPendingDelete(null)}
                   >
                     Нет
@@ -299,7 +299,7 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
               ) : (
                 <button
                   type="button"
-                  className="tp-btn-ghost"
+                  className="ex-btn-ghost"
                   onClick={() => setPendingDelete(group.id)}
                 >
                   Удалить
@@ -310,12 +310,12 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
         ))}
 
       {editing && (
-        <div className="tp-modal-backdrop" onClick={() => setEditing(null)}>
-          <div className="tp-modal" onClick={(event) => event.stopPropagation()}>
-            <h3 className="tp-modal-title">Группа «{editing.name}»</h3>
+        <div className="ex-modal-backdrop" onClick={() => setEditing(null)}>
+          <div className="ex-modal" onClick={(event) => event.stopPropagation()}>
+            <h3 className="ex-modal-title">Группа «{editing.name}»</h3>
 
-            <div className="tp-modal-row">
-              <label className="tp-modal-label" htmlFor="ex-edit-name">
+            <div className="ex-modal-row">
+              <label className="ex-modal-label" htmlFor="ex-edit-name">
                 Название
               </label>
               <input
@@ -326,8 +326,8 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
               />
             </div>
 
-            <div className="tp-modal-row">
-              <label className="tp-modal-label" htmlFor="ex-edit-mode">
+            <div className="ex-modal-row">
+              <label className="ex-modal-label" htmlFor="ex-edit-mode">
                 Режим
               </label>
               <select
@@ -343,8 +343,8 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
               </select>
             </div>
 
-            <div className="tp-modal-row">
-              <label className="tp-modal-label" htmlFor="ex-edit-prefixes">
+            <div className="ex-modal-row">
+              <label className="ex-modal-label" htmlFor="ex-edit-prefixes">
                 Ресурсы (по одному в строке)
               </label>
               <textarea
@@ -355,13 +355,13 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
               />
             </div>
 
-            <div className="tp-modal-actions">
+            <div className="ex-modal-actions">
               <button type="button" className="treasury-page-btn" onClick={handleUpdate}>
                 Сохранить
               </button>
               <button
                 type="button"
-                className="tp-btn-ghost"
+                className="ex-btn-ghost"
                 onClick={() => setEditing(null)}
               >
                 Отмена

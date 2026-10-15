@@ -99,3 +99,79 @@
   color: var(--text-muted);
   font-style: italic;
 }
+
+/* Действия и модалка карточки. Раньше брали .tp-* из вкладки «Обмены и долги»:
+   чужая вкладка — её правка молча ломала эту. Теперь свои имена. */
+.ex-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+}
+
+.ex-actions-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ex-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.ex-btn-ghost:hover {
+  background: var(--bg-hover);
+}
+
+.ex-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ex-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  width: min(460px, 92vw);
+  box-shadow: var(--shadow);
+}
+
+.ex-modal-title {
+  margin: 0 0 14px;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.ex-modal-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.ex-modal-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: help;
+}
+
+.ex-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
