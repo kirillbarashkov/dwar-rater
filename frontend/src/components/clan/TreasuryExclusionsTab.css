@@ -29,6 +29,33 @@
   font-family: inherit;
 }
 
+/* Поля ввода этой вкладки. Класс .ta-filter-input сам стилей не несёт: оформление
+   приходит от `.ta-filter-group input` в TreasuryAnalytics.css, поэтому textarea
+   и поля вне группы (в модалке) оставались белыми. Задаём явно. */
+.ex-form input,
+.ex-form select,
+.ex-form textarea,
+.ex-modal input,
+.ex-modal select,
+.ex-modal textarea {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.ex-form input:focus,
+.ex-form select:focus,
+.ex-form textarea:focus,
+.ex-modal input:focus,
+.ex-modal select:focus,
+.ex-modal textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .ex-card {
   border: 1px solid var(--border);
   border-radius: var(--radius);
