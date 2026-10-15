@@ -3674,25 +3674,6 @@ paths:
         "401":
           description: Не авторизован
 
-  /api/about:
-    get:
-      summary: "Документы вкладки «О проекте»"
-      description: >
-        Markdown-документы вкладки (описание и цели, что нового, релизы, техдолг)
-        и блок текущего релиза из git. Текст живёт файлами в backend/docs/about/
-        и приезжает вместе с релизом; рендер разметки — на клиенте.
-      tags:
-        - About
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AboutResponse"
-        "401":
-          description: Не авторизован
-
   /api/clan/{clan_id}/treasury/pairs/batch:
     post:
       summary: "Групповое решение по пачке пар: подтвердить или отклонить"
