@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  batchDecideTreasuryPairs,
   confirmTreasuryPair,
   getTreasuryPairHistory,
   getTreasuryPairs,
@@ -75,6 +76,9 @@ export function TreasuryPairsQueue({ clanId }: Props) {
   const [historyFor, setHistoryFor] = useState<TreasuryPairData | null>(null);
   const [historyEntries, setHistoryEntries] = useState<TreasuryPairHistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [batchKind, setBatchKind] = useState<'exchange' | 'loan'>('exchange');
+  const [batchBusy, setBatchBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null,
@@ -157,6 +161,48 @@ export function TreasuryPairsQueue({ clanId }: Props) {
       await load();
     } catch {
       setMessage({ type: 'error', text: 'Не удалось отменить подтверждение' });
+    }
+  };
+
+  const toggleSelect = (pairId: number) => {
+    setSelected((prev) =>
+      prev.includes(pairId) ? prev.filter((id) => id !== pairId) : [...prev, pairId],
+    );
+  };
+
+  const candidates = pairs.filter((pair) => pair.status === 'candidate');
+
+  const toggleAll = () => {
+    const ids = candidates.map((pair) => pair.id);
+    setSelected((prev) => (prev.length === ids.length ? [] : ids));
+  };
+
+  const handleBatch = async (action: 'confirm' | 'reject') => {
+    if (selected.length === 0) return;
+    setBatchBusy(true);
+    try {
+      const result = await batchDecideTreasuryPairs(
+        clanId,
+        selected,
+        action,
+        action === 'confirm' ? batchKind : undefined,
+      );
+      const label = action === 'confirm' ? `подтверждено (${KIND_LABELS[batchKind]})` : 'отклонено';
+      const failed = result.failed.length
+        ? ` Не прошло: ${result.failed.length} — ${result.failed
+            .map((item) => `#${item.id}: ${item.error}`)
+            .join('; ')}`
+        : '';
+      setMessage({
+        type: result.failed.length ? 'error' : 'success',
+        text: `Групповое действие: ${label} — ${result.done.length} пар.${failed}`,
+      });
+      setSelected([]);
+      await load();
+    } catch {
+      setMessage({ type: 'error', text: 'Не удалось выполнить групповое действие' });
+    } finally {
+      setBatchBusy(false);
     }
   };
 
@@ -420,6 +466,15 @@ export function TreasuryPairsQueue({ clanId }: Props) {
         pairs.map((pair) => (
           <div key={pair.id} className="tp-card">
             <div className="tp-card-head">
+              {pair.status === 'candidate' && (
+                <input
+                  type="checkbox"
+                  className="tp-check"
+                  title="Отметить для группового действия"
+                  checked={selected.includes(pair.id)}
+                  onChange={() => toggleSelect(pair.id)}
+                />
+              )}
               <span className={`tp-status tp-status-${pair.status}`} title={STATUS_HINTS[pair.status]}>
                 {STATUS_LABELS[pair.status] ?? pair.status}
               </span>
@@ -561,6 +616,44 @@ export function TreasuryPairsQueue({ clanId }: Props) {
             )}
           </div>
         ))}
+
+      {!loading && candidates.length > 0 && (
+        <div className="tp-batch" title="Групповое действие применяется ко всем отмеченным парам">
+          <button type="button" className="tp-btn-ghost" onClick={toggleAll}>
+            {selected.length === candidates.length && candidates.length > 0
+              ? 'Снять выбор'
+              : `Выбрать все на странице (${candidates.length})`}
+          </button>
+          <span className="tp-batch-count">Отмечено: {selected.length}</span>
+          <span className="tp-actions-label">Что это:</span>
+          <select
+            className="ta-filter-input tp-batch-kind"
+            value={batchKind}
+            onChange={(event) =>
+              setBatchKind(event.target.value === 'loan' ? 'loan' : 'exchange')
+            }
+          >
+            <option value="exchange">Обмен</option>
+            <option value="loan">Долг</option>
+          </select>
+          <button
+            type="button"
+            className="treasury-page-btn"
+            disabled={selected.length === 0 || batchBusy}
+            onClick={() => handleBatch('confirm')}
+          >
+            Подтвердить отмеченные
+          </button>
+          <button
+            type="button"
+            className="tp-btn-ghost"
+            disabled={selected.length === 0 || batchBusy}
+            onClick={() => handleBatch('reject')}
+          >
+            Отклонить отмеченные
+          </button>
+        </div>
+      )}
 
       {!loading && total > PAGE_SIZE && (
         <div className="tp-pagination">

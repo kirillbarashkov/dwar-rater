@@ -9,6 +9,7 @@ from shared.models.clan_info import (
 )
 from shared.services.treasury_pair_service import (
     PairError,
+    batch_decide,
     confirm_pair,
     pair_as_dict,
     pair_history,
@@ -247,3 +248,71 @@ def test_history_collects_entries_oldest_first(app):
 
         times = [entry['at'] for entry in entries if entry['at']]
         assert times == sorted(times)
+
+
+def test_batch_confirm_applies_one_kind_to_all(app):
+    """Групповое подтверждение: один тип на всю пачку."""
+    first = _setup(app)
+    second = _setup(app)
+
+    with app.app_context():
+        pairs = (
+            TreasuryOperationPair.query.filter(
+                TreasuryOperationPair.id.in_([first, second])
+            )
+            .order_by(TreasuryOperationPair.id)
+            .all()
+        )
+        result = batch_decide(pairs, 'confirm', kind='exchange', user_id=1)
+        db.session.commit()
+
+        assert sorted(result['done']) == sorted([first, second])
+        assert result['failed'] == []
+        for pair in pairs:
+            assert pair.status == 'confirmed'
+            assert pair.kind == 'exchange'
+
+
+def test_batch_reject_leaves_operations_tax(app):
+    pair_id = _setup(app)
+    with app.app_context():
+        pair = db.session.get(TreasuryOperationPair, pair_id)
+        result = batch_decide([pair], 'reject', user_id=1)
+        db.session.commit()
+
+        assert result['done'] == [pair_id]
+        assert pair.status == 'rejected'
+        assert db.session.get(TreasuryOperation, pair.first_op_id).op_class == 'tax'
+
+
+def test_batch_reports_failures_per_pair(app):
+    """Ошибка на одной паре не гасит остальные — иначе непонятно, что не прошло."""
+    first = _setup(app)
+    second = _setup(app)
+
+    with app.app_context():
+        pairs = [
+            db.session.get(TreasuryOperationPair, first),
+            db.session.get(TreasuryOperationPair, second),
+        ]
+        # Первую подтверждаем заранее: повторное подтверждение обязано попасть в failed.
+        confirm_pair(pairs[0], 'loan', user_id=1)
+        db.session.commit()
+
+        result = batch_decide(pairs, 'confirm', kind='loan', user_id=1)
+        db.session.commit()
+
+        assert result['done'] == [second]
+        assert len(result['failed']) == 1
+        assert result['failed'][0]['id'] == first
+
+
+def test_batch_rejects_unknown_action(app):
+    pair_id = _setup(app)
+    with app.app_context():
+        pair = db.session.get(TreasuryOperationPair, pair_id)
+        try:
+            batch_decide([pair], 'delete', user_id=1)
+            raise AssertionError('неизвестное действие должно падать')
+        except PairError:
+            pass

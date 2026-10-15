@@ -215,6 +215,35 @@
   margin: 16px 0 8px;
 }
 
+.tp-check {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.tp-batch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 14px 0;
+  background: var(--bg-card);
+}
+
+.tp-batch-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.tp-batch-kind {
+  max-width: 130px;
+}
+
 .tp-page-info {
   font-size: 13px;
   color: var(--text-secondary);

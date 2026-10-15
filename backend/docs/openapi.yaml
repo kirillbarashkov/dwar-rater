@@ -3674,6 +3674,42 @@ paths:
         "401":
           description: Не авторизован
 
+  /api/about:
+    get:
+      summary: "Документы вкладки «О проекте»"
+      description: >
+        Markdown-документы вкладки (описание и цели, что нового, релизы, техдолг)
+        и блок текущего релиза из git. Текст живёт файлами в backend/docs/about/
+        и приезжает вместе с релизом; рендер разметки — на клиенте.
+      tags:
+        - About
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AboutResponse"
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/pairs/batch:
+    post:
+      summary: "Групповое решение по пачке пар: подтвердить или отклонить"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
 components:
   securitySchemes:
     BasicAuth:
@@ -4112,3 +4148,47 @@ components:
         updated_at:
           type: string
           format: date-time
+
+    AboutDocument:
+      type: object
+      properties:
+        key:
+          type: string
+          description: "Ключ вкладки: description | whatsnew | releases | techdebt"
+        title:
+          type: string
+        file:
+          type: string
+          description: Имя markdown-файла в backend/docs/about/
+        updated:
+          type: string
+          format: date-time
+          nullable: true
+        markdown:
+          type: string
+          description: Содержимое документа как есть; пустая строка — файла нет
+
+    AboutRelease:
+      type: object
+      properties:
+        version:
+          type: string
+        git_hash:
+          type: string
+        build_date:
+          type: string
+        branch:
+          type: string
+        notes:
+          type: string
+          description: "RELEASE_NOTES.md — то, что сжато записано в git"
+
+    AboutResponse:
+      type: object
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AboutDocument"
+        release:
+          $ref: "#/components/schemas/AboutRelease"

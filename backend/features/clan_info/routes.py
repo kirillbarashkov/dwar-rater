@@ -34,6 +34,7 @@ from shared.services.treasury_exclusions import (
 )
 from shared.services.treasury_pair_service import (
     PairError,
+    batch_decide,
     confirm_pair,
     pair_as_dict,
     pair_history,
@@ -1299,6 +1300,56 @@ def _current_user_id():
 
     user = getattr(g, "current_user", None)
     return user.id if user else None
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/pairs/batch", methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def batch_treasury_pairs(clan_id):
+    """Групповое решение по пачке пар: подтвердить или отклонить.
+
+    Одно действие на всю пачку — так казначей разбирает похожие операции, не кликая
+    по каждой. Результат приходит по каждой паре: ошибка на одной не гасит остальные.
+    """
+    data = request.get_json(silent=True) or {}
+
+    raw_ids = data.get("ids") or []
+    ids = [int(value) for value in raw_ids if str(value).isdigit()]
+    if not ids:
+        return jsonify({"error": "ids обязателен"}), 400
+
+    action = (data.get("action") or "").strip()
+    kind = (data.get("kind") or "").strip() or None
+
+    pairs = (
+        TreasuryOperationPair.query.filter(
+            TreasuryOperationPair.clan_id == clan_id,
+            TreasuryOperationPair.id.in_(ids),
+        )
+        .order_by(TreasuryOperationPair.id)
+        .all()
+    )
+
+    try:
+        result = batch_decide(pairs, action, kind=kind, user_id=_current_user_id())
+    except PairError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    _audit(
+        "treasury_pairs_batch",
+        target_type="treasury_pairs",
+        clan_id=clan_id,
+        new={
+            "action": action,
+            "kind": kind,
+            "ids": ids,
+            "done": len(result["done"]),
+            "failed": len(result["failed"]),
+        },
+    )
+    db.session.commit()
+    return jsonify(result)
 
 
 @clan_info_bp.route(

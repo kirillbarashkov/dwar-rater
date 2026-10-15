@@ -90,6 +90,20 @@ export async function splitTreasuryPair(
   return response.data;
 }
 
+/** Групповое решение по пачке пар: одно действие на всю пачку. */
+export async function batchDecideTreasuryPairs(
+  clanId: number,
+  ids: number[],
+  action: 'confirm' | 'reject',
+  kind?: 'exchange' | 'loan',
+): Promise<{ done: number[]; failed: { id: number; error: string }[] }> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/pairs/batch`,
+    { ids, action, kind: kind ?? '' },
+  );
+  return response.data;
+}
+
 /** История решений по паре: кто, когда и что менял. */
 export async function getTreasuryPairHistory(
   clanId: number,

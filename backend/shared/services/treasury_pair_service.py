@@ -260,6 +260,37 @@ def revise_pair(
     return pair
 
 
+def batch_decide(
+    pairs,
+    action: str,
+    kind: str | None = None,
+    user_id: int | None = None,
+) -> dict:
+    """Групповое решение по пачке пар: подтвердить или отклонить.
+
+    Ошибка на одной паре не должна гасить остальные — иначе казначей не поймёт,
+    что именно не прошло. Поэтому результат приходит по каждой паре отдельно.
+    """
+    if action not in ('confirm', 'reject'):
+        raise PairError(f'неизвестное действие: {action}')
+    if action == 'confirm' and kind not in PAIR_KINDS:
+        raise PairError(f'неизвестный тип пары: {kind}')
+
+    done = []
+    failed = []
+    for pair in pairs:
+        try:
+            if action == 'confirm':
+                confirm_pair(pair, kind, user_id=user_id)
+            else:
+                reject_pair(pair)
+            done.append(pair.id)
+        except PairError as exc:
+            failed.append({'id': pair.id, 'error': str(exc)})
+
+    return {'done': done, 'failed': failed}
+
+
 def pair_as_dict(pair: TreasuryOperationPair) -> dict:
     """Представление пары для интерфейса: обе стороны + служебные поля."""
     def side(op: TreasuryOperation | None) -> dict | None:
