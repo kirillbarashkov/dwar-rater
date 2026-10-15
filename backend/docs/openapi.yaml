@@ -3537,6 +3537,143 @@ paths:
         "401":
           description: Не авторизован
 
+  /api/clan/{clan_id}/treasury/pairs/{pair_id}/history:
+    get:
+      summary: "История решений по паре: кто, когда и что менял"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: pair_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/pairs/{pair_id}/restore:
+    post:
+      summary: "Вернуть пару в очередь кандидатов (отмена решения)"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: pair_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/exclusions:
+    get:
+      summary: "Группы исключений казны: что не считаем и в каком режиме"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+    post:
+      summary: "Создать группу исключений (название, режим, правила)"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/exclusions/apply:
+    post:
+      summary: "Применить правила групп ко всем операциям клана"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/exclusions/{group_id}:
+    delete:
+      summary: "Удалить группу исключений"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
+    put:
+      summary: "Изменить группу исключений"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
 components:
   securitySchemes:
     BasicAuth:

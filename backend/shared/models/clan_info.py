@@ -123,6 +123,54 @@ class TreasuryOperationPair(db.Model):
         return f'<TreasuryOperationPair {self.kind} {self.status} {self.first_op_id}/{self.second_op_id}>'
 
 
+class TreasuryExclusionGroup(db.Model):
+    """Группа исключений казны.
+
+    Админ или казначей сам заводит группы, называет их и наполняет типами ресурсов.
+    Дальше ресурсы из группы либо выпадают из аналитики казны целиком (`exclude`),
+    либо становятся нейтральными (`neutral`) — второе оставляет их видимыми
+    в журнале и истории.
+    """
+
+    __tablename__ = 'treasury_exclusion_group'
+
+    id = db.Column(db.Integer, primary_key=True)
+    clan_id = db.Column(db.Integer, nullable=False, index=True)
+    name = db.Column(db.String(200), nullable=False)
+    # 'exclude' — не попадать ни в один отчёт казны; 'neutral' — не сдача, но видно.
+    mode = db.Column(db.String(20), nullable=False, default='exclude')
+    comment = db.Column(db.String(500), default='')
+    created_by = db.Column(db.Integer, db.ForeignKey('app_user.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+
+    rules = db.relationship(
+        'TreasuryExclusionRule',
+        backref='group',
+        cascade='all, delete-orphan',
+        lazy='selectin',
+    )
+
+
+class TreasuryExclusionRule(db.Model):
+    """Правило группы: сопоставление по началу названия ресурса.
+
+    «Сущность» ловит и «Сущность кретса», и «Сущность корра» — так решил владелец.
+    """
+
+    __tablename__ = 'treasury_exclusion_rule'
+
+    id = db.Column(db.Integer, primary_key=True)
+    group_id = db.Column(
+        db.Integer,
+        db.ForeignKey('treasury_exclusion_group.id'),
+        nullable=False,
+        index=True,
+    )
+    prefix = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class TreasuryPairRevision(db.Model):
     """Лог корректировок пары.
 

@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   confirmTreasuryPair,
+  getTreasuryPairHistory,
   getTreasuryPairs,
   rejectTreasuryPair,
+  restoreTreasuryPair,
   reviseTreasuryPair,
   splitTreasuryPair,
   unconfirmTreasuryPair,
 } from '../../api/treasuryPairs';
-import type { TreasuryPairData } from '../../types/treasuryPairs';
+import type {
+  TreasuryPairData,
+  TreasuryPairHistoryEntry,
+} from '../../types/treasuryPairs';
 import './TreasuryPairsQueue.css';
 
 const KIND_LABELS: Record<string, string> = {
@@ -41,6 +46,17 @@ const NEUTRAL_HINT =
 /** Сколько пар показывать на странице. Очередь на проде — тысячи записей, тянуть всё сразу незачем. */
 const PAGE_SIZE = 50;
 
+/** Человеческие названия действий из аудита — в истории нужен смысл, а не код. */
+const ACTION_LABELS: Record<string, string> = {
+  revision: 'Правка пары',
+  treasury_pair_confirm: 'Подтвердил пару',
+  treasury_pair_reject: 'Отклонил пару',
+  treasury_pair_unconfirm: 'Отменил подтверждение',
+  treasury_pair_revise: 'Скорректировал пару',
+  treasury_pair_split: 'Разорвал пару (списание на таланты)',
+  treasury_pair_restore: 'Вернул в очередь',
+};
+
 interface Props {
   clanId: number;
 }
@@ -56,6 +72,9 @@ export function TreasuryPairsQueue({ clanId }: Props) {
   const [dateTo, setDateTo] = useState('');
   const [sort, setSort] = useState('old');
   const [offset, setOffset] = useState(0);
+  const [historyFor, setHistoryFor] = useState<TreasuryPairData | null>(null);
+  const [historyEntries, setHistoryEntries] = useState<TreasuryPairHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null,
@@ -138,6 +157,34 @@ export function TreasuryPairsQueue({ clanId }: Props) {
       await load();
     } catch {
       setMessage({ type: 'error', text: 'Не удалось отменить подтверждение' });
+    }
+  };
+
+  const openHistory = async (pair: TreasuryPairData) => {
+    setHistoryFor(pair);
+    setHistoryEntries([]);
+    setHistoryLoading(true);
+    try {
+      const data = await getTreasuryPairHistory(clanId, pair.id);
+      setHistoryEntries(data.entries);
+    } catch {
+      setMessage({ type: 'error', text: 'Не удалось загрузить историю пары' });
+      setHistoryFor(null);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleRestore = async (pair: TreasuryPairData) => {
+    try {
+      await restoreTreasuryPair(clanId, pair.id);
+      setMessage({
+        type: 'success',
+        text: 'Пара вернулась в очередь кандидатов. Операции снова учитываются в налоге и ресурсах.',
+      });
+      await load();
+    } catch {
+      setMessage({ type: 'error', text: 'Не удалось вернуть пару в очередь' });
     }
   };
 
@@ -440,6 +487,38 @@ export function TreasuryPairsQueue({ clanId }: Props) {
               </div>
             )}
 
+            {pair.status === 'candidate' ? (
+              <div className="tp-actions">
+                <button
+                  type="button"
+                  className="tp-btn-ghost"
+                  title="Кто и когда менял эту пару"
+                  onClick={() => openHistory(pair)}
+                >
+                  История
+                </button>
+              </div>
+            ) : (
+              <div className="tp-actions">
+                <button
+                  type="button"
+                  className="tp-btn-ghost"
+                  title="Вернуть пару в очередь кандидатов: операции снова начнут учитываться"
+                  onClick={() => handleRestore(pair)}
+                >
+                  Вернуть в очередь
+                </button>
+                <button
+                  type="button"
+                  className="tp-btn-ghost"
+                  title="Кто и когда менял эту пару"
+                  onClick={() => openHistory(pair)}
+                >
+                  История
+                </button>
+              </div>
+            )}
+
             {pair.status === 'confirmed' && (
               <div className="tp-actions">
                 <button
@@ -505,6 +584,62 @@ export function TreasuryPairsQueue({ clanId }: Props) {
           >
             Вперёд →
           </button>
+        </div>
+      )}
+
+      {historyFor && (
+        <div className="tp-modal-backdrop" onClick={() => setHistoryFor(null)}>
+          <div
+            className="tp-modal tp-modal-wide"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className="tp-modal-title">История пары #{historyFor.id}</h3>
+
+            {historyLoading && <div className="treasury-empty">Загружаю историю…</div>}
+
+            {!historyLoading && historyEntries.length === 0 && (
+              <div className="treasury-empty">Решений по этой паре пока не было.</div>
+            )}
+
+            {!historyLoading && historyEntries.length > 0 && (
+              <div className="tp-history">
+                {historyEntries.map((entry, index) => (
+                  <div key={`${entry.source}-${index}`} className="tp-history-row">
+                    <div className="tp-history-head">
+                      <span className="tp-history-action">
+                        {ACTION_LABELS[entry.action] ?? entry.action}
+                      </span>
+                      <span className="tp-history-who">{entry.changed_by_name}</span>
+                      <span className="tp-history-when">
+                        {entry.at ? entry.at.replace('T', ' ').slice(0, 16) : '—'}
+                      </span>
+                    </div>
+                    {entry.comment && (
+                      <div className="tp-history-comment">{entry.comment}</div>
+                    )}
+                    <div className="tp-history-values" title="Что было и что стало">
+                      {entry.old && (
+                        <span className="tp-history-old">было: {entry.old}</span>
+                      )}
+                      {entry.new && (
+                        <span className="tp-history-new">стало: {entry.new}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="tp-modal-actions">
+              <button
+                type="button"
+                className="tp-btn-ghost"
+                onClick={() => setHistoryFor(null)}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

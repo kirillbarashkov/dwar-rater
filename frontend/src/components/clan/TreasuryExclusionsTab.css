@@ -1,0 +1,101 @@
+/* Группы исключений казны. Токены — реальные из styles/tokens.css
+   (выдуманное имя переменной проваливается в фолбэк и ломает тему). */
+
+.treasury-exclusions {
+  padding: 0;
+}
+
+.ex-form {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 14px 0;
+  background: var(--bg-card);
+}
+
+.ex-form-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.ex-form-prefixes {
+  flex: 1 1 240px;
+}
+
+.ex-textarea {
+  min-height: 62px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.ex-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: var(--bg-card);
+  transition: var(--transition);
+}
+
+.ex-card-off {
+  opacity: 0.6;
+}
+
+.ex-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ex-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ex-mode {
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  cursor: help;
+}
+
+.ex-mode-exclude {
+  background: rgba(255, 85, 85, 0.15);
+  color: var(--red);
+}
+
+.ex-mode-neutral {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.ex-off {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ex-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.ex-rule {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  cursor: help;
+}
+
+.ex-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}

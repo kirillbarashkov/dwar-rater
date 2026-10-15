@@ -2,6 +2,7 @@ import apiClient from './client';
 import type {
   TreasuryCandidatesResponse,
   TreasuryPairData,
+  TreasuryPairHistoryResponse,
   TreasuryPairsResponse,
 } from '../types/treasuryPairs';
 
@@ -85,6 +86,29 @@ export async function splitTreasuryPair(
   const response = await apiClient.post(
     `/api/clan/${clanId}/treasury/pairs/${pairId}/split`,
     { keep, comment: comment ?? '' },
+  );
+  return response.data;
+}
+
+/** История решений по паре: кто, когда и что менял. */
+export async function getTreasuryPairHistory(
+  clanId: number,
+  pairId: number,
+): Promise<TreasuryPairHistoryResponse> {
+  const response = await apiClient.get(
+    `/api/clan/${clanId}/treasury/pairs/${pairId}/history`,
+  );
+  return response.data;
+}
+
+/** Возврат пары в очередь кандидатов — отмена решения казначея. */
+export async function restoreTreasuryPair(
+  clanId: number,
+  pairId: number,
+): Promise<TreasuryPairData> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/pairs/${pairId}/restore`,
+    {},
   );
   return response.data;
 }

@@ -26,11 +26,19 @@ from shared.services.data_logger import data_logger
 from shared.services.treasury_anomalies import LABELS as ANOMALY_LABELS
 from shared.services.treasury_anomalies import detect_anomalies
 from shared.services.treasury_bulk import CREATE, plan_compensations
+from shared.services.treasury_exclusions import (
+    MODES,
+    MODE_EXCLUDE,
+    apply_exclusions,
+    group_as_dict,
+)
 from shared.services.treasury_pair_service import (
     PairError,
     confirm_pair,
     pair_as_dict,
+    pair_history,
     reject_pair,
+    restore_pair,
     revise_pair,
     split_pair,
     unconfirm_pair,
@@ -48,6 +56,8 @@ from shared.models.clan_info import (
     ClanMemberInfo,
     TreasuryOperation,
     TreasuryOperationPair,
+    TreasuryExclusionGroup,
+    TreasuryExclusionRule,
     TaxCarryover,
     ClanCookie,
     ClanMembershipEvent,
@@ -1414,6 +1424,206 @@ def split_treasury_pair(clan_id, pair_id):
 
 
 @clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/exclusions", methods=["GET"]
+)
+@require_permission("treasury", "read")
+def get_exclusion_groups(clan_id):
+    """Группы исключений казны: что не считаем и в каком режиме."""
+    groups = (
+        TreasuryExclusionGroup.query.filter_by(clan_id=clan_id)
+        .order_by(TreasuryExclusionGroup.id)
+        .all()
+    )
+    return jsonify({"items": [group_as_dict(group) for group in groups]})
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/exclusions", methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def create_exclusion_group(clan_id):
+    """Создание группы исключений: название, режим и правила-префиксы."""
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "name обязателен"}), 400
+
+    mode = (data.get("mode") or MODE_EXCLUDE).strip()
+    if mode not in MODES:
+        return jsonify({"error": "mode должен быть exclude или neutral"}), 400
+
+    group = TreasuryExclusionGroup(
+        clan_id=clan_id,
+        name=name,
+        mode=mode,
+        comment=(data.get("comment") or "").strip(),
+        created_by=_current_user_id(),
+    )
+    db.session.add(group)
+    db.session.flush()
+
+    for prefix in data.get("prefixes") or []:
+        if (prefix or "").strip():
+            db.session.add(
+                TreasuryExclusionRule(group_id=group.id, prefix=prefix.strip())
+            )
+
+    _audit(
+        "treasury_exclusion_group_create",
+        target_type="treasury_exclusion_group",
+        target_id=group.id,
+        clan_id=clan_id,
+        new={"name": name, "mode": mode},
+    )
+    db.session.commit()
+    return jsonify(group_as_dict(group))
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/exclusions/<int:group_id>", methods=["PUT"]
+)
+@require_permission("treasury", "approve")
+def update_exclusion_group(clan_id, group_id):
+    """Правка группы: название, режим, активность и полный список правил."""
+    group = TreasuryExclusionGroup.query.filter_by(
+        id=group_id, clan_id=clan_id
+    ).first()
+    if not group:
+        return jsonify({"error": "группа не найдена"}), 404
+
+    data = request.get_json(silent=True) or {}
+    old = {"name": group.name, "mode": group.mode, "is_active": bool(group.is_active)}
+
+    if "name" in data and (data.get("name") or "").strip():
+        group.name = data["name"].strip()
+    if "mode" in data:
+        mode = (data.get("mode") or "").strip()
+        if mode not in MODES:
+            return jsonify({"error": "mode должен быть exclude или neutral"}), 400
+        group.mode = mode
+    if "is_active" in data:
+        group.is_active = bool(data["is_active"])
+    if "comment" in data:
+        group.comment = (data.get("comment") or "").strip()
+    if "prefixes" in data:
+        group.rules.clear()
+        for prefix in data.get("prefixes") or []:
+            if (prefix or "").strip():
+                group.rules.append(TreasuryExclusionRule(prefix=prefix.strip()))
+
+    _audit(
+        "treasury_exclusion_group_update",
+        target_type="treasury_exclusion_group",
+        target_id=group.id,
+        clan_id=clan_id,
+        old=old,
+        new={
+            "name": group.name,
+            "mode": group.mode,
+            "is_active": bool(group.is_active),
+        },
+    )
+    db.session.commit()
+    return jsonify(group_as_dict(group))
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/exclusions/<int:group_id>",
+    methods=["DELETE"],
+)
+@require_permission("treasury", "approve")
+def delete_exclusion_group(clan_id, group_id):
+    group = TreasuryExclusionGroup.query.filter_by(
+        id=group_id, clan_id=clan_id
+    ).first()
+    if not group:
+        return jsonify({"error": "группа не найдена"}), 404
+
+    _audit(
+        "treasury_exclusion_group_delete",
+        target_type="treasury_exclusion_group",
+        target_id=group.id,
+        clan_id=clan_id,
+        old={"name": group.name, "mode": group.mode},
+    )
+    db.session.delete(group)
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/exclusions/apply", methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def apply_exclusion_groups(clan_id):
+    """Применяет правила групп ко всем операциям клана.
+
+    Ручные решения казначея (`class_source='manual'`) не трогаются — это проверяет
+    сервис, чтобы автоматика не отменяла работу человека.
+    """
+    groups = TreasuryExclusionGroup.query.filter_by(clan_id=clan_id).all()
+    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).all()
+    changed = apply_exclusions(operations, groups)
+
+    _audit(
+        "treasury_exclusions_apply",
+        target_type="treasury_exclusions",
+        clan_id=clan_id,
+        new={"changed": changed, "groups": len(groups)},
+    )
+    db.session.commit()
+    return jsonify({"changed": changed, "total": len(operations)})
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/pairs/<int:pair_id>/history", methods=["GET"]
+)
+@require_permission("treasury", "read")
+def get_treasury_pair_history(clan_id, pair_id):
+    """История решений по паре: кто, когда и что менял.
+
+    Собирается из двух источников: правки пишет сервис в treasury_pair_revision,
+    действия — маршруты в audit_log. В ответе ник человека, а не его id.
+    """
+    pair = _get_pair_or_none(clan_id, pair_id)
+    if not pair:
+        return jsonify({"error": "пара не найдена"}), 404
+    return jsonify({"pair_id": pair.id, "entries": pair_history(pair)})
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/pairs/<int:pair_id>/restore", methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def restore_treasury_pair(clan_id, pair_id):
+    """Возврат пары в очередь кандидатов — отмена решения казначея.
+
+    Пара не удаляется, история не стирается: операции снова становятся учитываемыми,
+    поэтому расчёты налога и ресурсов возвращаются к прежним значениям.
+    """
+    pair = _get_pair_or_none(clan_id, pair_id)
+    if not pair:
+        return jsonify({"error": "пара не найдена"}), 404
+
+    old = {"status": pair.status}
+    try:
+        restore_pair(pair, user_id=_current_user_id())
+    except PairError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    _audit(
+        "treasury_pair_restore",
+        target_type="treasury_pair",
+        target_id=pair.id,
+        clan_id=clan_id,
+        old=old,
+        new={"status": pair.status},
+    )
+    db.session.commit()
+    return jsonify(pair_as_dict(pair))
+
+
+@clan_info_bp.route(
     "/api/clan/<int:clan_id>/treasury/pairs/<int:pair_id>", methods=["PUT"]
 )
 @require_permission("treasury", "approve")
@@ -1548,7 +1758,8 @@ def get_member_status(clan_id):
             TreasuryOperation.clan_id == clan_id,
             db.func.lower(TreasuryOperation.nick) == nick.lower(),
             TreasuryOperation.quantity > 0,
-            TreasuryOperation.op_class != "neutral",
+            # Нейтральный обмен, долг и исключённые группы — не сдача ресурсов.
+            TreasuryOperation.op_class.notin_(("neutral", "excluded")),
             TreasuryOperation.date.like(f"%.{month:02d}.{year} %"),
         )
         .group_by(TreasuryOperation.operation_type, TreasuryOperation.object_name)
@@ -1632,9 +1843,8 @@ def get_treasury_totals(clan_id):
             TreasuryOperation.clan_id == clan_id,
             db.func.lower(TreasuryOperation.nick) == nick.lower(),
             TreasuryOperation.quantity > 0,
-            # Подтверждённый обмен или долг — не сдача ресурсов. У записей,
-            # не прошедших классификацию, op_class = 'tax', поведение не меняется.
-            TreasuryOperation.op_class != "neutral",
+            # Нейтральный обмен, долг и исключённые группы — не сдача ресурсов.
+            TreasuryOperation.op_class.notin_(("neutral", "excluded")),
         )
         .group_by(TreasuryOperation.operation_type, TreasuryOperation.object_name)
     )

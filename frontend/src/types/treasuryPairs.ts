@@ -28,6 +28,23 @@ export interface TreasuryPairsResponse {
   items: TreasuryPairData[];
 }
 
+/** Запись истории решений по паре: правка сервиса или действие казначея. */
+export interface TreasuryPairHistoryEntry {
+  source: 'revision' | 'audit' | string;
+  action: string;
+  changed_by: number | null;
+  changed_by_name: string;
+  old: string | null;
+  new: string | null;
+  comment: string;
+  at: string | null;
+}
+
+export interface TreasuryPairHistoryResponse {
+  pair_id: number;
+  entries: TreasuryPairHistoryEntry[];
+}
+
 /** Кандидат на вторую сторону операции, с оценкой похожести. */
 export interface TreasuryPairCandidate {
   score: number;

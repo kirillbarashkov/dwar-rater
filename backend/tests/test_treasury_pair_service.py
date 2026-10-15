@@ -11,7 +11,9 @@ from shared.services.treasury_pair_service import (
     PairError,
     confirm_pair,
     pair_as_dict,
+    pair_history,
     reject_pair,
+    restore_pair,
     revise_pair,
     split_pair,
     unconfirm_pair,
@@ -181,3 +183,67 @@ def test_split_rejects_unknown_side(app):
             raise AssertionError('неизвестная сторона должна падать')
         except PairError:
             pass
+
+
+def test_restore_returns_pair_to_candidates(app):
+    """Отмена решения: пара снова кандидат, операции снова учитываемые."""
+    pair_id = _setup(app)
+    with app.app_context():
+        pair = db.session.get(TreasuryOperationPair, pair_id)
+        confirm_pair(pair, 'loan', user_id=1)
+        db.session.commit()
+        assert db.session.get(TreasuryOperation, pair.first_op_id).op_class == 'neutral'
+
+        restore_pair(pair, user_id=1)
+        db.session.commit()
+
+        assert pair.status == 'candidate'
+        assert db.session.get(TreasuryOperation, pair.first_op_id).op_class == 'tax'
+        assert db.session.get(TreasuryOperation, pair.second_op_id).op_class == 'tax'
+
+
+def test_restore_after_split_frees_both_sides(app):
+    """Возврат после разрыва: списание тоже снова становится учитываемым."""
+    pair_id = _setup(app)
+    with app.app_context():
+        pair = db.session.get(TreasuryOperationPair, pair_id)
+        split_pair(pair, 'first', user_id=1)
+        db.session.commit()
+
+        restore_pair(pair, user_id=1)
+        db.session.commit()
+
+        assert pair.status == 'candidate'
+        assert db.session.get(TreasuryOperation, pair.first_op_id).op_class == 'tax'
+        assert db.session.get(TreasuryOperation, pair.second_op_id).op_class == 'tax'
+
+
+def test_restore_on_candidate_is_an_error(app):
+    pair_id = _setup(app)
+    with app.app_context():
+        pair = db.session.get(TreasuryOperationPair, pair_id)
+        try:
+            restore_pair(pair, user_id=1)
+            raise AssertionError('возврат кандидата должен падать')
+        except PairError:
+            pass
+
+
+def test_history_collects_entries_oldest_first(app):
+    pair_id = _setup(app)
+    with app.app_context():
+        pair = db.session.get(TreasuryOperationPair, pair_id)
+        confirm_pair(pair, 'exchange', user_id=1)
+        db.session.commit()
+        revise_pair(pair, 'loan', comment='уточнение', user_id=1)
+        db.session.commit()
+
+        entries = pair_history(pair)
+        # Подтверждение пишет только аудит — его ведут маршруты, а в сервисном тесте
+        # их нет. В логе правок остаётся одна запись: от revise_pair.
+        assert len(entries) == 1
+        assert entries[0]['source'] == 'revision'
+        assert all('changed_by_name' in entry for entry in entries)
+
+        times = [entry['at'] for entry in entries if entry['at']]
+        assert times == sorted(times)

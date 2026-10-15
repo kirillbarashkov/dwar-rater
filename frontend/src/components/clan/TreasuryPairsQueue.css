@@ -264,3 +264,70 @@
   justify-content: flex-end;
   margin-top: 16px;
 }
+
+.tp-modal-wide {
+  width: min(620px, 94vw);
+}
+
+/* История решений по паре: кто, когда и что менял. */
+.tp-history {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+.tp-history-row {
+  border-left: 2px solid var(--border);
+  padding: 6px 0 6px 10px;
+}
+
+.tp-history-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tp-history-action {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tp-history-who {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.tp-history-when {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.tp-history-comment {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.tp-history-values {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: help;
+}
+
+.tp-history-old {
+  text-decoration: line-through;
+}
+
+.tp-history-new {
+  color: var(--text-secondary);
+}

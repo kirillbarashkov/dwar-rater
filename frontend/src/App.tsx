@@ -34,6 +34,7 @@ import { TreasuryImport } from './components/clan/TreasuryImport';
 import { TreasuryAnalytics } from './components/clan/TreasuryAnalytics';
 import { TreasuryPairsQueue } from './components/clan/TreasuryPairsQueue';
 import { MemberStatusTab } from './components/clan/MemberStatusTab';
+import { TreasuryExclusionsTab } from './components/clan/TreasuryExclusionsTab';
 import { saveSnapshot } from './api/snapshots';
 import { addCompareCharacter } from './api/compare';
 import type { AnalysisResult } from './types/character';
@@ -365,6 +366,7 @@ function ClanPageWrapper() {
         case 'analytics': return <TreasuryAnalytics clanId={Number(clanId) || 2315} />;
         case 'treasury-pairs': return <TreasuryPairsQueue clanId={Number(clanId) || 2315} />;
         case 'member-status': return <MemberStatusTab clanId={Number(clanId) || 2315} />;
+        case 'exclusions': return <TreasuryExclusionsTab clanId={Number(clanId) || 2315} />;
       }
     }
     return null;
