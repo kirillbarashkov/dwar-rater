@@ -32,6 +32,7 @@ from shared.services.treasury_pair_service import (
     pair_as_dict,
     reject_pair,
     revise_pair,
+    split_pair,
     unconfirm_pair,
 )
 from shared.services.treasury_pairs import DEFAULT_WINDOW_DAYS, find_candidates
@@ -1365,6 +1366,48 @@ def unconfirm_treasury_pair(clan_id, pair_id):
         clan_id=clan_id,
         old={"status": "confirmed"},
         new={"status": pair.status},
+    )
+    db.session.commit()
+    return jsonify(pair_as_dict(pair))
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/pairs/<int:pair_id>/split", methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def split_treasury_pair(clan_id, pair_id):
+    """Разрыв пары: одна сторона — списание на таланты клана, вторая снова кандидат.
+
+    Списание на таланты делает глава или совет: операция всегда минусовая и пары у неё
+    нет. Автоматика иногда сшивает её с похожей, поэтому казначей указывает, какую
+    сторону оставить списанием, а вторая возвращается в очередь.
+    """
+    pair = _get_pair_or_none(clan_id, pair_id)
+    if not pair:
+        return jsonify({"error": "пара не найдена"}), 404
+
+    data = request.get_json(silent=True) or {}
+    keep = data.get("keep") or ""
+    if keep not in ("first", "second"):
+        return jsonify({"error": "keep должен быть first или second"}), 400
+
+    try:
+        split_pair(
+            pair,
+            keep,
+            user_id=_current_user_id(),
+            comment=data.get("comment") or "",
+        )
+    except PairError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    _audit(
+        "treasury_pair_split",
+        target_type="treasury_pair",
+        target_id=pair.id,
+        clan_id=clan_id,
+        old={"status": "candidate"},
+        new={"status": pair.status, "kept": keep, "class_kind": "talents"},
     )
     db.session.commit()
     return jsonify(pair_as_dict(pair))

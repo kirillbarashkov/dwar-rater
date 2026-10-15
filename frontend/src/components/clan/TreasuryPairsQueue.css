@@ -153,6 +153,24 @@
   cursor: help;
 }
 
+/* Разрыв пары: операция — списание на таланты клана, вторая сторона вернётся в очередь. */
+.tp-split-btn {
+  margin-top: 6px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.tp-split-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .tp-arrow {
   align-self: center;
   font-size: 20px;

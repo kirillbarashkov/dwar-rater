@@ -3515,6 +3515,28 @@ paths:
         "401":
           description: Не авторизован
 
+  /api/clan/{clan_id}/treasury/pairs/{pair_id}/split:
+    post:
+      summary: "Разорвать пару: указанная сторона — списание на таланты клана"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: pair_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
 components:
   securitySchemes:
     BasicAuth:

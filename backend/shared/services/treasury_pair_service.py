@@ -22,9 +22,11 @@ from shared.models.clan_info import (
 )
 
 PAIR_KINDS = ('exchange', 'loan')
+KIND_TALENTS = 'talents'
 STATUS_CANDIDATE = 'candidate'
 STATUS_CONFIRMED = 'confirmed'
 STATUS_REJECTED = 'rejected'
+STATUS_SPLIT = 'split'
 
 
 class PairError(ValueError):
@@ -85,6 +87,60 @@ def unconfirm_pair(pair: TreasuryOperationPair) -> TreasuryOperationPair:
     return pair
 
 
+def split_pair(
+    pair: TreasuryOperationPair,
+    keep: str,
+    user_id: int | None = None,
+    comment: str = '',
+) -> TreasuryOperationPair:
+    """Разрыв пары: указанная операция — списание на таланты, вторая возвращается в очередь.
+
+    Списание на таланты клана делает глава или совет: операция всегда минусовая и пары
+    у неё нет. Автоматика иногда сшивает её с чем-то похожим, поэтому казначей указывает,
+    какую сторону оставить списанием, а вторая снова становится кандидатом.
+
+    `apply_pair_class` здесь намеренно не вызывается: он раздаёт классы по статусу пары
+    и вернул бы списанию «tax».
+    """
+    if keep not in ('first', 'second'):
+        raise PairError(f'неизвестная сторона пары: {keep}')
+
+    kept_id = pair.first_op_id if keep == 'first' else pair.second_op_id
+    other_id = pair.second_op_id if keep == 'first' else pair.first_op_id
+
+    kept = db.session.get(TreasuryOperation, kept_id) if kept_id else None
+    if not kept:
+        raise PairError('операция для списания не найдена')
+
+    kept.op_class = 'neutral'
+    kept.class_kind = KIND_TALENTS
+    kept.class_source = 'manual'
+
+    other = db.session.get(TreasuryOperation, other_id) if other_id else None
+    if other:
+        other.op_class = 'tax'
+        other.class_kind = ''
+        other.class_source = ''
+
+    old = {'status': pair.status, 'kind': pair.kind}
+    pair.status = STATUS_SPLIT
+    if comment:
+        pair.comment = comment
+    db.session.add(
+        TreasuryPairRevision(
+            pair_id=pair.id,
+            changed_by=user_id,
+            old_value=json.dumps(old, ensure_ascii=False),
+            new_value=json.dumps(
+                {'status': pair.status, 'kept': keep, 'class_kind': KIND_TALENTS},
+                ensure_ascii=False,
+            ),
+            comment=comment or 'разрыв пары: списание на таланты клана',
+        )
+    )
+    return pair
+
+
 def revise_pair(
     pair: TreasuryOperationPair,
     new_kind: str,
@@ -128,6 +184,7 @@ def pair_as_dict(pair: TreasuryOperationPair) -> dict:
             'object_name': op.object_name,
             'quantity': op.quantity,
             'op_class': op.op_class,
+            'class_kind': op.class_kind,
         }
 
     return {

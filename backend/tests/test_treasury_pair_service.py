@@ -13,6 +13,7 @@ from shared.services.treasury_pair_service import (
     pair_as_dict,
     reject_pair,
     revise_pair,
+    split_pair,
     unconfirm_pair,
 )
 
@@ -136,3 +137,47 @@ def test_pair_as_dict_has_both_sides(app):
         assert data['first']['nick'] == '__SvcProbe__'
         assert data['second']['quantity'] == -5
         assert data['status'] == 'candidate'
+
+
+def test_split_marks_kept_side_as_talents_and_frees_other(app):
+    """Указанная сторона — списание на таланты, вторая снова учитываемая."""
+    pair_id = _setup(app)
+    with app.app_context():
+        pair = db.session.get(TreasuryOperationPair, pair_id)
+        split_pair(pair, 'first', user_id=1)
+        db.session.commit()
+
+        kept = db.session.get(TreasuryOperation, pair.first_op_id)
+        other = db.session.get(TreasuryOperation, pair.second_op_id)
+
+        assert kept.op_class == 'neutral'
+        assert kept.class_kind == 'talents'
+        assert kept.class_source == 'manual'
+
+        assert other.op_class == 'tax'
+        assert other.class_kind == ''
+        assert pair.status == 'split'
+
+
+def test_split_writes_revision_log(app):
+    pair_id = _setup(app)
+    with app.app_context():
+        pair = db.session.get(TreasuryOperationPair, pair_id)
+        split_pair(pair, 'second', user_id=1)
+        db.session.commit()
+
+        revs = TreasuryPairRevision.query.filter_by(pair_id=pair_id).all()
+        assert len(revs) == 1
+        assert 'talents' in revs[0].new_value
+        assert 'second' in revs[0].new_value
+
+
+def test_split_rejects_unknown_side(app):
+    pair_id = _setup(app)
+    with app.app_context():
+        pair = db.session.get(TreasuryOperationPair, pair_id)
+        try:
+            split_pair(pair, 'third', user_id=1)
+            raise AssertionError('неизвестная сторона должна падать')
+        except PairError:
+            pass

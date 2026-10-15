@@ -7,6 +7,8 @@ export interface TreasuryPairSide {
   object_name: string;
   quantity: number;
   op_class: string;
+  /** Пусто, 'exchange', 'loan' или 'talents' — к чему отнесена операция. */
+  class_kind: string;
 }
 
 /** Пара казны: предложение автоматики или уже принятое решение казначея. */

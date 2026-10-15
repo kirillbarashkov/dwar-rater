@@ -75,6 +75,20 @@ export async function reviseTreasuryPair(
   return response.data;
 }
 
+/** Разрыв пары: указанная сторона — списание на таланты клана, вторая снова кандидат. */
+export async function splitTreasuryPair(
+  clanId: number,
+  pairId: number,
+  keep: 'first' | 'second',
+  comment?: string,
+): Promise<TreasuryPairData> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/pairs/${pairId}/split`,
+    { keep, comment: comment ?? '' },
+  );
+  return response.data;
+}
+
 /** Кандидаты на вторую сторону для конкретной операции. */
 export async function getOperationCandidates(
   clanId: number,

@@ -4,6 +4,7 @@ import {
   getTreasuryPairs,
   rejectTreasuryPair,
   reviseTreasuryPair,
+  splitTreasuryPair,
   unconfirmTreasuryPair,
 } from '../../api/treasuryPairs';
 import type { TreasuryPairData } from '../../types/treasuryPairs';
@@ -164,6 +165,19 @@ export function TreasuryPairsQueue({ clanId }: Props) {
     }
   };
 
+  const handleSplit = async (pair: TreasuryPairData, keep: 'first' | 'second') => {
+    try {
+      await splitTreasuryPair(clanId, pair.id, keep);
+      setMessage({
+        type: 'success',
+        text: 'Операция помечена как списание на таланты клана. Вторая сторона вернулась в очередь кандидатов.',
+      });
+      await load();
+    } catch {
+      setMessage({ type: 'error', text: 'Не удалось разорвать пару' });
+    }
+  };
+
   const renderSide = (pair: TreasuryPairData, which: 'first' | 'second') => {
     const side = which === 'first' ? pair.first : pair.second;
     if (!side) return <div className="tp-side tp-side-missing">Операция не найдена</div>;
@@ -182,10 +196,21 @@ export function TreasuryPairsQueue({ clanId }: Props) {
             {side.quantity > 0 ? `+${side.quantity}` : side.quantity}
           </span>
         </div>
-        {side.op_class === 'neutral' && (
+        {side.op_class === 'neutral' ? (
           <div className="tp-side-flag" title={NEUTRAL_HINT}>
-            нейтральная
+            {side.class_kind === 'talents' ? 'списание на таланты клана' : 'нейтральная'}
           </div>
+        ) : (
+          pair.status === 'candidate' && (
+            <button
+              type="button"
+              className="tp-split-btn"
+              title="Эта операция — списание на таланты клана (делает глава или совет). Пара распадётся: вторая сторона вернётся в очередь кандидатов."
+              onClick={() => handleSplit(pair, which)}
+            >
+              удалить карточку → таланты
+            </button>
+          )
         )}
       </div>
     );
