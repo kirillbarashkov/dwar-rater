@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMemberStatus } from '../../api/memberStatus';
 import type { MemberStatusResponse } from '../../types/memberStatus';
@@ -42,29 +42,50 @@ export function MemberStatusTab({ clanId }: Props) {
   const [data, setData] = useState<MemberStatusResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Ник, по которому реально спрашиваем: ввод тормозим, иначе запрос уходил на
+  // каждое нажатие клавиши — восемь запросов по 3,7 с на восьмисимвольный ник.
+  // Они шли вразнобой, индикатор гас по первому ответу, и казначей видел пустой
+  // экран, пока не прилетит последний.
+  const [appliedNick, setAppliedNick] = useState('');
+  // Номер последнего запроса: ответ на устаревший запрос не должен перетирать
+  // свежие данные и гасить чужой индикатор.
+  const requestId = useRef(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAppliedNick(nick.trim()), 450);
+    return () => clearTimeout(timer);
+  }, [nick]);
 
   const load = useCallback(async () => {
-    if (!nick.trim()) {
+    if (!appliedNick) {
       setData(null);
+      setLoading(false);
       return;
     }
+    const id = ++requestId.current;
     setLoading(true);
     setError('');
     try {
-      setData(await getMemberStatus(clanId, nick.trim(), month, year));
+      const result = await getMemberStatus(clanId, appliedNick, month, year);
+      if (id !== requestId.current) return;
+      setData(result);
     } catch {
+      if (id !== requestId.current) return;
       setError('Не удалось получить статус участника');
       setData(null);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
-  }, [clanId, nick, month, year]);
+  }, [clanId, appliedNick, month, year]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const tax = data?.tax;
+  // Пока идёт ввод или запрос — показываем индикатор, а не пустые разделы: иначе
+  // казначей видит «ресурсов нет» и не понимает, что данные ещё едут.
+  const pending = loading || nick.trim() !== appliedNick;
 
   return (
     <div className="member-status">
@@ -120,12 +141,20 @@ export function MemberStatusTab({ clanId }: Props) {
       </div>
 
       {error && <div className="treasury-message treasury-message-error">{error}</div>}
-      {loading && <div className="treasury-empty">Загружаю статус…</div>}
-      {!loading && !nick.trim() && (
+      {pending && (
+        <div className="ms-loading" role="status" aria-live="polite">
+          <span className="ms-spinner" aria-hidden="true" />
+          <span>
+            Загружаю статус участника… Отчёт считается по всему клану, поэтому
+            может занять несколько секунд.
+          </span>
+        </div>
+      )}
+      {!pending && !nick.trim() && (
         <div className="treasury-empty">Введите ник участника, чтобы увидеть его состояние дел.</div>
       )}
 
-      {!loading && tax && (
+      {!pending && tax && (
         <>
           <div className="ms-cards">
             <div className="ms-card" title={HINTS.norm}>

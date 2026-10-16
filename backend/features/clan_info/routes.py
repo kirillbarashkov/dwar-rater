@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, g
 from datetime import datetime, date
 import json
 import requests
+from sqlalchemy.orm import selectinload
 from shared.services.clan_parser import (
     fetch_clan_page,
     parse_clan_info,
@@ -1259,7 +1260,16 @@ def get_treasury_pairs(clan_id):
     else:
         query = query.order_by(TreasuryOperationPair.id)
 
-    items = [pair_as_dict(pair) for pair in query.all()]
+    # Стороны пары подгружаем одним запросом. Ленивая загрузка давала по два
+    # обращения на каждую пару: на 2 100 парах это ~4 200 запросов и 3 секунды
+    # ожидания — казначей видел пустой экран и не понимал, когда будут данные.
+    items = [
+        pair_as_dict(pair)
+        for pair in query.options(
+            selectinload(TreasuryOperationPair.first_op),
+            selectinload(TreasuryOperationPair.second_op),
+        ).all()
+    ]
 
     def _matches(item):
         first = item["first"] or {}
@@ -1879,14 +1889,28 @@ def get_member_status(clan_id):
         for item in resource_rows
     ]
 
-    pairs = []
-    for pair in TreasuryOperationPair.query.filter_by(clan_id=clan_id).all():
-        sides = [pair.first_op, pair.second_op]
-        if not any(
-            side and (side.nick or "").lower() == nick.lower() for side in sides
-        ):
-            continue
-        pairs.append(pair_as_dict(pair))
+    # Пары отбираем в запросе и подгружаем стороны сразу: раньше тянулись все пары
+    # клана (2 100+) с ленивой загрузкой каждой стороны — ~4 200 запросов на одну
+    # вкладку и 3 секунды ожидания на ровном месте.
+    nick_ops = db.session.query(TreasuryOperation.id).filter(
+        TreasuryOperation.clan_id == clan_id,
+        db.func.lower(TreasuryOperation.nick) == nick.lower(),
+    )
+    pair_rows = (
+        TreasuryOperationPair.query.filter(
+            TreasuryOperationPair.clan_id == clan_id,
+            db.or_(
+                TreasuryOperationPair.first_op_id.in_(nick_ops),
+                TreasuryOperationPair.second_op_id.in_(nick_ops),
+            ),
+        )
+        .options(
+            selectinload(TreasuryOperationPair.first_op),
+            selectinload(TreasuryOperationPair.second_op),
+        )
+        .all()
+    )
+    pairs = [pair_as_dict(pair) for pair in pair_rows]
 
     history = [
         {

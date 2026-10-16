@@ -97,6 +97,37 @@
   background: var(--bg-hover);
 }
 
+/* Индикатор загрузки: отчёт считается по всему клану и идёт несколько секунд,
+   поэтому нужен видимый признак работы, а не приглушённая строка «пусто». */
+.ms-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 14px 16px;
+  margin: 14px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ms-spinner {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ms-spin 0.8s linear infinite;
+}
+
+@keyframes ms-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .ms-pair-side {
   font-weight: 500;
   color: var(--text-primary);
