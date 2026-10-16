@@ -7,6 +7,7 @@ from shared.models.clan_info import (
     TreasuryExclusionRule,
     TreasuryOperation,
 )
+from shared.rbac.models import AuditLog
 from shared.services.treasury_exclusions import (
     apply_exclusions,
     group_as_dict,
@@ -122,3 +123,57 @@ def test_group_as_dict_includes_rules(app):
         assert data['name'] == 'Тест'
         assert data['mode'] == 'exclude'
         assert [rule['prefix'] for rule in data['rules']] == ['Сущность']
+
+
+def test_add_rule_endpoint_excludes_object(client, admin_headers, app):
+    """Правая кнопка в очереди пар: объект уходит в группу, правила применяются сразу."""
+    group_id = _group(app, name='Правый клик', prefixes=('Другое',))
+    op_id = _op(app, 'Сущность корра')
+
+    resp = client.post(
+        f"/api/clan/{CLAN}/treasury/exclusions/{group_id}/rules",
+        json={'prefix': 'Сущность корра'},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    data = resp.get_json()
+    assert data['changed'] >= 1
+    assert any(rule['prefix'] == 'Сущность корра' for rule in data['group']['rules'])
+
+    with app.app_context():
+        op = db.session.get(TreasuryOperation, op_id)
+        assert op.op_class == 'excluded'
+        actions = {entry.action for entry in AuditLog.query.filter_by(clan_id=CLAN).all()}
+        assert 'treasury_exclusion_rule_add' in actions
+
+
+def test_add_rule_endpoint_rejects_duplicate(client, admin_headers, app):
+    group_id = _group(app, name='Дубли', prefixes=('Сущность',))
+
+    resp = client.post(
+        f"/api/clan/{CLAN}/treasury/exclusions/{group_id}/rules",
+        json={'prefix': 'Сущность'},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 400
+    assert 'уже в группе' in resp.get_json()['error']
+
+
+def test_add_rule_endpoint_requires_prefix(client, admin_headers, app):
+    group_id = _group(app, name='Пусто', prefixes=())
+
+    resp = client.post(
+        f"/api/clan/{CLAN}/treasury/exclusions/{group_id}/rules",
+        json={},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_add_rule_endpoint_unknown_group(client, admin_headers, app):
+    resp = client.post(
+        f"/api/clan/{CLAN}/treasury/exclusions/999999/rules",
+        json={'prefix': 'Что-то'},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 404

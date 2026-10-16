@@ -20,6 +20,8 @@ export async function getTreasuryPairs(
     date_to?: string;
     /** 'old' — порядок импорта, 'new' — сначала новые. */
     sort?: string;
+    /** Показать одну конкретную пару — переход из «Статуса персонажа». */
+    pair_id?: number;
     limit?: number;
     offset?: number;
   } = {},

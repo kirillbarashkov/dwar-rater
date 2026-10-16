@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getMemberStatus } from '../../api/memberStatus';
 import type { MemberStatusResponse } from '../../types/memberStatus';
 import './MemberStatusTab.css';
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export function MemberStatusTab({ clanId }: Props) {
+  const navigate = useNavigate();
   const today = new Date();
   const [nick, setNick] = useState('');
   const [month, setMonth] = useState(today.getMonth() + 1);
@@ -185,7 +187,20 @@ export function MemberStatusTab({ clanId }: Props) {
           ) : (
             <div className="ms-pairs">
               {[...data.pairs.candidates, ...data.pairs.confirmed].map((pair) => (
-                <div key={pair.id} className="ms-pair">
+                <div
+                  key={pair.id}
+                  className="ms-pair ms-pair-clickable"
+                  role="button"
+                  tabIndex={0}
+                  title="Открыть пару в «Обменах и долгах»: там её можно проверить и подтвердить"
+                  onClick={() => navigate(`/clan/${clanId}?tab=treasury-pairs&pair=${pair.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      navigate(`/clan/${clanId}?tab=treasury-pairs&pair=${pair.id}`);
+                    }
+                  }}
+                >
                   <span
                     className={`tp-status tp-status-${pair.status}`}
                     title={pair.status === 'confirmed' ? HINTS.pairs : 'Кандидат: автоматика нашла похожие операции, решения ещё нет.'}

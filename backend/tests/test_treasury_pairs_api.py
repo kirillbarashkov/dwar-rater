@@ -170,3 +170,32 @@ def test_queue_pagination_limits_page(client, admin_headers, app):
     data = resp.get_json()
     assert len(data['items']) == 1
     assert data['total'] >= 1
+
+
+def test_queue_focuses_single_pair_ignoring_status(client, admin_headers, app):
+    """Переход из «Статуса персонажа»: пара видна независимо от статуса.
+
+    Подтверждённая пара не попадает в очередь кандидатов, поэтому фокус по pair_id
+    отбор по статусу игнорирует — иначе переход вёл бы в пустой экран.
+    """
+    pair_id, _ = _seed(app)
+    client.post(
+        f"/api/clan/{CLAN}/treasury/pairs/{pair_id}/confirm",
+        json={'kind': 'exchange'},
+        headers=admin_headers,
+    )
+
+    without_focus = client.get(
+        f"/api/clan/{CLAN}/treasury/pairs?status=candidate", headers=admin_headers
+    )
+    assert all(item['id'] != pair_id for item in without_focus.get_json()['items'])
+
+    focused = client.get(
+        f"/api/clan/{CLAN}/treasury/pairs?status=candidate&pair_id={pair_id}",
+        headers=admin_headers,
+    )
+    assert focused.status_code == 200, focused.get_data(as_text=True)
+    data = focused.get_json()
+    assert data['total'] == 1
+    assert data['items'][0]['id'] == pair_id
+    assert data['items'][0]['status'] == 'confirmed'

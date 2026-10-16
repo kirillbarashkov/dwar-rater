@@ -55,3 +55,19 @@ export async function applyExclusions(
   );
   return response.data;
 }
+
+/**
+ * Добавляет объект в группу правилом-префиксом (правая кнопка в очереди пар).
+ * Правила применяются сразу — ответ содержит число пересчитанных операций.
+ */
+export async function addExclusionRule(
+  clanId: number,
+  groupId: number,
+  prefix: string,
+): Promise<{ group: ExclusionGroup; changed: number; total: number }> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/exclusions/${groupId}/rules`,
+    { prefix },
+  );
+  return response.data;
+}

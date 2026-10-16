@@ -3394,6 +3394,14 @@ paths:
           description: old — по порядку импорта, new — сначала новые
           schema:
             type: string
+        - name: pair_id
+          in: query
+          description: >
+            Показать одну конкретную пару — переход из «Статуса персонажа».
+            Отбор по статусу при этом игнорируется: подтверждённая пара иначе
+            не нашлась бы в очереди кандидатов.
+          schema:
+            type: integer
         - name: limit
           in: query
           description: Размер страницы, по умолчанию 50, максимум 200
@@ -3690,6 +3698,40 @@ paths:
           description: OK
         "401":
           description: Не авторизован
+
+  /api/clan/{clan_id}/treasury/exclusions/{group_id}/rules:
+    post:
+      summary: "Добавляет объект в группу исключений правилом-префиксом"
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prefix]
+              properties:
+                prefix:
+                  type: string
+                  description: Название объекта; правило сопоставляется по началу названия.
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+
 
 components:
   securitySchemes:

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   batchDecideTreasuryPairs,
   confirmTreasuryPair,
@@ -10,6 +12,8 @@ import {
   splitTreasuryPair,
   unconfirmTreasuryPair,
 } from '../../api/treasuryPairs';
+import { addExclusionRule, getExclusionGroups } from '../../api/treasuryExclusions';
+import type { ExclusionGroup } from '../../types/treasuryExclusions';
 import type {
   TreasuryPairData,
   TreasuryPairHistoryEntry,
@@ -19,6 +23,11 @@ import './TreasuryPairsQueue.css';
 const KIND_LABELS: Record<string, string> = {
   exchange: 'Обмен',
   loan: 'Долг',
+};
+
+const MODE_LABELS: Record<string, string> = {
+  exclude: 'исключить из отчётов',
+  neutral: 'нейтральные',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -89,6 +98,65 @@ export function TreasuryPairsQueue({ clanId }: Props) {
   const [reviseKind, setReviseKind] = useState<'exchange' | 'loan'>('exchange');
   const [reviseComment, setReviseComment] = useState('');
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Переход из «Статуса персонажа»: ?pair=<id> показывает ровно эту пару.
+  const focusPairId = Number(searchParams.get('pair')) || null;
+  const [menu, setMenu] = useState<{ x: number; y: number; objectName: string } | null>(
+    null,
+  );
+  const [groups, setGroups] = useState<ExclusionGroup[]>([]);
+
+  // Меню правой кнопки закрывается по клику мимо и по Escape — иначе оно висит
+  // поверх страницы, и непонятно, как от него избавиться.
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenu(null);
+    };
+    window.addEventListener('click', close);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menu]);
+
+  const clearFocus = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('pair');
+    setSearchParams(next);
+  };
+
+  const openContextMenu = (event: ReactMouseEvent, objectName: string) => {
+    event.preventDefault();
+    if (!objectName) return;
+    setMenu({ x: event.clientX, y: event.clientY, objectName });
+    if (groups.length === 0) {
+      getExclusionGroups(clanId)
+        .then((data) => setGroups(data.items.filter((group) => group.is_active)))
+        .catch(() => setGroups([]));
+    }
+  };
+
+  const addToGroup = async (group: ExclusionGroup) => {
+    if (!menu) return;
+    const objectName = menu.objectName;
+    setMenu(null);
+    try {
+      const result = await addExclusionRule(clanId, group.id, objectName);
+      setMessage({
+        type: 'success',
+        text: `«${objectName}» добавлен в группу «${group.name}» (${MODE_LABELS[group.mode] ?? group.mode}). Пересчитано операций: ${result.changed}.`,
+      });
+      await load();
+    } catch (error) {
+      const text = (error as { response?: { data?: { error?: string } } })?.response?.data
+        ?.error;
+      setMessage({ type: 'error', text: text || 'Не удалось добавить объект в группу' });
+    }
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -100,6 +168,7 @@ export function TreasuryPairsQueue({ clanId }: Props) {
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
         sort,
+        pair_id: focusPairId ?? undefined,
         limit: PAGE_SIZE,
         offset,
       });
@@ -110,7 +179,7 @@ export function TreasuryPairsQueue({ clanId }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [clanId, status, kind, nick, opType, dateFrom, dateTo, sort, offset]);
+  }, [clanId, status, kind, nick, opType, dateFrom, dateTo, sort, offset, focusPairId]);
 
   // Смена фильтров возвращает на первую страницу: иначе легко оказаться
   // на странице, которой у нового отбора уже нет.
@@ -282,7 +351,13 @@ export function TreasuryPairsQueue({ clanId }: Props) {
         </div>
         <div className="tp-side-body">
           <span className="tp-side-type">{side.operation_type}</span>
-          <span className="tp-side-object">{side.object_name}</span>
+          <span
+            className="tp-side-object"
+            title="Правая кнопка — добавить объект в группу исключений"
+            onContextMenu={(event) => openContextMenu(event, side.object_name)}
+          >
+            {side.object_name}
+          </span>
           <span
             className={side.quantity < 0 ? 'tp-side-qty tp-side-qty-out' : 'tp-side-qty tp-side-qty-in'}
           >
@@ -464,7 +539,10 @@ export function TreasuryPairsQueue({ clanId }: Props) {
 
       {!loading &&
         pairs.map((pair) => (
-          <div key={pair.id} className="tp-card">
+          <div
+            key={pair.id}
+            className={`tp-card ${focusPairId === pair.id ? 'tp-card-focus' : ''}`}
+          >
             <div className="tp-card-head">
               {pair.status === 'candidate' && (
                 <input
@@ -616,6 +694,17 @@ export function TreasuryPairsQueue({ clanId }: Props) {
             )}
           </div>
         ))}
+
+      {focusPairId !== null && (
+        <div className="tp-focus" title="Переход из вкладки «Статус персонажа»">
+          <span className="tp-focus-text">
+            Показана одна пара: #{focusPairId}. Её можно проверить и подтвердить.
+          </span>
+          <button type="button" className="tp-btn-ghost" onClick={clearFocus}>
+            Показать всю очередь
+          </button>
+        </div>
+      )}
 
       {!loading && candidates.length > 0 && (
         <div className="tp-batch" title="Групповое действие применяется ко всем отмеченным парам">
@@ -782,6 +871,48 @@ export function TreasuryPairsQueue({ clanId }: Props) {
             </div>
           </div>
         </div>
+      )}
+
+      {menu && (
+        <>
+          <div
+            className="tp-ctx-backdrop"
+            onClick={() => setMenu(null)}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              setMenu(null);
+            }}
+          />
+          <div className="tp-ctxmenu" style={{ left: menu.x, top: menu.y }}>
+            <div className="tp-ctxmenu-title">Добавить в группу исключений</div>
+            <div
+              className="tp-ctxmenu-object"
+              title="Правило сопоставляется по началу названия — «Сущность» поймает и «Сущность кретса»"
+            >
+              {menu.objectName}
+            </div>
+            {groups.length === 0 ? (
+              <div className="tp-ctxmenu-empty">
+                Групп нет — создайте их во вкладке «Группы исключений»
+              </div>
+            ) : (
+              groups.map((group) => (
+                <button
+                  key={group.id}
+                  type="button"
+                  className="tp-ctxmenu-item"
+                  onClick={() => addToGroup(group)}
+                  title={`Режим группы: ${MODE_LABELS[group.mode] ?? group.mode}`}
+                >
+                  <span>{group.name}</span>
+                  <span className="tp-ctxmenu-mode">
+                    {MODE_LABELS[group.mode] ?? group.mode}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </>
       )}
     </div>
   );

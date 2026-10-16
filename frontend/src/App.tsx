@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useCharacterAnalysis } from './hooks/useCharacterAnalysis';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
@@ -335,26 +335,28 @@ function HomePage() {
 
 function ClanPageWrapper() {
   const { clanId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [chatOpen, setChatOpen] = useState(false);
-  // Вкладка может прийти в URL: с «Персонажа», «Анализа» или «Трека» клик по
-  // «Казначейству» ведёт сюда переходом, а состояние вкладки при перемонтировании
-  // терялось — страница открывалась на «Клане» вместо «Казначейства».
-  const requestedTab = new URLSearchParams(window.location.search).get('tab') ?? '';
-  const [activeTab, setActiveTab] = useState(requestedTab || 'info');
-  const [activeGroup, setActiveGroup] = useState(
-    TREASURY_TABS.includes(requestedTab) ? 'treasury-nav' : 'clan',
-  );
+
+  // Вкладка живёт в адресе — единственный источник истины. Раньше она дублировалась
+  // состоянием, инициализированным из URL один раз: переход, меняющий только адрес
+  // (например, из «Статуса персонажа» в конкретную пару), содержимое за собой не
+  // двигал — на экране оставалась прежняя вкладка.
+  const activeTab = new URLSearchParams(location.search).get('tab') || 'info';
+  const activeGroup = TREASURY_TABS.includes(activeTab) ? 'treasury-nav' : 'clan';
 
   const handleToggleChat = useCallback(() => setChatOpen((prev) => !prev), []);
 
-  const handleTabChange = (groupKey: string, tabKey: string) => {
-    setActiveGroup(groupKey);
-    setActiveTab(tabKey);
-  };
-
-  const handleSwitchTab = useCallback((tab: string) => {
-    setActiveTab(tab);
-  }, []);
+  // Переход из «Обзора клана» меняет адрес: и содержимое, и подсветка выводятся из
+  // него. Состояние врозь с адресом здесь не живёт — иначе они расходятся.
+  const handleSwitchTab = useCallback(
+    (tab: string) => {
+      const base = clanId ? `/clan/${clanId}` : location.pathname;
+      navigate(`${base}?tab=${tab}`);
+    },
+    [navigate, clanId, location.pathname],
+  );
 
   const renderContent = () => {
     if (activeGroup === 'clan' || activeGroup === 'treasury-nav') {
@@ -378,7 +380,6 @@ function ClanPageWrapper() {
       <div className="app-layout">
         <Sidebar
           activeTab={activeTab}
-          onTabChange={handleTabChange}
           chatOpen={chatOpen}
           onToggleChat={handleToggleChat}
         />

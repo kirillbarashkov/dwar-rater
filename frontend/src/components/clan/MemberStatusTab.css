@@ -82,6 +82,21 @@
   font-size: 13px;
 }
 
+/* Строка пары ведёт в «Обмены и долги» — показываем, что она кликабельна. */
+.ms-pair-clickable {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.ms-pair-clickable:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
 .ms-pair-side {
   font-weight: 500;
   color: var(--text-primary);

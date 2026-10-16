@@ -1222,6 +1222,8 @@ def get_treasury_pairs(clan_id):
     date_from = (request.args.get("date_from") or "").strip()
     date_to = (request.args.get("date_to") or "").strip()
     sort = (request.args.get("sort") or "old").strip()
+    # Переход из «Статуса персонажа»: показываем одну конкретную пару.
+    pair_id = (request.args.get("pair_id") or "").strip()
 
     try:
         limit = min(int(request.args.get("limit", 50)), 200)
@@ -1243,7 +1245,12 @@ def get_treasury_pairs(clan_id):
     to_month = _month_index(date_to)
 
     query = TreasuryOperationPair.query.filter_by(clan_id=clan_id)
-    if status:
+    if pair_id.isdigit():
+        # Фокус на одной паре: отбор по статусу игнорируем — иначе подтверждённая
+        # пара не нашлась бы (по умолчанию очередь показывает кандидатов)
+        # и переход из «Статуса персонажа» вёл бы в пустой экран.
+        query = query.filter(TreasuryOperationPair.id == int(pair_id))
+    elif status:
         query = query.filter(TreasuryOperationPair.status == status)
     if kind:
         query = query.filter(TreasuryOperationPair.kind == kind)
@@ -1600,6 +1607,53 @@ def delete_exclusion_group(clan_id, group_id):
     db.session.delete(group)
     db.session.commit()
     return jsonify({"ok": True})
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/exclusions/<int:group_id>/rules",
+    methods=["POST"],
+)
+@require_permission("treasury", "approve")
+def add_exclusion_rule(clan_id, group_id):
+    """Добавляет объект в группу исключений правилом-префиксом.
+
+    Казначей щёлкает правой кнопкой по названию ресурса в очереди пар и выбирает
+    группу. Правила применяем сразу: иначе решение не видно, пока не нажмут
+    «Применить» вручную, и казначей решит, что ничего не произошло.
+    """
+    data = request.get_json(silent=True) or {}
+    prefix = (data.get("prefix") or "").strip()
+    if not prefix:
+        return jsonify({"error": "prefix обязателен"}), 400
+
+    group = TreasuryExclusionGroup.query.filter_by(id=group_id, clan_id=clan_id).first()
+    if not group:
+        return jsonify({"error": "группа не найдена"}), 404
+
+    duplicate = TreasuryExclusionRule.query.filter_by(
+        group_id=group.id, prefix=prefix
+    ).first()
+    if duplicate:
+        return jsonify({"error": f"«{prefix}» уже в группе «{group.name}»"}), 400
+
+    group.rules.append(TreasuryExclusionRule(prefix=prefix))
+    db.session.flush()
+
+    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).all()
+    groups = TreasuryExclusionGroup.query.filter_by(clan_id=clan_id).all()
+    changed = apply_exclusions(operations, groups)
+
+    _audit(
+        "treasury_exclusion_rule_add",
+        target_type="treasury_exclusion_group",
+        target_id=group.id,
+        clan_id=clan_id,
+        new={"prefix": prefix, "mode": group.mode, "changed": changed},
+    )
+    db.session.commit()
+    return jsonify(
+        {"group": group_as_dict(group), "changed": changed, "total": len(operations)}
+    )
 
 
 @clan_info_bp.route(
