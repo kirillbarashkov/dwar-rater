@@ -87,11 +87,6 @@
   text-align: center;
 }
 
-.cp-check input[type="checkbox"] {
-  cursor: pointer;
-  accent-color: var(--accent);
-}
-
 .cp-nick {
   font-weight: 600;
   position: relative;

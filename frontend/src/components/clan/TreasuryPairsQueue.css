@@ -215,13 +215,6 @@
   margin: 16px 0 8px;
 }
 
-.tp-check {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--accent);
-}
-
 .tp-batch {
   display: flex;
   align-items: center;

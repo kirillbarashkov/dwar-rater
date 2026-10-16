@@ -79,7 +79,6 @@
 .sh-cache-nick-item input[type="checkbox"] {
   width: 14px;
   height: 14px;
-  accent-color: var(--accent);
   cursor: pointer;
 }
 

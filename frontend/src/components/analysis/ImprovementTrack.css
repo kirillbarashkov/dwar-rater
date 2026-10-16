@@ -93,7 +93,6 @@
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: var(--accent);
 }
 
 .step-content {
@@ -509,7 +508,6 @@
 
 .it-smode input {
   margin: 0;
-  accent-color: var(--accent);
 }
 
 .it-smode.active {

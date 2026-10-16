@@ -527,12 +527,6 @@
   color: var(--text-primary);
 }
 
-.cm-import-overwrite input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
 .cm-import-overwrite:hover {
   background: rgba(0, 212, 170, 0.15);
 }

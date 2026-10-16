@@ -28,7 +28,6 @@
 
 .cph-mode input {
   margin: 0;
-  accent-color: var(--accent);
 }
 
 .cph-mode.active {

@@ -533,7 +533,6 @@
   cursor: pointer;
   width: 14px;
   height: 14px;
-  accent-color: var(--accent);
 }
 
 .tax-modal-actions {

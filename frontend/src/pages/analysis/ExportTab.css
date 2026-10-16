@@ -112,12 +112,6 @@
   border-color: var(--accent);
 }
 
-.export-checkbox input[type="checkbox"] {
-  accent-color: var(--accent);
-  width: 16px;
-  height: 16px;
-}
-
 .export-checkbox span {
   font-size: 0.9rem;
   color: var(--text-primary);
