@@ -45,6 +45,94 @@ def _seed(app):
         return pair.id, op1.id
 
 
+RECALC_CLAN = 987009  # отдельный клан: пересчёт считает по всем операциям клана
+
+
+def _seed_recalc(app):
+    """Клан с двумя операциями и отклонённой парой — для проверки пересчёта."""
+    with app.app_context():
+        if not ClanInfo.query.filter_by(clan_id=RECALC_CLAN).first():
+            db.session.add(ClanInfo(clan_id=RECALC_CLAN, name="RecalcClan"))
+            db.session.commit()
+
+        for pair in TreasuryOperationPair.query.filter_by(clan_id=RECALC_CLAN).all():
+            db.session.delete(pair)
+        TreasuryOperation.query.filter_by(clan_id=RECALC_CLAN).delete()
+        db.session.commit()
+
+        op1 = TreasuryOperation(
+            clan_id=RECALC_CLAN,
+            date='01.10.2026',
+            nick='__RecalcProbe__',
+            operation_type='Деньги',
+            object_name='Монеты',
+            quantity=100,
+        )
+        op2 = TreasuryOperation(
+            clan_id=RECALC_CLAN,
+            date='01.10.2026',
+            nick='__RecalcProbe__',
+            operation_type='Предмет',
+            object_name='Ресурс',
+            quantity=-5,
+        )
+        db.session.add_all([op1, op2])
+        db.session.commit()
+
+        pair = TreasuryOperationPair(
+            clan_id=RECALC_CLAN,
+            first_op_id=op1.id,
+            second_op_id=op2.id,
+            status='rejected',
+        )
+        db.session.add(pair)
+        db.session.commit()
+        return pair.id
+
+
+def test_recalculate_returns_rejected_pair_to_candidates(client, admin_headers, app):
+    """Пересчёт из интерфейса: отклонённая пара снова становится предложением."""
+    _seed_recalc(app)
+
+    resp = client.post(
+        f"/api/clan/{RECALC_CLAN}/treasury/pairs/recalculate",
+        json={},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    data = resp.get_json()
+    assert data['rejected_freed'] == 1
+    assert data['created'] == 1
+    assert data['classes_before'] == data['classes_after']
+
+    queue = client.get(
+        f"/api/clan/{RECALC_CLAN}/treasury/pairs?status=candidate",
+        headers=admin_headers,
+    )
+    assert queue.get_json()['total'] == 1
+
+
+def test_recalculate_is_audited(client, admin_headers, app):
+    """Пересчёт пишется в аудит: правка казны должна быть объяснимой."""
+    _seed_recalc(app)
+
+    client.post(
+        f"/api/clan/{RECALC_CLAN}/treasury/pairs/recalculate",
+        json={},
+        headers=admin_headers,
+    )
+
+    with app.app_context():
+        log = (
+            AuditLog.query.filter_by(
+                action='treasury_pairs_recalculate', clan_id=RECALC_CLAN
+            )
+            .order_by(AuditLog.id.desc())
+            .first()
+        )
+        assert log is not None
+
+
 def test_queue_returns_candidates(client, admin_headers, app):
     pair_id, _ = _seed(app)
     resp = client.get(

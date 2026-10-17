@@ -248,6 +248,35 @@
   margin: 12px 0 0;
 }
 
+/* Подтверждение пересчёта: двухшаговый клик вместо window.confirm — он блокирует
+   страницу и ломает автоматизацию. */
+.tp-recalc-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tp-recalc-question {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 420px;
+}
+
+.tp-btn-danger {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.tp-btn-danger:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.tp-btn-ghost:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* Переход из «Статуса персонажа»: показываем одну пару и объясняем, почему одна. */
 .tp-focus {
   display: flex;

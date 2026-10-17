@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, Iterable, Mapping
 
 from shared.services.tax_engine import is_money_operation, parse_ddmmyyyy
@@ -115,6 +115,39 @@ def _describe(op: Mapping[str, Any]) -> str:
     )
 
 
+def _prepare(op: Mapping[str, Any]) -> tuple | None:
+    """Разбор операции один раз: дата, количество, объект.
+
+    Без этого вес пары парсит дату на каждом сравнении — на реальных данных казны
+    это 5.5 млн сравнений и 30 секунд.
+    """
+    parsed = _op_date(op)
+    if not parsed:
+        return None
+    return (op, parsed, _as_int(op.get('quantity')), (op.get('object_name') or '').strip())
+
+
+def _can_pair(first: tuple, second: tuple, window_days: int) -> bool:
+    """Дешёвая отсечка: может ли пара вообще дать score > 0.
+
+    Повторяет условия `candidate_score` ровно, но без вычисления веса. Ник уже
+    совпадает — операции лежат в одной корзине по нику.
+    """
+    op1, d1, q1, o1 = first
+    op2, d2, q2, o2 = second
+    if op1.get('id') is not None and op1.get('id') == op2.get('id'):
+        return False
+    if abs((d1 - d2).days) > window_days:
+        return False
+    if q1 == 0 or q2 == 0:
+        return False
+    if (q1 > 0) == (q2 > 0):
+        return False
+    if o1 and o1 == o2:
+        return False
+    return True
+
+
 def match_pairs(
     operations: Iterable[Mapping[str, Any]],
     window_days: int = DEFAULT_WINDOW_DAYS,
@@ -126,19 +159,40 @@ def match_pairs(
     на реальных данных казны: 15 432 операции давали 32 269 «пар», из них около
     30 тысяч — совпадения по дню и знаку без участия денег. Жадный отбор по
     убыванию уверенности плюс порог убирают этот шум.
+
+    Порядок обхода и сортировка сохранены как были: при равных весах победитель
+    определяется порядком операций, и менять его — значит менять результат.
     """
-    ops = [op for op in operations if _op_date(op)]
-    by_nick: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
-    for op in ops:
-        by_nick[(op.get('nick') or '').strip().lower()].append(op)
+    prepared = [item for item in (_prepare(op) for op in operations) if item]
+
+    by_nick: dict[str, list[tuple]] = defaultdict(list)
+    for item in prepared:
+        by_nick[(item[0].get('nick') or '').strip().lower()].append(item)
 
     candidates: list[tuple[int, Mapping[str, Any], Mapping[str, Any]]] = []
     for nick_ops in by_nick.values():
+        # Индекс по датам: сравнивать операции из разных дней незачем — окно поиска
+        # 1–2 дня, а ники с тысячами операций дают миллионы заведомо пустых сравнений.
+        by_date: dict[date, list[int]] = defaultdict(list)
+        for index, item in enumerate(nick_ops):
+            by_date[item[1]].append(index)
+
         for i, first in enumerate(nick_ops):
-            for second in nick_ops[i + 1:]:
-                score = candidate_score(first, second, window_days)
+            day = first[1]
+            partners: list[int] = []
+            for shift in range(-window_days, window_days + 1):
+                partners.extend(by_date.get(day + timedelta(days=shift), ()))
+
+            # Партнёры по возрастанию индекса — ровно тот порядок, в котором их
+            # обходил прежний двойной цикл. Порядок важен: при равных весах
+            # победителя определяет он, и перестановка меняет результат.
+            for j in sorted(index for index in partners if index > i):
+                second = nick_ops[j]
+                if not _can_pair(first, second, window_days):
+                    continue
+                score = candidate_score(first[0], second[0], window_days)
                 if score >= min_score:
-                    candidates.append((score, first, second))
+                    candidates.append((score, first[0], second[0]))
 
     candidates.sort(key=lambda item: -item[0])
     used: set = set()

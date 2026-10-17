@@ -6,6 +6,7 @@ import {
   confirmTreasuryPair,
   getTreasuryPairHistory,
   getTreasuryPairs,
+  recalculatePairs,
   rejectTreasuryPair,
   restoreTreasuryPair,
   reviseTreasuryPair,
@@ -109,6 +110,8 @@ export function TreasuryPairsQueue({ clanId }: Props) {
   } | null>(null);
   const [groups, setGroups] = useState<ExclusionGroup[]>([]);
   const [hiddenExcluded, setHiddenExcluded] = useState(0);
+  const [recalcPending, setRecalcPending] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
 
   // Escape закрывает меню, клик мимо ловит подложка (.tp-ctx-backdrop). Слушатель
   // на window тут вреден: он гасил меню и на кликах ВНУТРИ него, из-за чего
@@ -191,6 +194,32 @@ export function TreasuryPairsQueue({ clanId }: Props) {
       });
     } catch {
       setMessage({ type: 'error', text: 'Не удалось применить правила исключений' });
+    }
+  };
+
+  // Пересборка предложений. Отклонённая пара — не приговор: казначей мог отклонить
+  // её до правки данных, поэтому пересчёт возвращает такие операции в общий поиск.
+  // Подтверждённые пары и разрывы не трогаются — это решения человека.
+  const handleRecalculate = async () => {
+    setRecalculating(true);
+    try {
+      const result = await recalculatePairs(clanId);
+      await load();
+      setMessage({
+        type: 'success',
+        text:
+          `Пересчёт: убрано предложений — ${result.removed}` +
+          ` (из них отклонённых ${result.rejected_freed}), создано заново — ${result.created}.` +
+          ` В поиске участвовало операций: ${result.freed_ops},` +
+          ` занято решениями казначея: ${result.locked_ops}. Учёт не изменился.`,
+      });
+    } catch (error) {
+      const text = (error as { response?: { data?: { error?: string } } })?.response?.data
+        ?.error;
+      setMessage({ type: 'error', text: text || 'Не удалось пересчитать пары' });
+    } finally {
+      setRecalculating(false);
+      setRecalcPending(false);
     }
   };
 
@@ -455,6 +484,39 @@ export function TreasuryPairsQueue({ clanId }: Props) {
             >
               Обновить правила
             </button>
+            {recalcPending ? (
+              <span className="tp-recalc-confirm">
+                <span className="tp-recalc-question">
+                  Пересобрать предложения заново? Отклонённые пары вернутся на разбор,
+                  решения казначея не тронутся.
+                </span>
+                <button
+                  type="button"
+                  className="tp-btn-ghost tp-btn-danger"
+                  onClick={handleRecalculate}
+                  disabled={recalculating}
+                >
+                  {recalculating ? 'Считаю…' : 'Да, пересчитать'}
+                </button>
+                <button
+                  type="button"
+                  className="tp-btn-ghost"
+                  onClick={() => setRecalcPending(false)}
+                  disabled={recalculating}
+                >
+                  Отмена
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="tp-btn-ghost"
+                title="Пересобрать предложения по парам: отклонённые пары вернутся на разбор, подтверждённые и разрывы останутся на месте"
+                onClick={() => setRecalcPending(true)}
+              >
+                Пересчитать пары
+              </button>
+            )}
           </div>
         </div>
         <div className="ta-filter-row">

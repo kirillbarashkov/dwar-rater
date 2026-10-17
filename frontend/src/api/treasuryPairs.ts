@@ -4,6 +4,7 @@ import type {
   TreasuryPairData,
   TreasuryPairHistoryResponse,
   TreasuryPairsResponse,
+  TreasuryRecalcResult,
 } from '../types/treasuryPairs';
 
 /** Очередь пар казны: кандидаты автоматики и решения казначея. */
@@ -138,6 +139,18 @@ export async function getOperationCandidates(
   const response = await apiClient.get(
     `/api/clan/${clanId}/treasury/operations/${opId}/candidates`,
     { params: windowDays ? { window_days: windowDays } : undefined },
+  );
+  return response.data;
+}
+
+/**
+ * Пересборка предложений по парам. Отклонённые пары освобождаются и могут быть
+ * предложены снова; подтверждённые пары и разрывы не трогаются.
+ */
+export async function recalculatePairs(clanId: number): Promise<TreasuryRecalcResult> {
+  const response = await apiClient.post(
+    `/api/clan/${clanId}/treasury/pairs/recalculate`,
+    {},
   );
   return response.data;
 }

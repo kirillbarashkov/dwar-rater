@@ -20,6 +20,11 @@ from shared.models.clan_info import (
     TreasuryOperationPair,
     TreasuryPairRevision,
 )
+from shared.services.treasury_pairs import (
+    DEFAULT_MIN_SCORE,
+    DEFAULT_WINDOW_DAYS,
+    match_pairs,
+)
 
 PAIR_KINDS = ('exchange', 'loan')
 KIND_TALENTS = 'talents'
@@ -289,6 +294,109 @@ def batch_decide(
             failed.append({'id': pair.id, 'error': str(exc)})
 
     return {'done': done, 'failed': failed}
+
+
+def _operation_rows(clan_id: int) -> list[dict]:
+    """Операции клана словарями: функции сопоставления работают со словарями, а не с моделями."""
+    return [
+        {
+            'id': op.id,
+            'date': op.date,
+            'nick': op.nick,
+            'operation_type': op.operation_type,
+            'object_name': op.object_name,
+            'quantity': op.quantity,
+            'excluded': op.op_class == 'excluded',
+        }
+        for op in TreasuryOperation.query.filter_by(clan_id=clan_id).all()
+    ]
+
+
+def _class_snapshot(clan_id: int) -> dict[str, int]:
+    """Распределение op_class — доказательство, что пересборка предложений не изменила учёт."""
+    rows = (
+        db.session.query(TreasuryOperation.op_class, db.func.count())
+        .filter(TreasuryOperation.clan_id == clan_id)
+        .group_by(TreasuryOperation.op_class)
+        .all()
+    )
+    return {cls or '': count for cls, count in rows}
+
+
+def rebuild_candidates(
+    clan_id: int,
+    window_days: int = DEFAULT_WINDOW_DAYS,
+    min_score: int = DEFAULT_MIN_SCORE,
+    user_id: int | None = None,
+) -> dict:
+    """Пересборка предложений по парам: отклонённые возвращаются на повторный разбор.
+
+    Пересобираются предложения (`candidate`) и отклонённые пары (`rejected`).
+    Подтверждённые пары и разрывы не трогаются: это решения казначея, их операции
+    заняты и в новый поиск не попадают.
+
+    Отклонение не считается решением навсегда: казначей мог отклонить пару до
+    правки данных, поэтому пересчёт возвращает такие операции в общий поиск, и
+    отклонённая пара может быть предложена снова.
+
+    Учёт при этом не меняется: ни предложения, ни отклонённые пары не влияют на
+    `op_class` — его пишет только подтверждение. Возвращаемые снимки классов до и
+    после нужны, чтобы это было проверяемым утверждением, а не обещанием.
+    """
+    pairs = TreasuryOperationPair.query.filter_by(clan_id=clan_id).all()
+
+    locked_op_ids: set = set()
+    for pair in pairs:
+        if pair.status in (STATUS_CONFIRMED, STATUS_SPLIT):
+            for op_id in (pair.first_op_id, pair.second_op_id):
+                if op_id:
+                    locked_op_ids.add(op_id)
+
+    rebuildable = [
+        pair for pair in pairs if pair.status in (STATUS_CANDIDATE, STATUS_REJECTED)
+    ]
+    rejected_freed = sum(1 for pair in rebuildable if pair.status == STATUS_REJECTED)
+    before = _class_snapshot(clan_id)
+
+    if rebuildable:
+        pair_ids = [pair.id for pair in rebuildable]
+        TreasuryPairRevision.query.filter(
+            TreasuryPairRevision.pair_id.in_(pair_ids)
+        ).delete(synchronize_session=False)
+        for pair in rebuildable:
+            db.session.delete(pair)
+        db.session.flush()
+
+    rows = _operation_rows(clan_id)
+    # Исключённые группой объекты в поиск не берём: их пары всё равно скрыты из очереди.
+    free_rows = [
+        row for row in rows if row['id'] not in locked_op_ids and not row['excluded']
+    ]
+
+    matched = match_pairs(free_rows, window_days, min_score)
+
+    for _score, first, second in matched:
+        db.session.add(
+            TreasuryOperationPair(
+                clan_id=clan_id,
+                first_op_id=first['id'],
+                second_op_id=second['id'],
+                kind='exchange',
+                status=STATUS_CANDIDATE,
+                created_by=user_id,
+            )
+        )
+    db.session.flush()
+
+    return {
+        'removed': len(rebuildable),
+        'rejected_freed': rejected_freed,
+        'freed_ops': len(free_rows),
+        'locked_ops': len(locked_op_ids),
+        'created': len(matched),
+        'classes_before': before,
+        'classes_after': _class_snapshot(clan_id),
+    }
 
 
 def pair_as_dict(pair: TreasuryOperationPair) -> dict:

@@ -3740,6 +3740,35 @@ paths:
           description: Не авторизован
 
 
+  /api/clan/{clan_id}/treasury/pairs/recalculate:
+    post:
+      summary: "Пересборка предложений по парам казны"
+      description: >
+        Пересобирает предложения по парам заново. Отклонённые пары освобождаются и
+        могут быть предложены снова: казначей мог отклонить пару до правки данных.
+        Подтверждённые пары и разрывы не трогаются — это решения человека.
+        Учёт не меняется: классификацию операций пишет только подтверждение. Если
+        распределение классов до и после разошлось, изменения откатываются и
+        приходит 500 — молча поехавший учёт хуже явной ошибки.
+        В ответе: removed, rejected_freed, freed_ops, locked_ops, created и снимки
+        classes_before / classes_after.
+      tags:
+        - Clan
+      parameters:
+        - name: clan_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Не авторизован
+        "500":
+          description: Пересчёт изменил классификацию операций — изменения откатаны
+
+
 components:
   securitySchemes:
     BasicAuth:

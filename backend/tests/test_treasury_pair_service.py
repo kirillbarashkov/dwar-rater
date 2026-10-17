@@ -13,6 +13,7 @@ from shared.services.treasury_pair_service import (
     confirm_pair,
     pair_as_dict,
     pair_history,
+    rebuild_candidates,
     reject_pair,
     restore_pair,
     revise_pair,
@@ -21,6 +22,10 @@ from shared.services.treasury_pair_service import (
 )
 
 CLAN = 987004  # dedicated id, not shared with other test modules
+
+# Отдельный клан для пересчёта: он работает по всем операциям клана, и операции
+# соседних тестов сделали бы счёт непредсказуемым.
+REBUILD_CLAN = 987008
 
 
 def _setup(app):
@@ -55,6 +60,125 @@ def _setup(app):
         db.session.add(pair)
         db.session.commit()
         return pair.id
+
+
+def _setup_rebuild(app):
+    """Клан с двумя операциями (деньги и ресурс) и парой-кандидатом между ними.
+
+    Начинает с чистого листа: пересчёт работает по всем операциям клана, поэтому
+    остатки предыдущих тестов исказили бы счёт.
+    """
+    with app.app_context():
+        if not ClanInfo.query.filter_by(clan_id=REBUILD_CLAN).first():
+            db.session.add(ClanInfo(clan_id=REBUILD_CLAN, name="RebuildClan"))
+            db.session.commit()
+
+        stale_pairs = TreasuryOperationPair.query.filter_by(clan_id=REBUILD_CLAN).all()
+        if stale_pairs:
+            TreasuryPairRevision.query.filter(
+                TreasuryPairRevision.pair_id.in_([p.id for p in stale_pairs])
+            ).delete(synchronize_session=False)
+            for pair in stale_pairs:
+                db.session.delete(pair)
+        TreasuryOperation.query.filter_by(clan_id=REBUILD_CLAN).delete()
+        db.session.commit()
+
+        op1 = TreasuryOperation(
+            clan_id=REBUILD_CLAN,
+            date='01.10.2026',
+            nick='__RebuildProbe__',
+            operation_type='Деньги',
+            object_name='Монеты',
+            quantity=100,
+        )
+        op2 = TreasuryOperation(
+            clan_id=REBUILD_CLAN,
+            date='01.10.2026',
+            nick='__RebuildProbe__',
+            operation_type='Предмет',
+            object_name='Ресурс',
+            quantity=-5,
+        )
+        db.session.add_all([op1, op2])
+        db.session.commit()
+
+        pair = TreasuryOperationPair(
+            clan_id=REBUILD_CLAN, first_op_id=op1.id, second_op_id=op2.id
+        )
+        db.session.add(pair)
+        db.session.commit()
+        return pair.id
+
+
+def test_rebuild_returns_rejected_pair_as_candidate(app):
+    """Отклонение не приговор: пересчёт освобождает операции и предлагает пару снова."""
+    pair_id = _setup_rebuild(app)
+    with app.app_context():
+        reject_pair(db.session.get(TreasuryOperationPair, pair_id))
+        db.session.commit()
+
+        stats = rebuild_candidates(REBUILD_CLAN, user_id=1)
+        db.session.commit()
+
+        assert stats['removed'] == 1
+        assert stats['rejected_freed'] == 1
+        assert stats['created'] == 1
+
+        pairs = TreasuryOperationPair.query.filter_by(clan_id=REBUILD_CLAN).all()
+        assert len(pairs) == 1
+        assert pairs[0].status == 'candidate'
+
+
+def test_rebuild_keeps_confirmed_pair(app):
+    """Подтверждённая пара — решение казначея: пересчёт её не трогает."""
+    pair_id = _setup_rebuild(app)
+    with app.app_context():
+        confirm_pair(db.session.get(TreasuryOperationPair, pair_id), 'exchange', user_id=1)
+        db.session.commit()
+
+        stats = rebuild_candidates(REBUILD_CLAN, user_id=1)
+        db.session.commit()
+
+        assert stats['removed'] == 0
+        assert stats['created'] == 0
+        assert stats['locked_ops'] == 2
+
+        pairs = TreasuryOperationPair.query.filter_by(clan_id=REBUILD_CLAN).all()
+        assert len(pairs) == 1
+        assert pairs[0].status == 'confirmed'
+
+
+def test_rebuild_does_not_change_accounting(app):
+    """Пересборка предложений не имеет права менять учёт — это проверяемое утверждение."""
+    pair_id = _setup_rebuild(app)
+    with app.app_context():
+        confirm_pair(db.session.get(TreasuryOperationPair, pair_id), 'exchange', user_id=1)
+        db.session.commit()
+
+        stats = rebuild_candidates(REBUILD_CLAN, user_id=1)
+        db.session.commit()
+
+        assert stats['classes_before'] == stats['classes_after']
+
+        ops = TreasuryOperation.query.filter_by(clan_id=REBUILD_CLAN).all()
+        assert all(op.op_class == 'neutral' for op in ops)
+
+
+def test_rebuild_skips_excluded_operations(app):
+    """Исключённый группой объект в поиск не берём: его пары всё равно скрыты из очереди."""
+    pair_id = _setup_rebuild(app)
+    with app.app_context():
+        pair = db.session.get(TreasuryOperationPair, pair_id)
+        db.session.delete(pair)
+        for op in TreasuryOperation.query.filter_by(clan_id=REBUILD_CLAN).all():
+            op.op_class = 'excluded'
+        db.session.commit()
+
+        stats = rebuild_candidates(REBUILD_CLAN, user_id=1)
+        db.session.commit()
+
+        assert stats['created'] == 0
+        assert stats['freed_ops'] == 0
 
 
 def test_confirm_makes_operations_neutral(app):

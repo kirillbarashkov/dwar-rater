@@ -30,6 +30,23 @@ export interface TreasuryPairsResponse {
   hidden_excluded?: number;
 }
 
+/** Итог пересборки предложений по парам. */
+export interface TreasuryRecalcResult {
+  /** Сколько предложений и отклонённых пар убрано перед пересборкой. */
+  removed: number;
+  /** Сколько из убранных были отклонены — они вернутся на повторный разбор. */
+  rejected_freed: number;
+  /** Операции, участвовавшие в поиске. */
+  freed_ops: number;
+  /** Операции в подтверждённых парах и разрывах — решения казначея, поиск их не трогает. */
+  locked_ops: number;
+  /** Сколько предложений создано заново. */
+  created: number;
+  /** Распределение классов операций до и после: должно совпадать. */
+  classes_before: Record<string, number>;
+  classes_after: Record<string, number>;
+}
+
 /** Запись истории решений по паре: правка сервиса или действие казначея. */
 export interface TreasuryPairHistoryEntry {
   source: 'revision' | 'audit' | string;

@@ -39,6 +39,7 @@ from shared.services.treasury_pair_service import (
     confirm_pair,
     pair_as_dict,
     pair_history,
+    rebuild_candidates,
     reject_pair,
     restore_pair,
     revise_pair,
@@ -1396,6 +1397,60 @@ def batch_treasury_pairs(clan_id):
             "ids": ids,
             "done": len(result["done"]),
             "failed": len(result["failed"]),
+        },
+    )
+    db.session.commit()
+    return jsonify(result)
+
+
+@clan_info_bp.route(
+    "/api/clan/<int:clan_id>/treasury/pairs/recalculate", methods=["POST"]
+)
+@require_permission("treasury", "approve")
+def recalculate_treasury_pairs(clan_id):
+    """Пересборка предложений по парам: отклонённые возвращаются на повторный разбор.
+
+    Отклонение не считается решением навсегда — казначей мог отклонить пару до
+    правки данных, поэтому пересчёт освобождает такие операции и предлагает их
+    заново. Подтверждённые пары и разрывы не трогаются: это решения человека.
+    Учёт не меняется, и это проверяется здесь же, а не на словах.
+    """
+    data = request.get_json(silent=True) or {}
+
+    raw_window = data.get("window_days")
+    try:
+        window_days = int(raw_window) if raw_window else DEFAULT_WINDOW_DAYS
+    except (TypeError, ValueError):
+        return jsonify({"error": "window_days должен быть числом"}), 400
+
+    result = rebuild_candidates(
+        clan_id, window_days=window_days, user_id=_current_user_id()
+    )
+
+    if result["classes_before"] != result["classes_after"]:
+        # Пересборка предложений не имеет права менять классификацию операций.
+        # Если это произошло — откатываем и говорим прямо, а не оставляем поехавший учёт.
+        db.session.rollback()
+        return (
+            jsonify(
+                {
+                    "error": "пересчёт изменил классификацию операций — изменения откатаны",
+                    "classes_before": result["classes_before"],
+                    "classes_after": result["classes_after"],
+                }
+            ),
+            500,
+        )
+
+    _audit(
+        "treasury_pairs_recalculate",
+        target_type="treasury_pairs",
+        clan_id=clan_id,
+        new={
+            "removed": result["removed"],
+            "rejected_freed": result["rejected_freed"],
+            "created": result["created"],
+            "window_days": window_days,
         },
     )
     db.session.commit()
