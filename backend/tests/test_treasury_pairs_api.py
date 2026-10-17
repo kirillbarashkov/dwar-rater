@@ -133,6 +133,27 @@ def test_recalculate_is_audited(client, admin_headers, app):
         assert log is not None
 
 
+def test_queue_counts_cover_all_statuses(client, admin_headers, app):
+    """Счётчики разделов: цифра на кнопке совпадает с числом пар в разделе.
+
+    Считаются до отбора по статусу, поэтому переключение раздела их не меняет —
+    иначе казначей видел бы разные цифры на одной и той же кнопке.
+    """
+    _seed(app)
+
+    resp = client.get(
+        f"/api/clan/{CLAN}/treasury/pairs?status=candidate", headers=admin_headers
+    )
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    data = resp.get_json()
+    assert data['total'] == data['counts'].get('candidate', 0)
+
+    other = client.get(
+        f"/api/clan/{CLAN}/treasury/pairs?status=confirmed", headers=admin_headers
+    ).get_json()
+    assert other['counts'] == data['counts']
+
+
 def test_queue_returns_candidates(client, admin_headers, app):
     pair_id, _ = _seed(app)
     resp = client.get(

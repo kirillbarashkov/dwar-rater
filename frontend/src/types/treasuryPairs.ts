@@ -28,6 +28,8 @@ export interface TreasuryPairsResponse {
   items: TreasuryPairData[];
   /** Сколько пар-кандидатов скрыто: их объекты выведены из отчётов группами исключений. */
   hidden_excluded?: number;
+  /** Сколько пар в каждом статусе — для переключателя разделов. Учитывает остальные фильтры. */
+  counts?: Record<string, number>;
 }
 
 /** Итог пересборки предложений по парам. */

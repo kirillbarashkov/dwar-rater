@@ -35,6 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
   candidate: 'Ждёт решения',
   confirmed: 'Подтверждено',
   rejected: 'Отклонено',
+  split: 'Разрыв',
 };
 
 const STATUS_HINTS: Record<string, string> = {
@@ -44,7 +45,39 @@ const STATUS_HINTS: Record<string, string> = {
     'Подтверждено: обе операции стали нейтральными и больше не идут в налог и ресурсы.',
   rejected:
     'Отклонено: это не обмен и не долг. Операции учитываются как обычно.',
+  split:
+    'Разрыв: казначей признал одну операцию списанием на таланты клана, вторая снова учитывается как обычная.',
 };
+
+// Разделы очереди. «Разрыв» здесь не для полноты списка: такие пары есть в данных,
+// и без отдельного раздела их не отфильтровать — видны только в «Все».
+const STATUS_TABS: { value: string; label: string; hint: string }[] = [
+  {
+    value: 'candidate',
+    label: 'Ждут решения',
+    hint: 'Пары, по которым казначей ещё не принял решение',
+  },
+  {
+    value: 'confirmed',
+    label: 'Подтверждённые',
+    hint: 'Подтверждённые пары: их операции нейтральные и в налог не идут',
+  },
+  {
+    value: 'rejected',
+    label: 'Отклонённые',
+    hint: 'Отклонённые пары: операции продолжают учитываться. Пересчёт вернёт их на разбор',
+  },
+  {
+    value: 'split',
+    label: 'Разрыв',
+    hint: 'Разорванные пары: одна сторона списана на таланты клана',
+  },
+  {
+    value: '',
+    label: 'Все',
+    hint: 'Все пары клана без отбора по статусу',
+  },
+];
 
 const KIND_HINTS: Record<string, string> = {
   exchange: 'Обмен: участник отдал одно и получил другое — деньги на ресурсы или ресурсы на деньги.',
@@ -110,6 +143,7 @@ export function TreasuryPairsQueue({ clanId }: Props) {
   } | null>(null);
   const [groups, setGroups] = useState<ExclusionGroup[]>([]);
   const [hiddenExcluded, setHiddenExcluded] = useState(0);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [recalcPending, setRecalcPending] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
 
@@ -241,6 +275,7 @@ export function TreasuryPairsQueue({ clanId }: Props) {
       setPairs(data.items);
       setTotal(data.total);
       setHiddenExcluded(data.hidden_excluded ?? 0);
+      setCounts(data.counts ?? {});
     } catch {
       setMessage({ type: 'error', text: 'Не удалось загрузить очередь пар' });
     } finally {
@@ -520,21 +555,27 @@ export function TreasuryPairsQueue({ clanId }: Props) {
           </div>
         </div>
         <div className="ta-filter-row">
-          <div className="ta-filter-group">
-            <label className="ta-filter-label" htmlFor="tp-status" title="Какие пары показывать">
-              Статус
-            </label>
-            <select
-              id="tp-status"
-              className="ta-filter-input"
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-            >
-              <option value="candidate">Ждут решения</option>
-              <option value="confirmed">Подтверждённые</option>
-              <option value="rejected">Отклонённые</option>
-              <option value="">Все</option>
-            </select>
+          <div className="tp-status-switch" role="group" aria-label="Какие пары показывать">
+            {STATUS_TABS.map((tab) => {
+              const active = status === tab.value;
+              // «Все» — сумма по разделам: отдельной цифры для него бэкенд не даёт.
+              const value = tab.value
+                ? counts[tab.value] ?? 0
+                : Object.values(counts).reduce((sum, n) => sum + n, 0);
+              return (
+                <button
+                  key={tab.value || 'all'}
+                  type="button"
+                  className={`tp-status-tab ${active ? 'tp-status-tab-active' : ''}`}
+                  title={`${tab.hint}. Пар: ${value}`}
+                  aria-pressed={active}
+                  onClick={() => setStatus(tab.value)}
+                >
+                  {tab.label}
+                  <span className="tp-status-count">{value}</span>
+                </button>
+              );
+            })}
           </div>
           <div className="ta-filter-group">
             <label className="ta-filter-label" htmlFor="tp-nick" title="Фильтр по нику участника">
@@ -755,14 +796,19 @@ export function TreasuryPairsQueue({ clanId }: Props) {
               </div>
             ) : (
               <div className="tp-actions">
-                <button
-                  type="button"
-                  className="tp-btn-ghost"
-                  title="Вернуть пару в очередь кандидатов: операции снова начнут учитываться"
-                  onClick={() => handleRestore(pair)}
-                >
-                  Вернуть в очередь
-                </button>
+                {/* У подтверждённой пары сброс — своя кнопка ниже («Отменить
+                    подтверждение»). «Вернуть в очередь» здесь делала бы то же
+                    самое: два действия с одним результатом сбивают с толку. */}
+                {pair.status !== 'confirmed' && (
+                  <button
+                    type="button"
+                    className="tp-btn-ghost"
+                    title="Вернуть пару в очередь кандидатов: операции снова начнут учитываться"
+                    onClick={() => handleRestore(pair)}
+                  >
+                    Вернуть в очередь
+                  </button>
+                )}
                 <button
                   type="button"
                   className="tp-btn-ghost"

@@ -1252,8 +1252,8 @@ def get_treasury_pairs(clan_id):
         # пара не нашлась бы (по умолчанию очередь показывает кандидатов)
         # и переход из «Статуса персонажа» вёл бы в пустой экран.
         query = query.filter(TreasuryOperationPair.id == int(pair_id))
-    elif status:
-        query = query.filter(TreasuryOperationPair.status == status)
+    # Отбор по статусу делается ниже, в Python: одним запросом получаются и
+    # счётчики по всем статусам для переключателя, и сам список.
     if kind:
         query = query.filter(TreasuryOperationPair.kind == kind)
     if sort == "new":
@@ -1333,11 +1333,23 @@ def get_treasury_pairs(clan_id):
         if hide_excluded
         else 0
     )
+    # Счётчики по статусам — для переключателя: казначей должен видеть объём каждого
+    # раздела до перехода в него. Считаем по тем же фильтрам, что и список, поэтому
+    # цифра на кнопке совпадает с тем, что он увидит после переключения.
+    counts: dict[str, int] = {}
+    for item in filtered:
+        key = item.get("status") or ""
+        counts[key] = counts.get(key, 0) + 1
+
+    if status and not (pair_id and pair_id.isdigit()):
+        filtered = [item for item in filtered if item.get("status") == status]
+
     return jsonify(
         {
             "total": len(filtered),
             "items": filtered[offset:offset + limit],
             "hidden_excluded": hidden_excluded,
+            "counts": counts,
         }
     )
 
