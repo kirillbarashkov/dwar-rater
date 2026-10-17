@@ -329,36 +329,40 @@
   font-style: italic;
 }
 
-/* Переключатель объекта: в паре их два, и добавить можно любой. */
-.tp-ctxmenu-alt {
+/* Кнопки внутри карточки объекта: каждая относится к своему объекту, поэтому
+   и размещены в его карточке, а не общим рядом на всю пару. */
+.tp-side-actions {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  padding: 0 8px 8px;
-  margin-bottom: 6px;
-  border-bottom: 1px solid var(--border-light);
+  margin-top: 8px;
 }
 
-.tp-ctxmenu-alt-label {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.tp-ctxmenu-alt-btn {
-  background: var(--bg-secondary);
+.tp-side-btn {
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 3px 8px;
   font-size: 11px;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: var(--transition);
 }
 
-.tp-ctxmenu-alt-btn:hover {
+.tp-side-btn:hover {
   border-color: var(--accent);
+  color: var(--text-primary);
   background: var(--bg-hover);
+}
+
+.tp-ctxmenu-warn {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--red);
+  padding: 0 8px 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .tp-page-info {

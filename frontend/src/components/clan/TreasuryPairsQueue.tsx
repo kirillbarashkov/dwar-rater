@@ -105,7 +105,7 @@ export function TreasuryPairsQueue({ clanId }: Props) {
     x: number;
     y: number;
     objectName: string;
-    alternatives: string[];
+    isMoney: boolean;
   } | null>(null);
   const [groups, setGroups] = useState<ExclusionGroup[]>([]);
 
@@ -127,29 +127,9 @@ export function TreasuryPairsQueue({ clanId }: Props) {
     setSearchParams(next);
   };
 
-  const objectNames = (pair: TreasuryPairData): string[] => {
-    const names = [pair.first?.object_name, pair.second?.object_name]
-      .map((name) => (name || '').trim())
-      .filter(Boolean);
-    return Array.from(new Set(names));
-  };
-
-  // «Монеты» — это деньги: исключить их значит выкинуть из отчётов всю казну.
-  // Поэтому по умолчанию предлагаем ресурсную сторону, а не денежную.
-  const defaultObject = (pair: TreasuryPairData): string => {
-    const sides = [pair.first, pair.second].filter(Boolean);
-    const resource = sides.find((side) => (side?.operation_type || '') !== 'Деньги');
-    return (resource ?? sides[sides.length - 1])?.object_name || '';
-  };
-
-  const openMenu = (
-    x: number,
-    y: number,
-    objectName: string,
-    alternatives: string[],
-  ) => {
+  const openMenu = (x: number, y: number, objectName: string, isMoney: boolean) => {
     if (!objectName) return;
-    setMenu({ x, y, objectName, alternatives });
+    setMenu({ x, y, objectName, isMoney });
     if (groups.length === 0) {
       getExclusionGroups(clanId)
         .then((data) => setGroups(data.items.filter((group) => group.is_active)))
@@ -157,21 +137,26 @@ export function TreasuryPairsQueue({ clanId }: Props) {
     }
   };
 
+  // В паре два объекта, поэтому и кнопка нужна у каждого: одна на всю пару не
+  // давала понять, что именно уйдёт в группу — оба объекта или связка. Оба пути
+  // (правая кнопка и кнопка в карточке объекта) добавляют ровно тот объект, на
+  // котором нажали.
   const openContextMenu = (
     event: ReactMouseEvent,
-    pair: TreasuryPairData,
     objectName: string,
+    isMoney: boolean,
   ) => {
     event.preventDefault();
-    openMenu(event.clientX, event.clientY, objectName, objectNames(pair));
+    openMenu(event.clientX, event.clientY, objectName, isMoney);
   };
 
-  // Видимая кнопка в ряду действий: контекстное меню само по себе невидимо, и
-  // найти его на узком названии объекта нереально — казначей просто не знал, что
-  // оно есть. Кнопка открывает то же меню, правая кнопка остаётся быстрым путём.
-  const openMenuFromButton = (event: ReactMouseEvent, pair: TreasuryPairData) => {
+  const openMenuFromButton = (
+    event: ReactMouseEvent,
+    objectName: string,
+    isMoney: boolean,
+  ) => {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    openMenu(rect.left, rect.bottom + 4, defaultObject(pair), objectNames(pair));
+    openMenu(rect.left, rect.bottom + 4, objectName, isMoney);
   };
 
   const addToGroup = async (group: ExclusionGroup) => {
@@ -389,7 +374,9 @@ export function TreasuryPairsQueue({ clanId }: Props) {
           <span
             className="tp-side-object"
             title="Правая кнопка — добавить объект в группу исключений"
-            onContextMenu={(event) => openContextMenu(event, pair, side.object_name)}
+            onContextMenu={(event) =>
+              openContextMenu(event, side.object_name, side.operation_type === 'Деньги')
+            }
           >
             {side.object_name}
           </span>
@@ -415,6 +402,18 @@ export function TreasuryPairsQueue({ clanId }: Props) {
             </button>
           )
         )}
+        <div className="tp-side-actions">
+          <button
+            type="button"
+            className="tp-side-btn"
+            title={`Добавить «${side.object_name}» в группу исключений — этот объект перестанет попадать в отчёты казны`}
+            onClick={(event) =>
+              openMenuFromButton(event, side.object_name, side.operation_type === 'Деньги')
+            }
+          >
+            в группу исключений
+          </button>
+        </div>
       </div>
     );
   };
@@ -660,14 +659,6 @@ export function TreasuryPairsQueue({ clanId }: Props) {
                 <button
                   type="button"
                   className="tp-btn-ghost"
-                  title="Объект из этой пары — в группу исключений: он перестанет попадать в отчёты казны"
-                  onClick={(event) => openMenuFromButton(event, pair)}
-                >
-                  в группу исключений
-                </button>
-                <button
-                  type="button"
-                  className="tp-btn-ghost"
                   title="Кто и когда менял эту пару"
                   onClick={() => openHistory(pair)}
                 >
@@ -676,14 +667,6 @@ export function TreasuryPairsQueue({ clanId }: Props) {
               </div>
             ) : (
               <div className="tp-actions">
-                <button
-                  type="button"
-                  className="tp-btn-ghost"
-                  title="Объект из этой пары — в группу исключений: он перестанет попадать в отчёты казны"
-                  onClick={(event) => openMenuFromButton(event, pair)}
-                >
-                  в группу исключений
-                </button>
                 <button
                   type="button"
                   className="tp-btn-ghost"
@@ -942,21 +925,10 @@ export function TreasuryPairsQueue({ clanId }: Props) {
             >
               {menu.objectName}
             </div>
-            {menu.alternatives.filter((name) => name !== menu.objectName).length > 0 && (
-              <div className="tp-ctxmenu-alt">
-                <span className="tp-ctxmenu-alt-label">Взять другой объект пары:</span>
-                {menu.alternatives
-                  .filter((name) => name !== menu.objectName)
-                  .map((name) => (
-                    <button
-                      key={name}
-                      type="button"
-                      className="tp-ctxmenu-alt-btn"
-                      onClick={() => setMenu({ ...menu, objectName: name })}
-                    >
-                      {name}
-                    </button>
-                  ))}
+            {menu.isMoney && (
+              <div className="tp-ctxmenu-warn">
+                Это деньги. Исключение уберёт из отчётов казны все операции с монетами,
+                а не только эту.
               </div>
             )}
             {groups.length === 0 ? (
