@@ -101,25 +101,24 @@ export function TreasuryPairsQueue({ clanId }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   // Переход из «Статуса персонажа»: ?pair=<id> показывает ровно эту пару.
   const focusPairId = Number(searchParams.get('pair')) || null;
-  const [menu, setMenu] = useState<{ x: number; y: number; objectName: string } | null>(
-    null,
-  );
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    objectName: string;
+    alternatives: string[];
+  } | null>(null);
   const [groups, setGroups] = useState<ExclusionGroup[]>([]);
 
-  // Меню правой кнопки закрывается по клику мимо и по Escape — иначе оно висит
-  // поверх страницы, и непонятно, как от него избавиться.
+  // Escape закрывает меню, клик мимо ловит подложка (.tp-ctx-backdrop). Слушатель
+  // на window тут вреден: он гасил меню и на кликах ВНУТРИ него, из-за чего
+  // переключатель объекта не работал — меню просто исчезало.
   useEffect(() => {
     if (!menu) return;
-    const close = () => setMenu(null);
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMenu(null);
     };
-    window.addEventListener('click', close);
     window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('click', close);
-      window.removeEventListener('keydown', onKey);
-    };
+    return () => window.removeEventListener('keydown', onKey);
   }, [menu]);
 
   const clearFocus = () => {
@@ -128,15 +127,51 @@ export function TreasuryPairsQueue({ clanId }: Props) {
     setSearchParams(next);
   };
 
-  const openContextMenu = (event: ReactMouseEvent, objectName: string) => {
-    event.preventDefault();
+  const objectNames = (pair: TreasuryPairData): string[] => {
+    const names = [pair.first?.object_name, pair.second?.object_name]
+      .map((name) => (name || '').trim())
+      .filter(Boolean);
+    return Array.from(new Set(names));
+  };
+
+  // «Монеты» — это деньги: исключить их значит выкинуть из отчётов всю казну.
+  // Поэтому по умолчанию предлагаем ресурсную сторону, а не денежную.
+  const defaultObject = (pair: TreasuryPairData): string => {
+    const sides = [pair.first, pair.second].filter(Boolean);
+    const resource = sides.find((side) => (side?.operation_type || '') !== 'Деньги');
+    return (resource ?? sides[sides.length - 1])?.object_name || '';
+  };
+
+  const openMenu = (
+    x: number,
+    y: number,
+    objectName: string,
+    alternatives: string[],
+  ) => {
     if (!objectName) return;
-    setMenu({ x: event.clientX, y: event.clientY, objectName });
+    setMenu({ x, y, objectName, alternatives });
     if (groups.length === 0) {
       getExclusionGroups(clanId)
         .then((data) => setGroups(data.items.filter((group) => group.is_active)))
         .catch(() => setGroups([]));
     }
+  };
+
+  const openContextMenu = (
+    event: ReactMouseEvent,
+    pair: TreasuryPairData,
+    objectName: string,
+  ) => {
+    event.preventDefault();
+    openMenu(event.clientX, event.clientY, objectName, objectNames(pair));
+  };
+
+  // Видимая кнопка в ряду действий: контекстное меню само по себе невидимо, и
+  // найти его на узком названии объекта нереально — казначей просто не знал, что
+  // оно есть. Кнопка открывает то же меню, правая кнопка остаётся быстрым путём.
+  const openMenuFromButton = (event: ReactMouseEvent, pair: TreasuryPairData) => {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    openMenu(rect.left, rect.bottom + 4, defaultObject(pair), objectNames(pair));
   };
 
   const addToGroup = async (group: ExclusionGroup) => {
@@ -354,7 +389,7 @@ export function TreasuryPairsQueue({ clanId }: Props) {
           <span
             className="tp-side-object"
             title="Правая кнопка — добавить объект в группу исключений"
-            onContextMenu={(event) => openContextMenu(event, side.object_name)}
+            onContextMenu={(event) => openContextMenu(event, pair, side.object_name)}
           >
             {side.object_name}
           </span>
@@ -625,6 +660,14 @@ export function TreasuryPairsQueue({ clanId }: Props) {
                 <button
                   type="button"
                   className="tp-btn-ghost"
+                  title="Объект из этой пары — в группу исключений: он перестанет попадать в отчёты казны"
+                  onClick={(event) => openMenuFromButton(event, pair)}
+                >
+                  в группу исключений
+                </button>
+                <button
+                  type="button"
+                  className="tp-btn-ghost"
                   title="Кто и когда менял эту пару"
                   onClick={() => openHistory(pair)}
                 >
@@ -633,6 +676,14 @@ export function TreasuryPairsQueue({ clanId }: Props) {
               </div>
             ) : (
               <div className="tp-actions">
+                <button
+                  type="button"
+                  className="tp-btn-ghost"
+                  title="Объект из этой пары — в группу исключений: он перестанет попадать в отчёты казны"
+                  onClick={(event) => openMenuFromButton(event, pair)}
+                >
+                  в группу исключений
+                </button>
                 <button
                   type="button"
                   className="tp-btn-ghost"
@@ -891,6 +942,23 @@ export function TreasuryPairsQueue({ clanId }: Props) {
             >
               {menu.objectName}
             </div>
+            {menu.alternatives.filter((name) => name !== menu.objectName).length > 0 && (
+              <div className="tp-ctxmenu-alt">
+                <span className="tp-ctxmenu-alt-label">Взять другой объект пары:</span>
+                {menu.alternatives
+                  .filter((name) => name !== menu.objectName)
+                  .map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      className="tp-ctxmenu-alt-btn"
+                      onClick={() => setMenu({ ...menu, objectName: name })}
+                    >
+                      {name}
+                    </button>
+                  ))}
+              </div>
+            )}
             {groups.length === 0 ? (
               <div className="tp-ctxmenu-empty">
                 Групп нет — создайте их во вкладке «Группы исключений»
