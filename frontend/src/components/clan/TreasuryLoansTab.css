@@ -1,0 +1,189 @@
+/* Вкладка «Займы из казны». Токены — реальные, из tokens.css: выдуманное имя
+   проваливается в светлый фолбэк и ломает тёмную тему. */
+
+.ln-tab {
+  display: flex;
+  flex-direction: column;
+}
+
+.ln-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  max-width: 760px;
+}
+
+.ln-error {
+  margin: 12px 0;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--red);
+  border: 1px solid var(--red);
+  border-radius: var(--radius-sm);
+}
+
+.ln-loading {
+  padding: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ln-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 14px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ln-totals b {
+  color: var(--text-primary);
+}
+
+.ln-totals-muted {
+  font-style: italic;
+}
+
+.ln-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.ln-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.4fr) 90px 100px 180px minmax(200px, 1.6fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.ln-row-head {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ln-row-body {
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.ln-row-body:hover {
+  background: var(--bg-hover);
+}
+
+.ln-row-open {
+  background: var(--bg-hover);
+}
+
+.ln-nick {
+  font-weight: 600;
+}
+
+.ln-taken {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.ln-dates {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ln-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Причина, по которой заём открыт: без неё казначей видит сумму и не знает, что с ней делать. */
+.ln-reason {
+  font-size: 11px;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ln-reason-candidate {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.ln-reason-rejected {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.ln-reason-split {
+  color: var(--text-primary);
+}
+
+.ln-ops {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 12px 10px;
+  background: var(--bg-secondary);
+  border-top: 1px dashed var(--border);
+}
+
+.ln-ops-note {
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ln-op {
+  display: grid;
+  grid-template-columns: 140px 90px minmax(140px, 1fr) 90px minmax(120px, auto) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 12px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+}
+
+.ln-op:last-child {
+  border-bottom: none;
+}
+
+.ln-op-date,
+.ln-op-type {
+  color: var(--text-muted);
+}
+
+.ln-op-qty {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.ln-op-link {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.ln-op-link:hover {
+  background: var(--bg-hover);
+}

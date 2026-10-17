@@ -16,6 +16,7 @@ export const TREASURY_TABS = [
   'analytics',
   'treasury-pairs',
   'member-status',
+  'loans',
   'exclusions',
   'treasury-import',
 ];

@@ -33,6 +33,7 @@ from shared.services.treasury_exclusions import (
     apply_exclusions,
     group_as_dict,
 )
+from shared.services.treasury_loans import collect_loans
 from shared.services.treasury_pair_service import (
     PairError,
     batch_decide,
@@ -1467,6 +1468,22 @@ def recalculate_treasury_pairs(clan_id):
     )
     db.session.commit()
     return jsonify(result)
+
+
+@clan_info_bp.route("/api/clan/<int:clan_id>/treasury/loans", methods=["GET"])
+@require_permission("treasury", "read")
+def get_treasury_loans(clan_id):
+    """Займы из казны: минусовые операции, не закрытые подтверждённой парой.
+
+    Отдельный раздел, потому что «долг» в «Статусе персонажа» и сводке — это
+    недосдача налога (норма минус покрыто), совсем другое понятие. Смешивать их в
+    одном разделе нельзя: казначей решит, что видит одно и то же.
+
+    С `?nick=` в ответ добавляются операции этого человека — сводку тянем без них,
+    чтобы не гонять тысячи строк ради одной раскрытой строки.
+    """
+    nick = (request.args.get("nick") or "").strip()
+    return jsonify(collect_loans(clan_id, nick=nick or None))
 
 
 @clan_info_bp.route(
