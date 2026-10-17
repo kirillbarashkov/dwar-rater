@@ -26,6 +26,8 @@ export interface TreasuryPairData {
 export interface TreasuryPairsResponse {
   total: number;
   items: TreasuryPairData[];
+  /** Сколько пар-кандидатов скрыто: их объекты выведены из отчётов группами исключений. */
+  hidden_excluded?: number;
 }
 
 /** Запись истории решений по паре: правка сервиса или действие казначея. */

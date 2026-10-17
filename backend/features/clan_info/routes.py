@@ -1275,6 +1275,14 @@ def get_treasury_pairs(clan_id):
         first = item["first"] or {}
         second = item["second"] or {}
 
+        # Кандидат с исключённым объектом не предлагаем: казначею нечего решать —
+        # ресурс уже выведен из отчётов группой исключений. Решённые пары остаются:
+        # это история и аудит, молча их терять нельзя. В режиме фокуса (pair_id)
+        # фильтр не применяем, иначе переход из «Статуса персонажа» упирался бы
+        # в пустой экран.
+        if hide_excluded and item.get("status") == "candidate" and _excluded_side(item):
+            return False
+
         if nick and nick not in (first.get("nick") or "").lower() \
                 and nick not in (second.get("nick") or "").lower():
             return False
@@ -1304,8 +1312,33 @@ def get_treasury_pairs(clan_id):
 
         return True
 
+    def _excluded_side(item):
+        return any(
+            (item.get(side) or {}).get("op_class") == "excluded"
+            for side in ("first", "second")
+        )
+
+    hide_excluded = not (pair_id and pair_id.isdigit())
+
     filtered = [item for item in items if _matches(item)]
-    return jsonify({"total": len(filtered), "items": filtered[offset:offset + limit]})
+    # Сколько пар скрыто из-за исключённых объектов: без этой цифры казначей не
+    # понимает, куда делась пара, которую он только что видел.
+    hidden_excluded = (
+        sum(
+            1
+            for item in items
+            if item.get("status") == "candidate" and _excluded_side(item)
+        )
+        if hide_excluded
+        else 0
+    )
+    return jsonify(
+        {
+            "total": len(filtered),
+            "items": filtered[offset:offset + limit],
+            "hidden_excluded": hidden_excluded,
+        }
+    )
 
 
 def _get_pair_or_none(clan_id, pair_id):
@@ -1536,15 +1569,22 @@ def create_exclusion_group(clan_id):
                 TreasuryExclusionRule(group_id=group.id, prefix=prefix.strip())
             )
 
+    # Правила применяем сразу при сохранении: иначе группа выглядит нерабочей —
+    # казначей сохранил её, а в казне ничего не изменилось, пока он не нажмёт
+    # отдельную кнопку «Применить правила», про которую никто не помнит.
+    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).all()
+    groups = TreasuryExclusionGroup.query.filter_by(clan_id=clan_id).all()
+    changed = apply_exclusions(operations, groups)
+
     _audit(
         "treasury_exclusion_group_create",
         target_type="treasury_exclusion_group",
         target_id=group.id,
         clan_id=clan_id,
-        new={"name": name, "mode": mode},
+        new={"name": name, "mode": mode, "changed": changed},
     )
     db.session.commit()
-    return jsonify(group_as_dict(group))
+    return jsonify({**group_as_dict(group), "changed": changed})
 
 
 @clan_info_bp.route(
@@ -1591,8 +1631,16 @@ def update_exclusion_group(clan_id, group_id):
             "is_active": bool(group.is_active),
         },
     )
+
+    # Правка группы (правила, режим, вкл/выкл) тоже применяется сразу — иначе
+    # изменение настроек не отражается на казне до ручного «Применить правила».
+    db.session.flush()
+    operations = TreasuryOperation.query.filter_by(clan_id=clan_id).all()
+    groups = TreasuryExclusionGroup.query.filter_by(clan_id=clan_id).all()
+    changed = apply_exclusions(operations, groups)
+
     db.session.commit()
-    return jsonify(group_as_dict(group))
+    return jsonify({**group_as_dict(group), "changed": changed})
 
 
 @clan_info_bp.route(

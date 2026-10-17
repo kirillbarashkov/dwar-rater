@@ -18,7 +18,7 @@ export interface ExclusionGroupPayload {
 export async function createExclusionGroup(
   clanId: number,
   data: ExclusionGroupPayload,
-): Promise<ExclusionGroup> {
+): Promise<ExclusionGroup & { changed?: number }> {
   const response = await apiClient.post(`/api/clan/${clanId}/treasury/exclusions`, data);
   return response.data;
 }
@@ -27,7 +27,7 @@ export async function updateExclusionGroup(
   clanId: number,
   groupId: number,
   data: Partial<ExclusionGroupPayload>,
-): Promise<ExclusionGroup> {
+): Promise<ExclusionGroup & { changed?: number }> {
   const response = await apiClient.put(
     `/api/clan/${clanId}/treasury/exclusions/${groupId}`,
     data,

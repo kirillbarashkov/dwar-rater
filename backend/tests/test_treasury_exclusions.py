@@ -177,3 +177,40 @@ def test_add_rule_endpoint_unknown_group(client, admin_headers, app):
         headers=admin_headers,
     )
     assert resp.status_code == 404
+
+
+def test_create_group_applies_rules_immediately(client, admin_headers, app):
+    """Сохранение группы сразу пересчитывает операции.
+
+    Иначе группа выглядит нерабочей: казначей её сохранил, а в казне ничего не
+    изменилось, пока он не нажмёт отдельную «Применить правила».
+    """
+    op_id = _op(app, 'Сущность кретса')
+
+    resp = client.post(
+        f"/api/clan/{CLAN}/treasury/exclusions",
+        json={'name': 'Сразу', 'mode': 'exclude', 'prefixes': ['Сущность']},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    assert resp.get_json()['changed'] >= 1
+
+    with app.app_context():
+        assert db.session.get(TreasuryOperation, op_id).op_class == 'excluded'
+
+
+def test_update_group_applies_rules(client, admin_headers, app):
+    """Правка группы тоже применяется сразу — иначе настройки не доходят до казны."""
+    group_id = _group(app, name='Правка', prefixes=())
+    op_id = _op(app, 'Сущность корра')
+
+    resp = client.put(
+        f"/api/clan/{CLAN}/treasury/exclusions/{group_id}",
+        json={'prefixes': ['Сущность']},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    assert resp.get_json()['changed'] >= 1
+
+    with app.app_context():
+        assert db.session.get(TreasuryOperation, op_id).op_class == 'excluded'

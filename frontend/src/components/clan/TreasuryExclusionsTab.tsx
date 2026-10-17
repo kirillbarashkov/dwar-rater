@@ -70,14 +70,14 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
       return;
     }
     try {
-      await createExclusionGroup(clanId, {
+      const created = await createExclusionGroup(clanId, {
         name: newName.trim(),
         mode: newMode,
         prefixes: parsePrefixes(newPrefixes),
       });
       setMessage({
         type: 'success',
-        text: 'Группа создана. Нажмите «Применить правила», чтобы она подействовала на операции.',
+        text: `Группа создана и применена сразу: пересчитано операций — ${created.changed ?? 0}. Пары с этими объектами ушли из «Обменов и долгов».`,
       });
       setNewName('');
       setNewPrefixes('');
@@ -97,14 +97,14 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
   const handleUpdate = async () => {
     if (!editing) return;
     try {
-      await updateExclusionGroup(clanId, editing.id, {
+      const updated = await updateExclusionGroup(clanId, editing.id, {
         name: editName.trim(),
         mode: editMode,
         prefixes: parsePrefixes(editPrefixes),
       });
       setMessage({
         type: 'success',
-        text: 'Группа сохранена. Нажмите «Применить правила», чтобы изменения подействовали.',
+        text: `Группа сохранена и применена сразу: пересчитано операций — ${updated.changed ?? 0}.`,
       });
       setEditing(null);
       await load();
@@ -116,6 +116,10 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
   const handleToggleActive = async (group: ExclusionGroup) => {
     try {
       await updateExclusionGroup(clanId, group.id, { is_active: !group.is_active });
+      setMessage({
+        type: 'success',
+        text: `Группа ${group.is_active ? 'выключена' : 'включена'}, правила применены.`,
+      });
       await load();
     } catch {
       setMessage({ type: 'error', text: 'Не удалось переключить группу' });

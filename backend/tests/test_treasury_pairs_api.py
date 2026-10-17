@@ -199,3 +199,34 @@ def test_queue_focuses_single_pair_ignoring_status(client, admin_headers, app):
     assert data['total'] == 1
     assert data['items'][0]['id'] == pair_id
     assert data['items'][0]['status'] == 'confirmed'
+
+
+def test_queue_hides_candidates_with_excluded_objects(client, admin_headers, app):
+    """Кандидат с исключённым объектом не предлагается: казначею нечего решать.
+
+    Пара не удаляется — она просто перестаёт предлагаться, пока действует правило.
+    """
+    pair_id, _ = _seed(app)
+
+    created = client.post(
+        f"/api/clan/{CLAN}/treasury/exclusions",
+        json={'name': 'Ресурсы', 'mode': 'exclude', 'prefixes': ['Ресурс']},
+        headers=admin_headers,
+    )
+    assert created.status_code == 200, created.get_data(as_text=True)
+
+    resp = client.get(
+        f"/api/clan/{CLAN}/treasury/pairs?status=candidate", headers=admin_headers
+    )
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    data = resp.get_json()
+    assert all(item['id'] != pair_id for item in data['items'])
+    assert data['hidden_excluded'] >= 1
+
+    # В режиме фокуса пара остаётся видимой: переход из «Статуса персонажа» не должен
+    # упираться в пустой экран.
+    focused = client.get(
+        f"/api/clan/{CLAN}/treasury/pairs?pair_id={pair_id}", headers=admin_headers
+    )
+    assert focused.status_code == 200, focused.get_data(as_text=True)
+    assert focused.get_json()['total'] == 1

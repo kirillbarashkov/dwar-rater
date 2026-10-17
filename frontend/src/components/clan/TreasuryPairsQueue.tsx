@@ -12,7 +12,7 @@ import {
   splitTreasuryPair,
   unconfirmTreasuryPair,
 } from '../../api/treasuryPairs';
-import { addExclusionRule, getExclusionGroups } from '../../api/treasuryExclusions';
+import { addExclusionRule, applyExclusions, getExclusionGroups } from '../../api/treasuryExclusions';
 import type { ExclusionGroup } from '../../types/treasuryExclusions';
 import type {
   TreasuryPairData,
@@ -108,6 +108,7 @@ export function TreasuryPairsQueue({ clanId }: Props) {
     isMoney: boolean;
   } | null>(null);
   const [groups, setGroups] = useState<ExclusionGroup[]>([]);
+  const [hiddenExcluded, setHiddenExcluded] = useState(0);
 
   // Escape закрывает меню, клик мимо ловит подложка (.tp-ctx-backdrop). Слушатель
   // на window тут вреден: он гасил меню и на кликах ВНУТРИ него, из-за чего
@@ -177,6 +178,22 @@ export function TreasuryPairsQueue({ clanId }: Props) {
     }
   };
 
+  // Кнопка для случая «правила меняли в другой вкладке»: пересчитывает операции и
+  // обновляет очередь, не заставляя переключаться туда и обратно. Пары, чьи объекты
+  // выведены из отчётов, после пересчёта из очереди уходят.
+  const handleApplyRules = async () => {
+    try {
+      const result = await applyExclusions(clanId);
+      await load();
+      setMessage({
+        type: 'success',
+        text: `Правила применены: пересчитано операций — ${result.changed}. Пары с исключёнными объектами убраны из очереди.`,
+      });
+    } catch {
+      setMessage({ type: 'error', text: 'Не удалось применить правила исключений' });
+    }
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -194,6 +211,7 @@ export function TreasuryPairsQueue({ clanId }: Props) {
       });
       setPairs(data.items);
       setTotal(data.total);
+      setHiddenExcluded(data.hidden_excluded ?? 0);
     } catch {
       setMessage({ type: 'error', text: 'Не удалось загрузить очередь пар' });
     } finally {
@@ -429,6 +447,14 @@ export function TreasuryPairsQueue({ clanId }: Props) {
             <span className="tp-total" title="Сколько пар подходит под текущий фильтр">
               Найдено: {total}
             </span>
+            <button
+              type="button"
+              className="tp-btn-ghost"
+              title="Пересчитать операции по группам исключений и обновить очередь: пары с исключёнными объектами перестанут предлагаться"
+              onClick={handleApplyRules}
+            >
+              Обновить правила
+            </button>
           </div>
         </div>
         <div className="ta-filter-row">
@@ -728,6 +754,15 @@ export function TreasuryPairsQueue({ clanId }: Props) {
             )}
           </div>
         ))}
+
+      {hiddenExcluded > 0 && (
+        <div
+          className="tp-hidden-note"
+          title="Эти пары не предлагаются: их объекты выведены из отчётов группами исключений. Уберите правило — пары вернутся."
+        >
+          Скрыто пар с исключёнными объектами: {hiddenExcluded}
+        </div>
+      )}
 
       {focusPairId !== null && (
         <div className="tp-focus" title="Переход из вкладки «Статус персонажа»">
