@@ -971,20 +971,43 @@ export function TreasuryPairsQueue({ clanId }: Props) {
                 Групп нет — создайте их во вкладке «Группы исключений»
               </div>
             ) : (
-              groups.map((group) => (
-                <button
-                  key={group.id}
-                  type="button"
-                  className="tp-ctxmenu-item"
-                  onClick={() => addToGroup(group)}
-                  title={`Режим группы: ${MODE_LABELS[group.mode] ?? group.mode}`}
-                >
-                  <span>{group.name}</span>
-                  <span className="tp-ctxmenu-mode">
-                    {MODE_LABELS[group.mode] ?? group.mode}
-                  </span>
-                </button>
-              ))
+              groups.map((group) => {
+                const prefixes = group.rules
+                  .map((rule) => (rule.prefix || '').trim())
+                  .filter(Boolean);
+                // Сопоставление идёт по началу названия, поэтому объект может уже
+                // попадать под чужое правило: показываем это до нажатия, чтобы не
+                // добавлять его второй раз и не удивляться ответу «уже в группе».
+                const covered = prefixes.some((prefix) =>
+                  menu.objectName.toLowerCase().startsWith(prefix.toLowerCase()),
+                );
+                return (
+                  <button
+                    key={group.id}
+                    type="button"
+                    className={`tp-ctxmenu-item ${covered ? 'tp-ctxmenu-item-covered' : ''}`}
+                    onClick={() => addToGroup(group)}
+                    title={
+                      covered
+                        ? 'Этот объект уже попадает под правило группы'
+                        : `Режим группы: ${MODE_LABELS[group.mode] ?? group.mode}`
+                    }
+                  >
+                    <span className="tp-ctxmenu-item-head">
+                      <span>{group.name}</span>
+                      <span className="tp-ctxmenu-mode">
+                        {MODE_LABELS[group.mode] ?? group.mode}
+                      </span>
+                    </span>
+                    <span className="tp-ctxmenu-rules">
+                      {prefixes.length > 0
+                        ? `уже в группе: ${prefixes.join(', ')}`
+                        : 'группа пуста'}
+                      {covered && ' · этот объект сюда уже попадает'}
+                    </span>
+                  </button>
+                );
+              })
             )}
           </div>
         </>

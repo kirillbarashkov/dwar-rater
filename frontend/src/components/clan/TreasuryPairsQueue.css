@@ -308,9 +308,9 @@
 
 .tp-ctxmenu-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
   width: 100%;
   background: transparent;
   border: none;
@@ -325,6 +325,26 @@
 
 .tp-ctxmenu-item:hover {
   background: var(--bg-hover);
+}
+
+/* Группа, под правило которой объект уже попадает: добавлять его туда нечего. */
+.tp-ctxmenu-item-covered .tp-ctxmenu-item-head > span:first-child::after {
+  content: ' ✓';
+  color: var(--accent);
+}
+
+.tp-ctxmenu-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Что уже внесено в группу: без этого казначей добавляет объект наугад. */
+.tp-ctxmenu-rules {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-muted);
 }
 
 .tp-ctxmenu-mode {
