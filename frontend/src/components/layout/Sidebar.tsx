@@ -66,6 +66,7 @@ const navGroups: TabGroup[] = [
     { key: 'compare-list', label: 'Мой список', icon: '📋' },
     { key: 'compare', label: 'Сравнить персонажей', icon: '⚖️' },
   ]},
+  { key: 'about', label: 'О проекте', icon: '📘' },
   { key: 'chat', label: 'Чат', icon: '💬' },
 ];
 
@@ -85,6 +86,10 @@ export function Sidebar({
   // tab — greyed out with an explanation — so the feature is discoverable and the
   // reason for its absence is obvious rather than mysterious.
   const canTreasury = usePermission('treasury', 'read') === 'full';
+  // «О проекте» читают все роли (право выдано по умолчанию каждой). Гасим пункт
+  // только если роль настраивали вручную и права на рассказ о проекте не дали —
+  // иначе была бы невнятная ошибка вместо объяснения.
+  const canAbout = usePermission('about', 'read') !== 'none';
   // Ворота привязки (решение пользователя): пока персонаж не привязан, остальные
   // фичи недоступны — пользователь остаётся на «Персонаж → Информация» и
   // привязывает персонажа. Чат не блокируем: он не про персонажа.
@@ -92,7 +97,10 @@ export function Sidebar({
   const noBinding = !user?.character_url;
   const isGroupDisabled = (group: TabGroup) =>
     (group.key === TREASURY_GROUP_KEY && !canTreasury) ||
-    (noBinding && group.key !== 'character' && group.key !== 'chat');
+    (group.key === 'about' && !canAbout) ||
+    // Ворота привязки не распространяются на «О проекте»: это рассказ о проекте,
+    // он нужен и до того, как персонаж привязан (чат не блокируем по той же причине).
+    (noBinding && group.key !== 'character' && group.key !== 'chat' && group.key !== 'about');
   // Раскрытие и подсветка выводятся из АДРЕСА, а не из локального состояния.
   // Раньше клик по разделу, содержимое которого рендерит другая страница, применял
   // состояние к уходящему экземпляру сайдбара (у каждой страницы своя раскладка),
@@ -125,11 +133,12 @@ export function Sidebar({
   // Главная страница несёт «Анализ персонажа» и «Трек улучшений»: без этого флага
   // клик по пункту «Трека» с клановой страницы не делал перехода.
   const isHomePage = location.pathname === '/';
+  const isAboutPage = location.pathname.startsWith('/about');
   // Активная группа — тоже производная адреса: она решает и подсветку раздела,
   // и подсветку подпункта (иначе 'info' подсвечивался сразу в двух группах).
   const activeGroupKey =
     groupForTab(urlTab) ||
-    (isClanPage ? 'clan' : isCharacterPage ? 'character' : isHomePage ? 'analysis' : '');
+    (isClanPage ? 'clan' : isCharacterPage ? 'character' : isAboutPage ? 'about' : isHomePage ? 'analysis' : '');
 
   const handleGroupClick = (groupKey: string, children?: TabItem[], disabled = false) => {
     if (disabled) return;
@@ -158,6 +167,8 @@ export function Sidebar({
       onToggleChat?.();
     } else if (groupKey === 'track') {
       navigate('/?tab=track');
+    } else if (groupKey === 'about') {
+      navigate('/about');
     }
   };
 
@@ -188,9 +199,11 @@ export function Sidebar({
             const isActive = group.key === activeGroupKey ||
                             (group.key === 'chat' && chatOpen);
             const hint = groupDisabled
-              ? (noBinding && group.key !== TREASURY_GROUP_KEY
-                  ? 'Привяжите персонажа, чтобы открыть раздел'
-                  : 'Доступно админу и казначею')
+              ? (group.key === 'about'
+                  ? 'Нет права на раздел «О проекте»'
+                  : noBinding && group.key !== TREASURY_GROUP_KEY
+                    ? 'Привяжите персонажа, чтобы открыть раздел'
+                    : 'Доступно админу и казначею')
               : undefined;
             return (
               <div key={group.key}>

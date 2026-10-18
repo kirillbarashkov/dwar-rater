@@ -43,6 +43,7 @@ def create_test_app():
     from features.admin.routes import admin_bp
     from features.export.routes import export_bp
     from features.version.routes import version_bp
+    from features.about.routes import about_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(analyze_bp)
@@ -58,6 +59,7 @@ def create_test_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(export_bp)
     app.register_blueprint(version_bp)
+    app.register_blueprint(about_bp)
 
     @app.route('/')
     def index():

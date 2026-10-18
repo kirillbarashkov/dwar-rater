@@ -49,6 +49,8 @@ PERMISSIONS = [
     ('admin', 'read', 'Просмотр админки', 'GET /api/admin/*'),
     ('admin', 'write', 'Управление пользователями и ролями', 'POST/PUT/DELETE /api/admin/*'),
     ('admin', 'admin', 'Просмотр audit log', 'GET /api/admin/audit'),
+    # about — вкладка «О проекте»: описание, что нового, релизы, техдолг
+    ('about', 'read', 'О проекте', 'GET /api/about — документы о проекте'),
 ]
 
 # Default role_permissions: (role_name, feature, action, level)
@@ -83,6 +85,9 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('admin', 'admin', 'read', 'full'),
     ('admin', 'admin', 'write', 'full'),
     ('admin', 'admin', 'admin', 'full'),
+    # Вкладка читают ВСЕ роли, включая недавно зарегистрированных: это рассказ о
+    # проекте, а не рабочий инструмент — прятать его за права смысла нет.
+    ('admin', 'about', 'read', 'full'),
 
     # superuser: everything full EXCEPT admin.*
     ('superuser', 'analyze', 'read', 'full'),
@@ -114,6 +119,7 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('superuser', 'admin', 'read', 'none'),
     ('superuser', 'admin', 'write', 'none'),
     ('superuser', 'admin', 'admin', 'none'),
+    ('superuser', 'about', 'read', 'full'),
 
     # user: read on everything, write on select features
     ('user', 'analyze', 'read', 'full'),
@@ -141,6 +147,7 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('user', 'admin', 'read', 'none'),
     ('user', 'admin', 'write', 'none'),
     ('user', 'admin', 'admin', 'none'),
+    ('user', 'about', 'read', 'full'),
 
     # custom: everything none by default (admin assigns individually)
 
@@ -151,6 +158,7 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('treasurer', 'treasury', 'write', 'full'),
     ('treasurer', 'treasury', 'approve', 'full'),
     ('treasurer', 'treasury', 'admin', 'none'),
+    ('treasurer', 'about', 'read', 'full'),
 ]
 
 

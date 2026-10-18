@@ -43,6 +43,7 @@ import type { Snapshot } from './types/snapshot';
 import { LoginPage } from './pages/auth/LoginPage';
 import { AdminPage } from './pages/admin/AdminPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
+import { AboutPage } from './pages/about/AboutPage';
 import { CharacterPageWrapper } from './pages/character/CharacterPageWrapper';
 import './styles/globals.css';
 
@@ -432,6 +433,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <ProtectedRoute>
+              <AboutPage />
             </ProtectedRoute>
           }
         />
