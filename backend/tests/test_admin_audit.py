@@ -10,6 +10,8 @@
     update_role_permissions, update_user_permissions, delete_deprecated_permissions);
   * 3 места — _audit() БЕЗ commit() (create_backup, delete_backup, restore_backup).
 """
+import os
+
 import pytest
 
 from shared.models import db
@@ -17,6 +19,17 @@ from shared.models.user import User
 from shared.rbac.models import AuditLog, Role
 
 NICK = 'a1probe'
+
+
+class _FakePgDump:
+    """Заглушка pg_dump: возвращает «пустой» дамп и нулевой код возврата."""
+    returncode = 0
+    stdout = b'-- fake dump\n'
+    stderr = b''
+
+
+def _fake_pg_dump(*args, **kwargs):
+    return _FakePgDump()
 
 
 def _count(app, action):
@@ -51,9 +64,12 @@ def target_user(app):
 
 
 def test_user_update_is_audited(app, client, admin_headers, target_user):
+    # Меняем роль, а не is_active: у _audit('user_update') стоит `if changes:`
+    # — если переданное значение совпадает с текущим, изменений нет и след
+    # не пишется (это осознанное поведение, а не потеря записи).
     before = _count(app, 'user_update')
     r = client.put(f'/api/admin/users/{target_user}',
-                   json={'is_active': True}, headers=admin_headers)
+                   json={'role': 'superuser'}, headers=admin_headers)
     assert r.status_code == 200, r.get_json()
     assert _count(app, 'user_update') == before + 1
 
@@ -95,3 +111,64 @@ def test_deprecated_permissions_delete_is_audited(app, client, admin_headers):
     r = client.delete('/api/admin/permissions/deprecated', headers=admin_headers)
     assert r.status_code == 200, r.get_json()
     assert _count(app, 'deprecated_permissions_deleted') == before + 1
+
+
+# ── Операции с бэкапами: там _audit() был вообще без commit() ──────────────
+
+@pytest.fixture
+def backup_dir(app, tmp_path, monkeypatch):
+    """Временный каталог бэкапов вместо /backups и заглушка вместо pg_dump."""
+    import features.admin.routes as admin_routes
+
+    monkeypatch.setattr(admin_routes, 'BACKUP_DIR', str(tmp_path))
+    monkeypatch.setattr(admin_routes.subprocess, 'run', _fake_pg_dump)
+    return tmp_path
+
+
+def test_backup_created_is_audited(app, client, admin_headers, backup_dir):
+    before = _count(app, 'backup_created')
+    # POST без тела Flask отвергает с 415 — шлём пустой JSON.
+    r = client.post('/api/admin/backups', json={}, headers=admin_headers)
+    assert r.status_code == 200, r.get_json()
+    assert _count(app, 'backup_created') == before + 1
+
+    # Файл бэкапа должен существовать и быть валидным gzip — на Windows это
+    # ловило баг с os.rename поверх открытого файла (A1, побочно).
+    filename = r.get_json()['backup']['filename']
+    path = os.path.join(str(backup_dir), filename)
+    assert os.path.exists(path)
+    import gzip
+    with gzip.open(path, 'rb') as gz:
+        assert gz.read().startswith(b'-- fake dump')
+
+
+def test_backup_deleted_is_audited(app, client, admin_headers, backup_dir):
+    # Сначала создаём бэкап, чтобы было что удалять.
+    r = client.post('/api/admin/backups', json={}, headers=admin_headers)
+    assert r.status_code == 200, r.get_json()
+    filename = r.get_json()['backup']['filename']
+
+    before = _count(app, 'backup_deleted')
+    r2 = client.delete(f'/api/admin/backups/{filename}', headers=admin_headers)
+    assert r2.status_code == 200, r2.get_json()
+    assert _count(app, 'backup_deleted') == before + 1
+    assert not os.path.exists(os.path.join(str(backup_dir), filename))
+
+
+def test_backup_restored_is_audited(app, client, admin_headers, backup_dir):
+    r = client.post('/api/admin/backups', json={}, headers=admin_headers)
+    assert r.status_code == 200, r.get_json()
+    filename = r.get_json()['backup']['filename']
+
+    # restore дергает psql — тоже подменяем, чтобы не трогать реальную БД.
+    import features.admin.routes as admin_routes
+    original_run = admin_routes.subprocess.run
+    try:
+        admin_routes.subprocess.run = _fake_pg_dump
+        before = _count(app, 'backup_restored')
+        r2 = client.post(f'/api/admin/backups/{filename}/restore', json={}, headers=admin_headers)
+    finally:
+        admin_routes.subprocess.run = original_run
+
+    assert r2.status_code == 200, r2.get_json()
+    assert _count(app, 'backup_restored') == before + 1

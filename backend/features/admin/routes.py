@@ -126,8 +126,6 @@ def update_user(user_id):
     if 'role' in data or 'is_active' in data or 'password' in data:
         SessionToken.query.filter_by(user_id=user_id).delete()
 
-    db.session.commit()
-
     changes = {}
     if old_role != user.role:
         changes['role'] = {'old': old_role, 'new': user.role}
@@ -136,6 +134,11 @@ def update_user(user_id):
 
     if changes:
         _audit('user_update', target_type='user', target_id=user.id, old=old_role, new=user.role)
+
+    # Коммит ПОСЛЕ _audit(): _audit() только делает db.session.add(), и запись
+    # появляется в БД лишь при следующем commit(). Если коммитить раньше —
+    # след теряется (A1).
+    db.session.commit()
 
     return jsonify(user.to_dict())
 
@@ -149,9 +152,9 @@ def deactivate_user(user_id):
 
     user.is_active = False
     SessionToken.query.filter_by(user_id=user_id).delete()
-    db.session.commit()
 
     _audit('user_deactivate', target_type='user', target_id=user.id, old='active', new='inactive')
+    db.session.commit()
 
     return jsonify({'status': 'deactivated', 'user': user.to_dict()})
 
@@ -168,12 +171,12 @@ def admin_unbind_character(user_id):
 
     user.character_url = None
     user.character_nick = None
-    db.session.commit()
 
     _audit(
         'admin_unbind_character', target_type='user', target_id=user.id,
         old=old_value, new={'character_url': None, 'character_nick': None},
     )
+    db.session.commit()
 
     return jsonify({'status': 'unbound', 'user': user.to_dict()})
 
@@ -214,11 +217,11 @@ def revoke_user_other_sessions(user_id):
     ids = [s.id for s in to_delete]
     for s in to_delete:
         db.session.delete(s)
-    db.session.commit()
     _audit(
         'admin_revoke_sessions', target_type='user', target_id=user.id,
         old={'sessions': ids}, new={'count': len(ids)},
     )
+    db.session.commit()
     return jsonify({'revoked': len(ids), 'session_ids': ids})
 
 
@@ -232,11 +235,11 @@ def revoke_user_session(user_id, session_id):
         return jsonify({'error': 'Сессия не найдена'}), 404
     is_current = session.id == _current_session_id()
     db.session.delete(session)
-    db.session.commit()
     _audit(
         'admin_revoke_session', target_type='user', target_id=user.id,
         old={'session': session_id}, new={'current': is_current},
     )
+    db.session.commit()
     return jsonify({'status': 'revoked', 'session_id': session_id, 'was_current': is_current})
 
 
@@ -372,6 +375,8 @@ def update_role_permissions(role_id):
         db.session.commit()
 
     _audit('role_permissions_update', target_type='role', target_id=role_id, new=data['permissions'])
+    # Коммит после _audit(): запись аудита появляется в БД только при commit (A1).
+    db.session.commit()
 
     return jsonify({'status': 'updated', 'count': updated})
 
@@ -428,6 +433,8 @@ def update_user_permissions(user_id):
     db.session.commit()
 
     _audit('user_permissions_update', target_type='user', target_id=user_id, new=data['permissions'])
+    # Коммит после _audit(): запись аудита появляется в БД только при commit (A1).
+    db.session.commit()
 
     return jsonify({'status': 'updated', 'count': updated})
 
@@ -527,9 +534,9 @@ def delete_deprecated_permissions():
         UserPermission.query.filter_by(permission_id=perm.id).delete()
         db.session.delete(perm)
 
-    db.session.commit()
-
     _audit('deprecated_permissions_deleted', target_type='permission', new={'count': count})
+    # Коммит после _audit(): запись аудита появляется в БД только при commit (A1).
+    db.session.commit()
 
     return jsonify({'status': 'deleted', 'count': count})
 
@@ -603,26 +610,33 @@ def create_backup():
     ]
 
     try:
-        with open(filepath, 'wb') as f:
-            result = subprocess.run(
-                cmd,
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=300
-            )
-            if result.returncode != 0:
-                os.remove(filepath)
-                return jsonify({'error': f'Backup failed: {result.stderr.decode()}'}), 500
+        # filepath НЕ открываем на запись: pg_dump пишет в stdout, а готовый
+        # дамп кладём рядом как .tmp и переименовываем. Раньше здесь стоял
+        # `with open(filepath, 'wb') as f:` — файл оставался открытым, и
+        # os.replace поверх него падал на Windows («Access is denied»), а
+        # os.rename падал с WinError 183 (rename не перезаписывает).
+        result = subprocess.run(
+            cmd,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=300
+        )
+        if result.returncode != 0:
+            return jsonify({'error': f'Backup failed: {result.stderr.decode()}'}), 500
 
-            # Compress
-            import gzip
-            with gzip.open(filepath + '.tmp', 'wb') as gz:
-                gz.write(result.stdout)
-            os.rename(filepath + '.tmp', filepath)
+        # Compress
+        import gzip
+        with gzip.open(filepath + '.tmp', 'wb') as gz:
+            gz.write(result.stdout)
+        # os.replace, а не os.rename: на Windows rename не перезаписывает
+        # существующий файл.
+        os.replace(filepath + '.tmp', filepath)
 
         info = _get_backup_info(filepath)
         _audit('backup_created', target_type='backup', new={'filename': filename, 'size': info['size']})
+        # Коммит после _audit(): без него след в audit_log терялся (A1).
+        db.session.commit()
 
         return jsonify({'status': 'created', 'backup': info})
     except subprocess.TimeoutExpired:
@@ -648,6 +662,7 @@ def delete_backup(filename):
 
     os.remove(filepath)
     _audit('backup_deleted', target_type='backup', old={'filename': filename})
+    db.session.commit()
 
     return jsonify({'status': 'deleted', 'filename': filename})
 
@@ -703,6 +718,7 @@ def restore_backup(filename):
                 return jsonify({'error': f'Restore failed: {result.stderr.decode()}'}), 500
 
         _audit('backup_restored', target_type='backup', new={'filename': filename})
+        db.session.commit()
 
         return jsonify({'status': 'restored', 'filename': filename})
     except subprocess.TimeoutExpired:
