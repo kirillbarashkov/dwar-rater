@@ -164,6 +164,23 @@ def app():
     with app.app_context():
         _truncate_all()
 
+    # The fixture is function-scoped, and create_test_app() calls db.init_app(),
+    # which builds a NEW engine (with its own connection pool) for every app.
+    # Nothing disposed the old ones, so pools piled up until the total number
+    # of connections hit Postgres' max_connections=100 — after that
+    # pool.connect() started failing and ~11 tests died in setup, at random
+    # positions that changed from run to run.
+    #
+    # Disposing here closes the pool of THIS app's engine, so at most one pool
+    # is alive at a time. The fixture stays function-scoped on purpose: several
+    # tests deactivate or re-role the seeded users, and they rely on the
+    # re-seeding that happens per test (see test_auth.py and test_user_role_fk.py).
+    #
+    # Both db.session and db.engine need an app context, hence the `with`.
+    # The session itself is removed by flask-sqlalchemy's own teardown.
+    with app.app_context():
+        db.engine.dispose()
+
 
 @pytest.fixture
 def client(app):
