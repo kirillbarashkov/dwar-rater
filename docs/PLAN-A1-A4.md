@@ -1018,7 +1018,25 @@ warnings и перестанут ломать сборку. Когда TD-2 бу
 возвращаются в error.
 
 Реализация варианта C — в `frontend/eslint.config.js` добавить блок с
-пониженными правилами **только** для тех файлов, где они сейчас срабатывают:
+пониженными правилами **только** для тех файлов, где они сейчас срабатывают.
+
+**Точный baseline (проверен `npx eslint . -f json`, 2026-10-20):** 12 файлов,
+25 сообщений = 17 errors + 8 warnings.
+
+| Файл | Нарушения |
+|---|---|
+| `src/App.tsx` | 4× `react-hooks/set-state-in-effect` |
+| `src/components/analysis/CharacterComparison.tsx` | 1× `exhaustive-deps` |
+| `src/components/character/CharacterClanTab.tsx` | 1× `set-state-in-effect`, 1× `exhaustive-deps` |
+| `src/components/clan/ClanMembersTable.tsx` | 1× `exhaustive-deps` |
+| `src/components/clan/MembershipImportTab.tsx` | 2× `no-case-declarations`, 1× `exhaustive-deps` |
+| `src/components/clan/TalentAnalytics.tsx` | 2× `no-case-declarations` |
+| `src/components/clan/TaxAnalytics.tsx` | 1× `exhaustive-deps`, 1× `no-case-declarations`, 1× `no-unused-vars` |
+| `src/components/clan/TreasuryImport.tsx` | 1× `exhaustive-deps`, 1× `no-explicit-any` |
+| `src/components/layout/SearchBar.tsx` | 1× `exhaustive-deps` |
+| `src/components/snapshots/SnapshotHistory.tsx` | 1× `exhaustive-deps` |
+| `src/hooks/useAuth.tsx` | 2× `react-refresh/only-export-components`, 1× `set-state-in-effect` |
+| `src/pages/character/CharacterPageWrapper.tsx` | 2× `set-state-in-effect` |
 
 ```javascript
 // Baseline: существующие нарушения (TD-2) понижены до warning, чтобы CI
@@ -1048,6 +1066,46 @@ warnings и перестанут ломать сборку. Когда TD-2 бу
   },
 }
 ```
+
+**Оговорка о гранулярности.** Блок понижает правило **целиком в файле** — то
+есть новое нарушение того же правила в этом файле тоже станет warning и не
+сломает CI. Это цена простоты: 12 файлов × 6 правил. Точный вариант —
+`eslint-disable-next-line` в 17 конкретных местах (по числу errors), но он
+«залипает» и при закрытии TD-2 придётся вычищать 17 директив.
+
+**Компромисс (вариант C+).** Понизить в warning **только те правила, которые
+в этих файлах дают errors**, а `exhaustive-deps` оставить error — он и так
+warning во всех 8 местах, кроме… см. таблицу выше: `exhaustive-deps` даёт
+warnings (8 штук), а не errors. Значит, **`exhaustive-deps` вообще трогать не
+надо** — он и так не ломает сборку.
+
+Уточнённый блок — понижаем только правила, которые сейчас дают **errors**:
+
+```javascript
+{
+  files: [
+    'src/App.tsx',
+    'src/components/character/CharacterClanTab.tsx',
+    'src/components/clan/MembershipImportTab.tsx',
+    'src/components/clan/TalentAnalytics.tsx',
+    'src/components/clan/TaxAnalytics.tsx',
+    'src/components/clan/TreasuryImport.tsx',
+    'src/hooks/useAuth.tsx',
+    'src/pages/character/CharacterPageWrapper.tsx',
+  ],
+  rules: {
+    'react-hooks/set-state-in-effect': 'warn',
+    'react-refresh/only-export-components': 'warn',
+    'no-case-declarations': 'warn',
+    '@typescript-eslint/no-unused-vars': 'warn',
+    '@typescript-eslint/no-explicit-any': 'warn',
+  },
+}
+```
+
+Файлы `CharacterComparison.tsx`, `ClanMembersTable.tsx`, `SearchBar.tsx`,
+`SnapshotHistory.tsx` в блок **не входят** — у них только `exhaustive-deps`,
+который и так warning.
 
 **Step 1: Получить точный список файлов и правил**
 
