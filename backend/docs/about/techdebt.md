@@ -76,3 +76,1178 @@
   сейчас тексты живут markdown-файлами в репозитории и приезжают с релизом (правки
   видны в истории git). Вариант «править без релиза» потребует модели, CRUD и прав —
   отдельный этап, если понадобится.
+
+---
+
+## Аудит
+
+> **Автор: Мефодий (Hermes Agent).** Проведён кодовый аудит проекта `dwar-rater`
+> (репозиторий `D:\Programming\Git\Repository\dwar-rater-project`, рабочее дерево
+> `dwar-rater/`, коммит `e4a0003`, версия v2.36.0). Дата аудита: **2026-10-20**.
+> Объём: backend (159 файлов `.py`, ~26 900 строк), frontend (113 файлов `.ts`/`.tsx`,
+> ~22 500 строк), CI/CD, Docker, миграции, документация.
+>
+> Аудит был **read-only**: ни один файл проекта не изменён. Три вывода помечены
+> как **[доказано]** — они подтверждены воспроизводимым прогоном (тест-проба),
+> а не только чтением кода. Все остальные помечены **[прочитано]** — вывод
+> сделан по исходникам, без запуска.
+>
+> По правилу проекта долг не чинится попутно: ниже только рекомендации.
+> Объём назначает владелец.
+
+### Сводка
+
+Объём проверенного кода: backend — 159 файлов `.py`, 26 862 строки; frontend —
+113 файлов `.ts`/`.tsx`, 22 538 строк; 54 тестовых файла, 431 тест-функция.
+
+Три находки подтверждены прогоном и требуют внимания в первую очередь:
+
+| # | Находка | Где |
+|---|---------|-----|
+| A1 | Записи `audit_log` **теряются** при 11 админских операциях | `features/admin/routes.py` |
+| A2 | Право уровня `read` **пробивает** гейт `admin` на SSE-эндпоинтах | `features/clan_info/routes.py` |
+| A3 | Слепок пишется **не в JSON** — ломает чтение слепка | `features/closed_profiles/routes.py` |
+
+Остальное — по нарастанию серьёзности: 8 High, 20 Medium, 21 Low.
+
+**Ключевые числа аудита** (для ориентира):
+
+| Метрика | Значение |
+|---|---|
+| Backend | 159 файлов `.py`, 26 862 строки |
+| Frontend | 113 файлов `.ts`/`.tsx`, 22 538 строки |
+| Тесты | 54 файла, 431 тест-функция |
+| Тесты фронтенда | **0** (скрипта `test` в `package.json` нет) |
+| Ошибок линта фронтенда | 17 ошибок / 8 предупреждений (без изменений с 2026-10-17) |
+| `useEffect` во фронтенде | 69 мест вызова, 111 строк с упоминанием, 42 файла |
+| Вызовов API | 118 через `apiClient` (типизировано 7) + 2 сырых `fetch` в обход клиента |
+| `any` во фронтенде | 1 (`TreasuryImport.tsx:878`) |
+| `as unknown as` | 7 (4 файла) |
+| `AbortController` | **0** во всём фронтенде |
+| `catch { /* ignore */ }` | 12 |
+| Жёсткий id клана `2315` | 15 вхождений в 3 файлах |
+| Крупнейшие компоненты | `TreasuryImport.tsx` 1660, `TaxAnalytics.tsx` 1508, `TreasuryPairsQueue.tsx` 1125 строк |
+| Крупнейшие модули бэкенда | `clan_info/routes.py` 5379, `clan_parser.py` 1391, `exporter.py` 757 строк |
+| Использований `<Modal>` | 14, из них **ни одно** не закрывается по Escape |
+| Дублирующихся семейств DTO | 6 |
+
+---
+
+### A1. [доказано] Записи `audit_log` теряются — 11 админских операций без `commit()`
+
+**Severity: High.** Где: `backend/features/admin/routes.py` — строки 138, 154, 173,
+218, 236, 374, 430, 532, 625, 650, 705.
+
+**Что не так.** Хелпер `_audit()` (`features/admin/routes.py:30-41`) только делает
+`db.session.add(entry)` — сама запись появляется в БД лишь при следующем `commit()`.
+В 11 местах `_audit()` вызывается **после** `db.session.commit()`, и следующего
+коммита уже нет: запрос завершается, сессия откатывается, запись пропадает.
+
+**Почему это важно.** Журнал аудита — то, по которому видно, кто и что менял.
+Он молча неполон ровно для тех операций, которые меняют доступы и данные:
+деактивация пользователя, отзыв сессий, выдача/снятие прав, удаление бэкапа,
+восстановление БД из бэкапа. Восстановить из журнала, кто деактивировал
+сотрудника или кто отозвал сессии, невозможно.
+
+**Как доказано.** Проба-тест (временный файл, удалён после прогона) создала
+пользователя, вызвала `PUT /api/admin/users/<id>` и `DELETE /api/admin/users/<id>`
+с правами админа и посчитала строки `audit_log` до и после:
+
+```
+PUT status: 200 {'id': 2, 'is_active': True, ...}
+audit rows user_update: before=0 after=0        ← запись потеряна
+DELETE status: 200 {'status': 'deactivated', ...}
+audit rows user_deactivate: before=0 after=0    ← запись потеряна
+```
+
+Ответ 200, действие применено, записи нет.
+
+**Связь с уже закрытым долгом.** В таблице «Закрытые долги» есть строка
+«`_audit()` без последующего `commit()` — запись теряется | v2.5.0: `commit()`
+после каждого `_audit`». Долг закрыли **только в `features/clan_info/routes.py`** —
+там `commit()` после `_audit()` действительно есть (проверено: 18 из 19 вызовов
+закрыты коммитом). В `features/admin/routes.py` его никто не делал. То есть
+закрытие долга TD-«_audit без commit» было неполным, и **регрессия живёт в
+проде прямо сейчас**.
+
+**Рекомендация.** Два пути, на выбор владельца:
+
+1. Перенести `_audit()` **до** `db.session.commit()` во всех 11 местах — запись
+   попадёт в БД тем же коммитом, что и сама операция. Минимальная правка и правильная
+   атомарность: операция и её след в журнале фиксируются вместе.
+2. Сделать `_audit()` самодостаточной: внутри хелпера выполнить `db.session.commit()`
+   после `add`. Проще, но теряет атомарность (операция закоммичена, след — нет).
+
+Первый вариант предпочтительнее. Плюс — **регрессионный тест** на каждое
+админское действие (по образцу `tests/test_members_import_audit.py`): без него
+дефект вернётся.
+
+---
+
+### A2. [доказано] Уровень права `read` проходит гейт `admin` на SSE-эндпоинтах
+
+**Severity: High.** Где: `backend/features/clan_info/routes.py:4586`, `:4715`, `:5221`.
+
+**Что не так.** Три SSE-эндпоинта (поток автосбора казны, поток автосбора состава,
+поток импорта событий уровня) **не имеют** декоратора `@require_permission` —
+вместо этого авторизация проверяется вручную:
+
+```python
+if not current_user or get_user_permission(current_user, "treasury", "admin") == "none":
+    # отказ
+```
+
+Проверяется лишь «не `none`». Но `require_permission`
+(`backend/shared/rbac/__init__.py:220`) для действия `admin` явно **запрещает**
+уровень `read`:
+
+```python
+if level == 'read' and action in ('write', 'delete', 'admin', 'approve'):
+    return jsonify({'error': 'Недостаточно прав'}), 403
+```
+
+То есть ручная проверка **слабее** той, что декларирует остальной проект.
+
+**Почему это важно.** В матрице прав уровень `read` — это «видно, но нельзя
+менять». Администратор может выдать пользователю `treasury:admin = read`
+(«смотрю казну, но не правлю»), рассчитывая, что автосбор и правка недоступны.
+На SSE-эндпоинтах этот пользователь **проходит гейт** и получает поток данных
+казны, к которому при определённых условиях прилагается и запись в базу
+(импорт событий уровня — это запись в `clan_level_change_event`).
+
+**Как доказано.** Проба-тест выдала пользователю индивидуальное право
+`treasury:admin = 'read'`, выдала сессию и дёрнула SSE-эндпоинт:
+
+```
+SSE status: 200
+SSE body: {"type": "error", "reason": "no_valid_cookies", ...}
+```
+
+Ответ дошёл до проверки cookies — значит, **гейт прав был пройден**. При
+уровне `none` тот же запрос вернул бы `reason: "forbidden"`. Уровень `read`
+получил доступ, который `require_permission` ему не даёт.
+
+**Вторая половина того же дефекта.** Ручная проверка **не проверяет
+`user.is_active`** — а `require_permission` проверяет
+(`shared/rbac/__init__.py:212-213`). Деактивированный пользователь или
+пользователь, у которого админ отозвал сессии, продолжает стримить данные казны
+до истечения TTL токена (24 ч для обычного пользователя).
+
+**Рекомендация.** Не чинить проверку копией логики, а **свести к одному
+источнику истины**: вынести проверку в переиспользуемый декоратор, который
+принимает токен из query-параметра (нужно для `EventSource`, который не умеет
+заголовки):
+
+```python
+def require_permission_from_token(feature, action):
+    # проверяет: токен валиден И не истёк И user.is_active И уровень достаточен
+```
+
+и повесить его на все три SSE-эндпоинта. Тогда «ручная проверка» и
+`require_permission` не смогут разойтись снова.
+
+---
+
+### A3. [доказано] Слепок сохраняется не в JSON — чтение слепка падает
+
+**Severity: High.** Где: `backend/features/closed_profiles/routes.py:230`.
+
+**Что не так.** При сохранении слепка закрытого профиля данные кладутся в колонку
+`CharacterSnapshot.snapshot_data` (`db.Text`) через `str(snapshot_data)` —
+это Python-repr словаря, а не JSON:
+
+```python
+snapshot_data=str(snapshot_data),   # ← {'name': 'Гном', ...}, а не {"name": "Гном"}
+```
+
+Все остальные писатели используют `json.dumps(..., ensure_ascii=False)`
+(`shared/services/cache_service.py:37` и `:54`), и все читатели — `json.loads`:
+
+- `features/snapshots/routes.py:62` — `json.loads(snapshot.snapshot_data)`
+- `features/export/routes.py:64` — `json.loads(snapshot.snapshot_data)`
+- `features/tracks/routes.py:55` — `json.loads(snapshot.snapshot_data)`
+
+**Почему это важно.** Слепок, сохранённый через закрытый профиль, **не читается**:
+`json.loads` на Python-repr падает с `JSONDecodeError`. Ломаются три сценария:
+просмотр слепка, экспорт персонажа в HTML/PDF, трек улучшений. Ошибка приходит
+как 500 на чтении.
+
+**Как доказано.** Проба-тест (round-trip `str(dict)` → `json.loads`):
+
+```
+json.loads FAILED: JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+```
+
+Контрольный вариант с `json.dumps` проходит.
+
+**Почему это не поймали.** На фичу `closed_profiles` **нет ни одного теста**
+(в `backend/tests/` слово `closed_profiles` встречается только в `conftest.py`),
+и на фичу `export` — тоже ноль тестов (`export_to_pdf`/`export_to_html`/
+`export_to_markdown` не упоминаются ни в одном тестовом файле). Это ровно тот
+класс дефекта, который тестовая матрица не покрывает.
+
+**Рекомендация.** Заменить `str(...)` на `json.dumps(snapshot_data, ensure_ascii=False)`
+— одна строка. Плюс: **тест на round-trip** для `closed_profiles` (записал →
+прочитал → сравнил) и тесты на `export_*` — обе фичи сейчас без покрытия.
+
+---
+
+### High
+
+#### A4. Фронтенд не собирается, не типизируется и не линтится в CI
+
+**Severity: High.** Где: `.github/workflows/` (все 5 файлов).
+
+Ни один workflow не запускает `npm ci`, `npm run build`, `npm run lint` или `tsc -b`.
+Единственный workflow, трогающий Node, — `design-md-lint.yml`, и он только
+вызывает `npx @google/design.md lint` и выходит. `deploy.yml` собирает фронтенд
+**на самой VM** (`docker compose -f docker-compose.prod.yml up -d --build`),
+то есть ошибка компиляции обнаруживается уже на проде.
+
+**Последствие.** Ошибка типизации или линта попадает в main и в прод. То же
+касается фронтенд-тестов: в `frontend/package.json` вообще нет скрипта `test` и
+нет ни одного `*.test.*`/`*.spec.*` файла — фронтенд не покрыт тестами вовсе.
+
+**Рекомендация.** Добавить workflow `frontend-check.yml` на `pull_request` и
+`push: [main]`: `npm ci` → `tsc -b` → `npm run lint` → `npm run build`. Задать
+job как `needs` для деплоя. Уже существующие 17 ошибок линта — либо починить
+(см. TD-2), либо зафиксировать как baseline (`--max-warnings`/eslint-disable по
+правилам), чтобы новые ошибки ловились.
+
+#### A5. `ProxyFix` не установлен — `ip_address` в аудите и rate-limit считают IP nginx
+
+**Severity: High.** Где: `backend/app.py` (в проекте нет ни одного вхождения
+`ProxyFix`).
+
+В проде бэкенд стоит за nginx-контейнером в bridge-сети `dwar-net`
+(`docker-compose.prod.yml`), поэтому `request.remote_addr` — это IP nginx-контейнера,
+а не клиента. Два последствия:
+
+1. **Rate-limit по IP бессмысленен.** `Config.RATE_LIMIT_MAX=100` на 60 с
+   (`docker-compose.prod.yml`) делится между ВСЕМИ пользователями: один шумный
+   клиент выбирает общий лимит, и остальные получают 429.
+2. **Аудит теряет след.** `AuditLog.ip_address` (`shared/rbac/models.py`) везде
+   записывает IP nginx — форензическая ценность журнала обнуляется (это
+      усугубляет A1: записи и теряются, и не говорят, кто был за ними).
+
+**Рекомендация.** `app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1,
+x_host=1)` после создания приложения.
+
+#### A6. `create_all()` как запасной путь миграций в проде
+
+**Severity: High.** Где: `backend/app.py:226-227`.
+
+Если Alembic-апгрейд падает, код логирует предупреждение и вызывает
+`db.create_all()` — создаёт схему по моделям, **без данных и без истории
+миграций**. `create_all()` не добавляет столбцы в существующие таблицы: модель
+наехала на старую таблицу → `UndefinedColumn` во время работы, а не на старте.
+Плюс к этому `alembic_version` чистится вручную (`:183`) — «более одного head»
+исправляется удалением строк, что маскирует расхождение схемы и миграций.
+
+**Рекомендация.** В проде падение миграции — фатальная ошибка старта, а не
+запасной путь. `create_all()` оставить только для SQLite/локальной разработки.
+`alembic_version` не чистить, а падать.
+
+#### A7. В `entrypoint.sh` прод-контейнер создаёт и удаляет тестовую БД
+
+**Severity: High.** Где: `backend/entrypoint.sh:8-11`.
+
+```bash
+psql ... -c "DROP DATABASE IF EXISTS dwar_rater_test"
+psql ... -c "CREATE DATABASE dwar_rater_test"
+```
+
+Это выполняется **при каждом старте контейнера**, включая прод. Итог: в продовом
+Postgres живёт лишняя БД `dwar_rater_test`, и для её создания нужна привилегия
+`CREATEDB` у продового пользователя. Тесты при этом всё равно не запускаются —
+нужно только ради БД.
+
+**Рекомендация.** Убрать из `entrypoint.sh`; создавать тестовую БД в CI-шаге
+(в `deploy.yml` это и требуется — см. A11) и в dev-compose через init-скрипт.
+
+#### A8. Docker-образ фронтенда накачивает Windows-бинарники и работает под root
+
+**Severity: High.** Где: `frontend/Dockerfile`, `frontend/Dockerfile.prod`,
+`backend/Dockerfile`, `Dockerfile.postgres`; `frontend/.dockerignore` **отсутствует**.
+
+Два подтверждённых факта:
+
+1. **`frontend/.dockerignore` нет.** `COPY . .` копирует хостовый `node_modules`
+   (163 МБ, 176 пакетов) поверх `npm ci` в образ. Проверено на живой машине:
+   внутри dev-контейнера лежит `node_modules/@rolldown/binding-win32-x64-msvc`
+   (Windows-бинарник) рядом с `binding-linux-x64-musl`. Образ фронтенда весит
+   **771 МБ** — большая часть это Windows-мусор. Ровно то же касается
+   `backend/.dockerignore` (его тоже нет): в образ пекутся `logs/` (596 КБ) и
+   `.pytest_cache/`.
+2. **Ни один контейнер не задаёт `USER`** — все три сервиса работают под root.
+   Бэкенд при этом исполняет `psql`/`pg_dump`/`pg_restore` от root.
+
+**Рекомендация.** Добавить `frontend/.dockerignore` и `backend/.dockerignore`
+(`node_modules/`, `dist/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, `logs/`,
+`instance/`). Добавить `USER` во все три Dockerfile и `security_opt:
+[no-new-privileges:true]`.
+
+#### A38. [прочитано] В проде бэкенд стартует раньше готовности Postgres — и молча уходит в `create_all()`
+
+**Severity: High.** Где: `docker-compose.prod.yml` (в отличие от dev-файла, здесь
+**нет ни одного `healthcheck:`** и нет `depends_on: {condition: service_healthy}` —
+проверено: сервисы `postgres`, `backend`, `frontend` не содержат блока `healthcheck`).
+
+В dev-файле `docker-compose.yml:41-43` стоит
+`depends_on: postgres: condition: service_healthy`, в прод-файле
+`docker-compose.prod.yml:29-30` — простой список `depends_on: - postgres`.
+Значит, бэкенд стартует, как только **контейнер** postgres поднялся, а не когда
+БД принимает соединения.
+
+**Последствие.** `app.py:118-227` на старте гоняет миграции против неготовой БД.
+Провал → `except` на `app.py:225-227` → `db.create_all()`. Схема создаётся по
+моделям вместо миграций, `alembic_version` не проставляется, и при следующем
+старте всё повторяется. Логируется это как `warning` (`:226`) — то есть тихо.
+
+**Рекомендация.** Перенести блоки `healthcheck` и `depends_on: {condition:
+service_healthy}` из `docker-compose.yml` в `docker-compose.prod.yml`.
+Отдельно — см. A6: `app.py:226` в проде должно быть фатальной ошибкой.
+
+#### A39. [прочитано] Бэкапы из админки уходят в файловую систему контейнера и теряются
+
+**Severity: High.** Где: `docker-compose.prod.yml` (у сервиса `backend`
+**нет секции `volumes:`** — проверено), `backend/features/admin/routes.py:16`
+(`BACKUP_DIR = os.environ.get('BACKUP_DIR', '/backups')`), `:589` (запись),
+`:567` (чтение списка).
+
+Том `postgres_backups:/backups` смонтирован **только** в сервис `postgres`.
+Внутри контейнера бэкенда `/backups` — это его собственная эфемерная ФС.
+
+**Последствие.** Бэкап, созданный из админки, физически лежит во временном слое
+контейнера: он исчезает при `docker compose down` / пересоздании контейнера и
+**не виден** в `make backup` (тот пишет в том сервиса postgres). Список бэкапов
+в админке (`list_backups`) показывает другой набор, чем `ls` в томе. То есть
+единственный путь «сделать бэкап, который точно переживёт рестарт» — из админки
+работает хуже, чем `make backup`.
+
+**Рекомендация.** Смонтировать `postgres_backups:/backups` в сервис `backend`
+в `docker-compose.prod.yml`. Плюс перевести `alembic-safe.sh` на тот же шаблон
+имени (`dwar_rater_backup_*.sql.gz`), иначе `make restore` не найдёт
+премиграционный бэкап (см. A13).
+
+---
+
+### Medium
+
+#### A9. [прочитано] Единичная компенсация не проверяет закрытый месяц и не валидирует ввод
+
+**Severity: Medium.** Где: `backend/features/clan_info/routes.py:2601-2651`
+(`create_treasury_compensation`).
+
+Массовый путь (`bulk`) закрытый месяц проверяет, единичный — **нет**: компенсация
+за зачёркнутый месяц проходит. Кроме того, `norm_amount` и `months` не
+валидируются: `months` может содержать что угодно (в т.ч. 13-й месяц —
+`f"15.{month:02d}.{year}"` даст «15.13.2025»), а `norm_amount` — любое число,
+в том числе отрицательное или дробное.
+
+**Рекомендация.** Переиспользовать проверку закрытого месяца из массового пути;
+валидировать `1 <= month <= 12` и `norm_amount > 0`.
+
+#### A10. [прочитано] Дублирующаяся логика разбора состава
+
+**Severity: Medium.** Где: `shared/services/clan_parser.py:84`
+(`parse_clan_members`) и `shared/services/clan_import.py:5`
+(`parse_clan_members_from_text`).
+
+Две почти одинаковые функции с тонким, но реальным расхождением в поведении.
+Дублирование опасно тем, что правка в одной не попадает в другую.
+
+**Рекомендация.** Свести к одной общей функции с параметром формата входа.
+
+#### A11. [прочитано] CI создаёт одну БД, а тесты идут в другую
+
+**Severity: Medium.** Где: `.github/workflows/deploy.yml:35` и `:57`.
+
+CI поднимает сервис Postgres с `POSTGRES_DB: dwar_rater`, а тесты получают
+`TEST_DATABASE_URL: .../dwar_rater_test`. Базы `dwar_rater_test` в сервисе нет —
+её создаёт `conftest.py` (там `DROP DATABASE` + `CREATE DATABASE`), поэтому
+прогон в CI работает, но завязан на права `CREATEDB` и на то, что
+`conftest.py` сам создаёт базу. После A7 (удаление создания тестовой БД из
+entrypoint) это стоит сделать явно в CI-шаге.
+
+**Рекомендация.** Явно создавать тестовую БД в CI-шаге и не полагаться на
+`conftest.py` в этой части.
+
+#### A12. [прочитано] Нет индекса на парах, по которым фильтруется казна
+
+**Severity: Medium.** Где: `backend/shared/models/clan_info.py:73-92`
+(`TreasuryOperation`).
+
+У таблицы `treasury_operations` индекс только по `clan_id`. При этом запросы
+фильтруют по `clan_id + nick` (`:2100-2110`), `clan_id + date` (`:3804-3810`) и
+`clan_id + date + nick + operation_type + object_name`. При 15 000+ операций
+класса это последовательные сканы. В `clan_info/routes.py:3773-3810` — N+1:
+`TreasuryOperation.query.filter_by(...).first()` **внутри цикла** по операциям
+импорта, то есть по одному запросу на строку.
+
+**Рекомендация.** Добавить составные индексы `(clan_id, nick)`,
+`(clan_id, date)` и уникальный на
+`(clan_id, date, nick, operation_type, object_name)` — он же защитит импорт от
+дублей; в цикле импорта сначала забирать существующие операции одним запросом.
+
+#### A13. [прочитано] Резервные копии не ротятся, `BACKUP_KEEP_DAYS` не читается
+
+**Severity: Medium.** Где: `scripts/db-backup.sh` (в шапке — «NO automatic
+deletion»), `backend/features/admin/routes.py:579` (`'retention': 'No automatic
+deletion'`), `.env.example.prod:19` и `.env:22` (`BACKUP_KEEP_DAYS=30` / `=7`).
+
+Переменная `BACKUP_KEEP_DAYS` объявлена в окружении, но **не читается ни одним
+кодом**. Бэкапы копятся бесконечно, диск на VM заполняется, и в какой-то момент
+`docker builder prune` в деплое (`deploy.yml:220`) начинает отнимать место,
+съедая именно место под данные. Плюс: `pg_dump` в скрипте проверяет `$?` **после**
+пайпа в `gzip` — код возврата `gzip`, а не `pg_dump`; битый дамп пройдёт как
+успешный.
+
+**Рекомендация.** Читать `BACKUP_KEEP_DAYS` и удалять старые дампы; добавить
+`set -o pipefail` и проверку `gunzip -t` после создания.
+
+#### A14. [прочитано] Предмиграционный `pg_dump` внутри приложения — no-op
+
+**Severity: Medium.** Где: `backend/app.py:202-207` и `:274-279`.
+
+`subprocess.run(['pg_dump', ...])` вызывается, но его `stdout` никуда не
+записывается — результат просто теряется. Предмиграционная копия, на которую
+можно опереться при сбое миграции, фактически не создаётся. Реальные бэкапы
+делает `scripts/pre-migration-backup.sh` — вот туда и надо смотреть, а этот
+вызов удалить или перенаправить в файл.
+
+**Рекомендация.** Либо убрать вызов, либо писать вывод в файл с проверкой
+кода возврата.
+
+#### A15. [прочитано] `db.session.flush()` без `commit()` в пути импорта событий
+
+**Severity: Medium.** Где: `backend/features/clan_info/routes.py:1706-1721`.
+
+`_audit(...)` вызывается, затем идёт `db.session.flush()`, но `commit()` в этом
+фрагменте нет — запись аудита остаётся неподтверждённой, пока транзакция не
+закроется чем-то позже. Это тот же класс дефекта, что A1 (в `clan_info` он закрыт
+в 18 местах из 19 — здесь и в `:827` остались хвосты).
+
+**Рекомендация.** Добавить `commit()` после `flush()`; проверить все места.
+
+#### A16. [прочитано] Парсер глушит исключения при оценке границ казны
+
+**Severity: Medium.** Где: `backend/shared/services/clan_parser.py:500-501` и
+`:513-514`.
+
+```python
+except Exception:
+    pass
+```
+
+Дважды. Если страница казны не отдалась (сеть, смена вёрстки), расчёт границ
+молча возвращает пустые `sample_dates` — автосбор стартует с неверных границ
+и либо собирает не всё, либо лишнее. Ошибка не попадает ни в лог, ни в ответ.
+
+**Рекомендация.** Логировать исключение (`data_logger.warning(..., exc_info=True)`)
+и отдавать признак «границы не определены» вместо молчаливого пустого
+результата.
+
+#### A17. [прочитано] Пустой `except:` в модели клана
+
+**Severity: Medium.** Где: `backend/shared/models/clan_info.py:31` и `:40`.
+
+```python
+def get_council(self):
+    try:
+        return json.loads(self.council)
+    except:
+        return []
+```
+
+`except:` ловит **всё**, включает `KeyboardInterrupt` и `SystemExit`. При этом
+`get_council`/`get_clan_structure` — читатели JSON-полей, где молчаливый
+`[]`/`{}` выглядит как «у клана нет совета», а на самом деле поле повреждено.
+Именно на этом фоне A3 — битые данные молча читаются как пустые.
+
+**Рекомендация.** `except (json.JSONDecodeError, TypeError)` + запись в лог.
+
+#### A18. [прочитано] `setState` синхронно внутри эффекта — каскадные рендеры
+
+**Severity: Medium.** Где: `frontend/src/App.tsx:146`, `:172`, `:179`, `:201`;
+`frontend/src/hooks/useAuth.tsx:46`;
+`frontend/src/pages/character/CharacterPageWrapper.tsx:54`, `:90`;
+`frontend/src/components/character/CharacterClanTab.tsx:80`.
+
+Восемь мест, где `setState` вызывается синхронно в теле `useEffect`. React 19
+это прямо запрещает (`react-hooks/set-state-in-effect`), линтер ругается на всех
+восьми. Например, `useAuth.tsx:46` — `setIsLoading(false)` в ветке «нет токена»:
+это перерисовка на каждом маунте.
+
+**Рекомендация.** Вынести вычисление в рендер (производное значение) либо в
+`useState`-инициализатор; в эффектах оставлять только подписки и внешние
+системы. Сводить вместе с TD-2.
+
+#### A19. [прочитано] Пропущенные зависимости эффектов — устаревшие замыкания
+
+**Severity: Medium.** Где: `frontend/src/components/clan/ClanMembersTable.tsx:101`
+(нет `loadMembers`, `loadLeftMembers`), `MembershipImportTab.tsx:529`
+(нет `loadSavedEvents`), `TreasuryImport.tsx:222` (нет `loadDateCoverage`),
+`SnapshotHistory.tsx:44` (нет `hasFetched`, `initialNick`),
+`TaxAnalytics.tsx:606` (нет `getPaymentStartMonth`, `isPaymentDue`,
+`memberJoinDate`), `CharacterClanTab.tsx:232` (нет `getLevelAtDate`),
+`SearchBar.tsx:24` (нет `setUrl`).
+
+Восемь предупреждений `react-hooks/exhaustive-deps`. Например,
+`ClanMembersTable.tsx:98-101` вызывает `loadMembers()`/`loadLeftMembers()` в
+эффекте с зависимостью только `[clanId]`, но сами функции не в зависимостях —
+при смене `clanId` эффект возьмёт **старую** версию функции из замыкания.
+
+**Рекомендация.** Добавить зависимости или обернуть загрузчики в `useCallback`.
+Правка осознанная: часть предупреждений ложные (зависимость не меняет
+поведение), их надо разобрать по одной, а не молча заглушить.
+
+#### A20. [прочитано] 12 мест, где ошибка запроса проглатывается молча
+
+**Severity: Medium.** Где: `frontend/src/components/analysis/ClosedProfilesTab.tsx:74,95,128,154,170,178,193`;
+`frontend/src/components/clan/ClanMembersTable.tsx:107,115,205,214,232`.
+
+`catch { /* ignore */ }` — пользователь видит пустой список и не знает, что
+загрузка упала. В `ClanMembersTable` так ведут себя загрузка состава (`:107`),
+загрузка ушедших (`:115`), импорт (`:205`), удаление (`:214`) и что-то ещё (`:232`).
+
+**Рекомендация.** Единый хелпер для показа ошибки (уже есть `LoadingSpinner`,
+`Input`, `Button` в `components/ui/`) — заменить 12 `catch` на него.
+
+#### A31. [прочитано] Два одинаковых `useEffect` — работа дублируется
+
+**Severity: Medium.** Где: `frontend/src/App.tsx:177-184` и `:199-210`.
+
+Два эффекта с **одинаковыми** зависимостями `[result]` и почти одинаковым телом:
+
+```tsx
+// :177-184
+useEffect(() => {
+  if (result) {
+    setCurrentResult(result);
+    setLastAnalyzed(new Date());
+    setActiveTab((prev) => (prev === 'track' ? 'track' : 'stats'));
+  }
+}, [result]);
+
+// :199-210 — то же самое + чистка параметра analyze из адреса
+useEffect(() => {
+  if (result) {
+    setCurrentResult(result);
+    setLastAnalyzed(new Date());
+    setActiveTab((prev) => (prev === 'track' ? 'track' : 'stats'));
+    ...history.replaceState...
+  }
+}, [result]);
+```
+
+**Последствие.** На каждый результат анализа React выполняет **четыре** `setState`
+вместо двух, то есть лишний рендер дерева компонентов после каждого анализа.
+Второй эффект целиком поглощает первый — тот не делает ничего уникального.
+`main.tsx:6` оборачивает приложение в `<StrictMode>`, поэтому в dev-режиме
+эффекты вызываются вдвое — картина ещё хуже.
+
+**Рекомендация.** Оставить один эффект (второй, с чисткой адреса), первый
+удалить.
+
+#### A32. [прочитано] `EventSource` не закрывается при размонтировании + мёртвая кнопка «Отменить»
+
+**Severity: Medium.** Где: `frontend/src/components/clan/MembershipImportTab.tsx:100`
+и `:550`; `frontend/src/components/clan/TreasuryImport.tsx:347-356`, `:967`.
+
+Два разных дефекта, оба про SSE-поток:
+
+1. **Утечка соединений.** `new EventSource(url)` создаётся внутри обработчика
+   (`useCallback`), а не в эффекте, и **cleanup при размонтировании отсутствует**:
+   `es.close()` есть только внутри самих обработчиков (`MembershipImportTab.tsx:147,163,179,576,581,592`).
+   Если пользователь уйдёт со страницы, пока идёт поток, соединение останется
+   открытым, а на сервере — висеть SSE-генератор.
+2. **Кнопка «Отменить» ничего не делает.** В `TreasuryImport.tsx:347` объявлено
+   `const [eventSource, setEventSource] = useState<EventSource | null>(null)`, и
+   `cancelAutoFetch` (`:349-356`) строится вокруг него. Но `setEventSource`
+   **нигде не вызывается** — значение всегда `null`, поэтому `cancelAutoFetch`
+   всегда выходит по ветке «нечего закрывать». Кнопка «Отменить» (`:967`)
+   визуально есть, а нажатие ничего не даёт.
+
+**Рекомендация.** Хранить `EventSource` в `useRef`, добавить `useEffect` с
+cleanup `return () => esRef.current?.close()`, и в `TreasuryImport` вызывать
+`setEventSource(es)` при создании потока — тогда «Отменить» заработает.
+
+#### A33. [прочитано] 7 `console.log` в проде, один из них печатает весь ответ сервера
+
+**Severity: Medium.** Где: `frontend/src/components/clan/TreasuryImport.tsx:881,883,884,893,904,911,914`.
+
+Семь отладочных `console.log('[TREASURY] …')` в обработчике автосбора.
+Особенно `:911` — `console.log('[TREASURY] Response data:', data)` выводит
+**весь ответ сервера** в консоль браузера: реквизиты участников клана и
+суммы операций казны.
+
+**Рекомендация.** Убрать все семь (или закрыть за `import.meta.env.DEV`).
+Данные казны в консоли браузера — это утечка, которую видно и в записи
+поддержки, и на чужой машине.
+
+#### A34. [прочитано] Свой модальный слой в двух компонентах вместо общего `Modal`
+
+**Severity: Medium.** Где: `frontend/src/components/clan/TreasuryExclusionsTab.tsx`,
+`frontend/src/components/clan/TreasuryPairsQueue.tsx` (свои `.tp-modal-backdrop`
+/ `.tp-modal` + свои CSS).
+
+В проекте есть общий `src/components/ui/Modal.tsx`, и его используют 6 файлов
+(`App.tsx`, `ClosedProfilesTab.tsx`, `BackupPicker.tsx`, `ClanMembersTable.tsx`,
+`SnapshotHistory.tsx`, `UserPermissionsModal.tsx`). Эти два компонента
+рисуют модальные окна своей разметкой.
+
+**Последствие.** Эти окна не наследуют поведение общего `Modal` (Escape,
+фокус, блокировка прокрутки) и расходятся по стилю с остальными. Это
+ровно тот «дизайн-долг» (пункт 2.6 в планах), но уже с функциональной
+стороной: закрытие по Escape может не работать.
+
+**Рекомендация.** Перевести на `<Modal wide>`.
+
+#### A40. [прочитано] `Modal` не закрывается по Escape, не ловит фокус и не блокирует прокрутку
+
+**Severity: Medium.** Где: `frontend/src/components/ui/Modal.tsx:12-26`.
+
+Компонент целиком такой:
+
+```tsx
+if (!isOpen) return null;
+return (
+  <div className="modal-overlay" onClick={onClose}>
+    <div className={`modal-content ${wide ? 'modal-wide' : ''}`} onClick={(e) => e.stopPropagation()}>
+      ...
+```
+
+Нет ни слушателя `keydown`, ни `role="dialog"`, ни `aria-modal`, ни
+`aria-labelledby`, ни блокировки `document.body.style.overflow` (проверено:
+`document.body.style` во фронтенде не встречается **ни разу**).
+
+**Последствие.** В приложении 14 использований `<Modal>` — и **ни одно** из них
+не закрывается по Escape: работает только крестик или клик по подложке.
+Клавиатурный пользователь не может закрыть ни одно модальное окно. Плюс
+страница под оверлеем прокручивается, и у окна нет роли для скринридера.
+
+**Рекомендация.** Добавить в `Modal.tsx` эффект с обработчиком Escape,
+`role="dialog" aria-modal="true"` и блокировку прокрутки. Правка в одном файле
+закрывает все 14 мест сразу.
+
+#### A41. [прочитано] Токен SSE попадает в access-log nginx и в лог упавшего деплоя
+
+**Severity: Medium.** Где: `backend/features/clan_info/routes.py:4573-4575`
+(и `:4702-4704`, `:5204-5206`), `frontend/nginx.conf:35-41`,
+`.github/workflows/deploy.yml:321`.
+
+Токен сессии принимается из query-параметра (`request.args.get("token")`), а
+nginx-конфиг проксирует `/api/` **без** `access_log off` и без обрезки
+query-строки.
+
+**Последствие.** Сырой токен (не хеш) попадает в `/var/log/nginx/access.log`
+на VM. Тот же лог цепляется при падении деплоя (`deploy.yml:321` — «Postgres
+logs»/`backend logs` в диагностику) и печатается в **лог GitHub Actions**.
+То есть при падении деплоя живой токен админ-сессии оказывается в логах,
+доступных всем, кто видит Actions.
+
+**Рекомендация.** Одноразовый короткоживущий билет вместо основного токена
+(это же лечит A37); плюс `access_log off;` для `/api/` либо
+`map $arg_token $loggable { default $uri; }` в `nginx.conf`.
+
+#### A42. [прочитано] `Toast` — коллизия id на `Date.now()`, тосты исчезают
+
+**Severity: Medium.** Где: `frontend/src/components/ui/Toast.tsx:24`, `:26-28`.
+
+```tsx
+const id = Date.now();
+setToasts(prev => [...prev, { id, message, type }]);
+setTimeout(() => { setToasts(prev => prev.filter(t => t.id !== id)); }, 3000);
+```
+
+Два тоста, поднятые в одну миллисекунду, получают **один и тот же** `id`.
+Тогда `filter(t => t.id !== id)` в таймере удаляет **оба** — уведомление
+пропадает, не успев показаться. Ключ React `key={toast.id}` тоже совпадает.
+
+**Рекомендация.** Счётчик инкрементов на уровне модуля вместо `Date.now()`.
+
+#### A43. [прочитано] Три расходящиеся копии списка рангов — 15 против 20
+
+**Severity: Medium.** Где: `frontend/src/components/clan/ClanMembersTable.tsx:56-60`
+(массив из **15** рангов, начиная с «Герой»), `frontend/src/components/analysis/ClosedProfilesTab.tsx:24-28`
+(карта из **20**, начиная с «Рекрут»), `frontend/src/components/snapshots/ClosedProfileBanner.tsx:7`
+(карта из **20**).
+
+**Последствие.** Форма «Добавить участника» (`ClanMembersTable.tsx:365`) предлагает
+15 рангов, а остальное приложение знает 20. Ранг «Рекрут», «Солдат», «Боец»,
+«Воин» в выпадающий список не попадает — участника с таким рангом нельзя
+добавить, хотя в других вкладках он отображается.
+
+**Рекомендация.** Один экспортируемый `GAME_RANKS` в `src/utils/`.
+
+#### A44. [прочитано] `<Button>` без `type` по умолчанию — кнопка сабмитит форму
+
+**Severity: Medium.** Где: `frontend/src/components/ui/Button.tsx:15`
+(`{...props}` без дефолта `type`), 81 использование `<Button>`, из них **77**
+без явного `type`.
+
+HTML-дефолт для `<button>` внутри формы — `type="submit"`.
+
+**Последствие.** Любая `<Button>` без `type`, оказавшаяся внутри `<form>`,
+отправит форму. Сейчас таких мест нет, но это скрытая мина: добавите `<Button>`
+в форму — и она отправится. Обратная сторона: кнопки, которые **должны** быть
+сабмитами, сейчас полагаются на дефолт браузера.
+
+**Рекомендация.** Дефолт `type="button"` в `Button.tsx`, для кнопок отправки —
+явный `type="submit"`.
+
+#### A45. [прочитано] `GAME_RANKS` и другие DTO продублированы — 6 семейств типов
+
+**Severity: Medium.** Где:
+
+| Тип | Где объявлен |
+|---|---|
+| `DateCoverage` | `src/types/clanInfo.ts:86` и `src/api/clanInfo.ts:91` |
+| `ParsedTreasuryOperation` | `src/utils/treasury.ts:3` и `src/api/clanInfo.ts:380` |
+| `CompareCharacter` | `src/api/compare.ts:4`, `src/components/clan/CompareListManager.tsx:7`, `src/components/analysis/CharacterComparison.tsx:146` |
+| `ClanInfoData` | `src/types/clanInfo.ts:1` и `src/utils/parseMembers.ts:3` |
+| `SubCategory` / `EquipCategory` | `src/components/analysis/CharacterComparison.tsx:7,13` и `src/components/analysis/EquipmentTab.tsx:10,16` |
+| `SortConfig` / `SortDirection` | `src/components/clan/TalentAnalytics.tsx:21,23` и `src/components/clan/TaxAnalytics.tsx:102,104` |
+
+**Последствие.** У `DateCoverage` копии **разной формы**: в `types/` есть
+`source_window`, в `api/` — нет, хотя бэкенд это поле возвращает
+(`backend/features/clan_info/routes.py:3979`). То есть одно и то же поле то
+типизировано, то нет — в зависимости от того, откуда импортировали.
+
+**Рекомендация.** По одному модулю в `src/types/` на DTO; импортировать оттуда.
+
+#### A46. [прочитано] 7 `as unknown as` — маскируют реальные ошибки типов
+
+**Severity: Medium.** Где: `frontend/src/App.tsx:213`, `:222`,
+`frontend/src/components/analysis/ImprovementTrack.tsx:232,238,247`,
+`ScenarioComparison.tsx:51`, `frontend/src/pages/analysis/ExportTab.tsx:57`.
+
+Двойное приведение типа отключает проверку компилятора. Худший случай —
+`App.tsx:213`: слепок (`Snapshot`) грузится как полноценный результат анализа
+(`AnalysisResult`) **без проверки формы**.
+
+**Последствие.** Слепок, сохранённый по старой схеме, попадает прямо во вкладки
+анализа. Переименование поля проявится как `undefined` в рантайме, а не как
+ошибка компиляции.
+
+**Рекомендация.** Типизировать полезную нагрузку слепка как версионированное
+подмножество и сузить type guard-ом вместо двойного приведения.
+
+#### A47. [прочитано] `raw fetch` в обход axios-клиента — 6 вызовов без обработки 401
+
+**Severity: Medium.** Где: `frontend/src/components/clan/TreasuryImport.tsx:366`
+и `:894`, `frontend/src/components/clan/MembershipImportTab.tsx:96` и `:546`.
+
+Эти вызовы идут через `fetch` с ручным заголовком `Authorization`, минуя
+`src/api/client.ts`, где настроен интерсептор 401 (`:19-28`: сброс токена и
+переход на `/login`).
+
+**Последствие.** При умершей сессии эти 6 вызовов не вызывают переход на
+`/login` — пользователь видит «вечный спиннер» или сырую ошибку вместо
+переавторизации. Плюс базовый URL считается по-разному: `constants.ts:1`
+использует `|| ''`, а здесь `|| window.location.origin` — **два правила в одном
+приложении**.
+
+**Рекомендация.** Провести все вызовы через `apiClient` или общий хелпер
+`apiFetch` в `src/api/client.ts`.
+
+#### A48. [прочитано] `ClanOverview` — производные данные затирают правку пользователя
+
+**Severity: Medium.** Где: `frontend/src/components/clan/ClanOverview.tsx:52-57`,
+`:83-110`.
+
+Эффект копирует `info.clan_structure` в `editStructure` **при каждом** изменении
+`info`. А `handleSaveStructure` (`:83-110`) вызывает `getClanInfo` и делает
+`setInfo(refreshed)` (`:102-103`) → эффект срабатывает снова → `editStructure`
+перезаписывается серверным значением.
+
+**Последствие.** Несохранённая правка структуры клана **стирается** в тот
+момент, когда инфо о клане перезагрузилось. Ровно тот паттерн «derived-on-read
+затирает правку пользователя», который в этом проекте уже случался.
+
+**Рекомендация.** Копировать сервер → форма только при входе в режим правки
+(обработчик «✏️ Редактировать» в `:446`), а не в эффекте.
+
+#### A49. [прочитано] `TaxAnalytics` — правится не то число, и ник-ключ схлопывается по регистру
+
+**Severity: Medium.** Где: `frontend/src/components/clan/TaxAnalytics.tsx:837-845`
+(`startInlineEdit`), `:863-868` (сохранение), `:148` и `:1249` (`editingRow`).
+
+`startInlineEdit` засевает `editingData.quantity` из `player.totalPaid`. Но
+`totalPaid` — это `onTime + delayed` (`:505`), то есть **без** компенсации, и
+для компенсированной строки это не то количество, которое лежит в операции.
+Сохранение (`:863-868`) пишет `editingData.quantity` **обратно в операцию** —
+то есть в запись попадает другое число, чем было.
+
+Плюс `editingRow` — это ник (`:148`, `:1249`): два участника, чьи ники
+отличаются только регистром, получают один ключ.
+
+**Рекомендация.** Брать `quantity` из самой операции
+(`operations.find(o => o.id === targetId)?.quantity`), а не из производной
+суммы; ключ редактирования — по id операции.
+
+#### A50. [прочитано] `useAuth` — сессия сбрасывается при любой сетевой ошибке
+
+**Severity: Medium.** Где: `frontend/src/hooks/useAuth.tsx:39-43`.
+
+```tsx
+.catch(() => { clearSession(); setUser(null); })
+```
+
+**Последствие.** Секундный обрыв сети выкидывает пользователя из сессии и
+**уничтожает** её (`clearSession` убирает токен из localStorage) — вместо того
+чтобы показать «нет связи» и попробовать ещё раз.
+
+**Рекомендация.** Сбрасывать сессию только при 401; остальные ошибки
+показывать, сохраняя сохранённого пользователя.
+
+#### A51. [прочитано] Таймеры не чистятся — `setState` на размонтированном компоненте
+
+**Severity: Medium.** Где: `frontend/src/components/clan/TaxAnalytics.tsx:758`,
+`TalentAnalytics.tsx:325,475,530`, `MiscAnalytics.tsx:224`, `TaxLedger.tsx:88`,
+`TreasurySummaryPanel.tsx:64`.
+
+`setTimeout(() => setCopyStatus(null), 2000)` и подобные — id таймера нигде не
+сохраняется, поэтому cleanup в эффекте его не отменит.
+
+**Последствие.** `setState` после размонтирования (в React 19 это уже не
+предупреждение, а «noop», но логика «статус скопировано» может обновить уже
+несуществующий компонент). Плюс — таймеры живут после ухода со страницы.
+
+**Рекомендация.** Хранить id таймера в `useRef` и чистить в cleanup-эффекте.
+
+---
+
+### Low
+
+#### A21. [прочитано] README разошёлся с кодом
+
+**Severity: Low.** Где: `README.md`.
+
+| Строка | Утверждает | Против кода |
+|---|---|---|
+| 27 | `React 18 + TypeScript + Vite` | `frontend/package.json:13-14` → `react: ^19.2.4` |
+| 32 | `pytest (45 тестов)` | 431 `def test_` в 54 файлах `backend/tests/` |
+| 199 | `# 45 тестов (pytest)` | то же |
+| 271 | `python -m pytest -v # Все тесты (45)` | то же |
+| 174 | `features/ # Вертикальные срезы (10 фич)` | 15 каталогов в `backend/features/` |
+| 93-96 | 4 роли (admin/superuser/user/custom) | `shared/rbac/seed.py:3-9` — 5, добавлен `treasurer` (см. A55) |
+| 100-110 | матрица прав на 10 фич | `seed.py:11-54` — 13 фич, нет `treasury`, `character`, `about` |
+| 118-122, 214 | 5 (и «4») вкладок админки | `AdminPage.tsx:18-25` — 6 (см. A54) |
+| 237 | «бэкап каждый день в 03:00 UTC» | `Dockerfile.postgres:10` — ежечасно (см. A56) |
+| 223-226 | перечислены 3 workflow | 5 существует, `deploy.yml` (тот, что везёт в прод) в списке отсутствует |
+| 132-137 | 6 эндпоинтов авторизации | `features/auth/routes.py` — 12, включая изменяющие состояние |
+| 141-151 | «Основные» API | пропущено ~60 маршрутов `/api/clan/<id>/treasury/*` + 3 SSE |
+| 153-167 | Admin API | пропущено 11 маршрутов (права пользователя, фильтры аудита, скачивание бэкапа, сессии) |
+
+Плюс README обещает пароль `change-me-in-production`, а `shared/config.py:22`
+даёт дефолт `ADMIN_PASS=admin`. Это тот же долг TD-9, но с конкретными
+цифрами.
+
+**Рекомендация.** Обновить README одним проходом: версия React, число тестов,
+число фич, число вкладок, число ролей, расписание бэкапов, полный список
+workflow-ов и API.
+
+#### A22. [прочитано] `SECRET_KEY` и `ADMIN_PASS` имеют дефолты в коде
+
+**Severity: Low (в проде — High, если переменная не задана).** Где:
+`backend/shared/config.py:7` (`SECRET_KEY = 'dev-secret-key-change-me'`),
+`:22` (`ADMIN_PASS = 'admin'`).
+
+`docker-compose.prod.yml` требует `${SECRET_KEY}` и `${ADMIN_PASS}` без
+дефолта — в проде это правильно (Compose упадёт, если не заданы). Дефолты
+опасны в dev-режиме с `AUTH_ENABLED=false` и в `cli/__main__.py:23-26`, где
+`AUTH_ENABLED` принудительно выключается. Проверено, что `AUTH_ENABLED=false`
+разрешает только `/api/health` (`shared/middleware/auth.py:29-34`) — то есть
+неавторизованный доступ к данным не открывается. Дефолт `ADMIN_PASS=admin` —
+слабый, и README его публикует.
+
+**Рекомендация.** Убрать дефолт `ADMIN_PASS` (пусть падает при старте без
+переменной), дефолт `SECRET_KEY` оставить только под `if DEBUG`.
+
+#### A23. [прочитано] `openapi.yaml` отдаётся без авторизации
+
+**Severity: Low.** Где: `backend/app.py:73-79` (`/api/openapi.yaml`).
+
+Спецификация отдаётся анонимно. Содержимое — только описания эндпоинтов, без
+секретов; для внутреннего проекта это скорее плюс (удобно для интеграции).
+Но в README это не упомянуто.
+
+**Рекомендация.** Либо задокументировать, либо закрыть тем же правилом, что
+и остальные `/api/admin/*`.
+
+#### A24. [прочитано] Пароль передаётся через input workflow-а
+
+**Severity: Low.** Где: `.github/workflows/diagnostic.yml:16-18`, `:37`, `:40`.
+
+`new_password` идёт через `workflow_dispatch` input — такие значения **не
+маскируются** GitHub (маскируются только secrets). Новый пароль админа может
+попасть в лог workflow.
+
+**Рекомендация.** Принимать пароль через `secrets`, а не через input.
+
+#### A25. [прочитано] `make status` всегда печатает «DB not accessible»
+
+**Severity: Low.** Где: `Makefile`, цель `status`.
+
+Запрос `SELECT ... FROM (SELECT 1 FROM pg_stat_file('/backups') LIMIT 0) t`
+невалиден (`pg_stat_file` — single-row функция, её нельзя класть в FROM без
+`LATERAL`), а `2>/dev/null || echo` глотает ошибку. Итог: цель всегда сообщает
+«DB not accessible», даже когда БД в порядке. Плюс хардкод `-U dwar -d dwar_rater`
+вместо переменных окружения.
+
+**Рекомендация.** Переписать запрос; убрать `|| echo`, чтобы ошибка была видна.
+
+#### A26. [прочитано] `clan_info` и `treasury` — две разные матрицы прав на одну казну
+
+**Severity: Low.** Где: `backend/features/clan_info/routes.py`.
+
+Одни и те же данные казны отдаются под разными правами: журнал операций —
+`clan_info:read` (`:1162`), а состояние участника и пары — `treasury:read`
+(`:1954`, `:1218`). У роли `user` есть `clan_info:read = full`, но **нет**
+ни одного `treasury:*` (проверено в `shared/rbac/seed.py:124-150`). То есть
+обычный пользователь видит журнал казны целиком, но не может посмотреть
+состояние участника — при том что обе сущности описаны как казначейская.
+
+**Рекомендация.** Привести к одному набору прав: либо всё чтение казны под
+`treasury:read`, либо всё под `clan_info:read`. Сейчас это выглядит как
+недосмотр, а не как осознанная граница.
+
+#### A27. [прочитано] Хрупкий id клана `2315` — 15 вхождений в трёх файлах
+
+**Severity: Low.** Где: `frontend/src/App.tsx` (9 вхождений, строки 366-374),
+`frontend/src/components/layout/Sidebar.tsx:152,157,183`,
+`frontend/src/components/character/CharacterClanTab.tsx:16` (`const CLAN_ID = 2315`),
+`:334` (текст в интерфейсе).
+
+Это уже заведённый долг TD-7, но масштаб уточнён: 15 вхождений в 3 файлах,
+а не «жёсткий id в Sidebar.tsx». `CharacterClanTab` вдобавок печатает id
+в тексте ошибки — «персонаж не найден в составе клана 2315», что неверно
+для любого другого клана.
+
+**Рекомендация.** Вынести id в конфиг (`VITE_CLAN_ID` или `constants.ts`),
+`CharacterClanTab` — принимать пропом.
+
+#### A28. [прочитано] Дыры в покрытии тестами
+
+**Severity: Low.** Где: `backend/tests/`.
+
+Ноль тестов у фич `closed_profiles` и `export` (см. A3 — именно там дефект и
+прятался). Нет тестов у `shared/services/cache_service.py`, `clan_import.py`,
+`exporter.py`, `data_logger.py`. Модуль `shared/services/url_validator/` покрыт
+(`test_url_validator.py`) — это хорошо.
+
+**Рекомендация.** Закрыть `closed_profiles` и `export` в первую очередь —
+там уже найден дефект.
+
+#### A29. [прочитано] Голый `except:` и подавление исключений в других местах
+
+**Severity: Low.** Где: `backend/shared/services/clan_parser.py:500-501`, `:513-514`
+(см. A16) и `backend/shared/models/clan_info.py:31`, `:40` (см. A17).
+
+Вынесено отдельно, чтобы не потерялось при чтении A16/A17.
+
+**Рекомендация.** Точечная замена на конкретные типы исключений + логирование.
+
+#### A30. [прочитано] Расхождение `app.py` и `test_app.py`
+
+**Severity: Low.** Где: `backend/app.py` (326 строк) и `backend/test_app.py` (120 строк).
+
+Это две разные фабрики приложения: прод-версия регистрирует 15 blueprint-ов,
+тестовая — меньше и с другой логикой (`/apidocs`, обработчики 404/405). Тесты
+идут против **другого** приложения, чем то, что в проде: часть кода (например,
+`session_auth`, `security_checks`) в тестах не выполняется вовсе.
+
+**Рекомендация.** Общая фабрика с флагом (`create_app(run_startup=True/False)`),
+чтобы тесты гоняли тот же объект, что и прод.
+
+#### A35. [прочитано] Общий хук загрузки данных отсутствует — логика продублирована
+
+**Severity: Low.** Где: `frontend/src/hooks/` содержит только `useAuth.tsx` и
+`useCharacterAnalysis.ts`; один и тот же паттерн «загрузить участников +
+операции, при ошибке → пустой массив» реализован заново в
+`TreasuryImport.tsx:219-232,1147-1149`, `TreasuryAnalytics.tsx:67-85`,
+`ClanOverview.tsx` и других.
+
+**Рекомендация.** Завести общий хук `useClanData(clanId)` — заодно уйдёт
+часть из 12 молчаливых `catch` (A20) и станет одно место, где задаётся
+поведение при ошибке.
+
+#### A36. [прочитано] `no-case-declarations` — 7 ошибок линта одного вида
+
+**Severity: Low.** Где: `frontend/src/components/clan/MembershipImportTab.tsx:127,560`;
+`TalentAnalytics.tsx:275,276`; `TaxAnalytics.tsx:705`.
+
+Лексические объявления прямо под `case` (`const pct = ...` в `:127` и `:560`).
+Без фигурных скобок объявление попадает в общий блок `switch` — при двух
+одинаковых именах в разных `case` это даёт синтаксическую ошибку или тихую
+подмену значения. Сейчас работает, но это ловушка.
+
+**Рекомендация.** Обернуть тела `case` в фигурные скобки.
+
+#### A37. [прочитано] Токен в query-параметре SSE
+
+**Severity: Low.** Где: `frontend/src/components/clan/MembershipImportTab.tsx:98,548`;
+`TreasuryImport.tsx`; бэкенд — `features/clan_info/routes.py:4573`, `:4700`, `:5204`.
+
+`EventSource` не умеет отправлять заголовки, поэтому токен сессии передаётся
+в URL: `?token=...`. Такой URL попадает в историю браузера, в логи nginx и
+прокси. Это осознанный компромисс (так работает `EventSource`), но стоит
+знать: токен живёт в URL дольше, чем в заголовке.
+
+**Рекомендация.** Рассмотреть одноразовый билет (короткоживущий токен)
+вместо основного токена сессии — это убирает и эту проблему, и часть A2.
+
+#### A52. [прочитано] Токены сессий хешируются голым SHA-256 без соли
+
+**Severity: Low (в контексте A41/A42 — Medium).** Где:
+`backend/shared/rbac/models.py:106-108`
+(`hashlib.sha256(token.encode()).hexdigest()`).
+
+Пароли хешируются bcrypt (`shared/middleware/auth.py:14`), а токены сессий —
+не salted SHA-256.
+
+**Последствие.** Токены генерируются `secrets.token_hex(32)`
+(`features/auth/routes.py:37`) — то есть 256 бит энтропии, и оффлайн-подбор
+непрактичен. Но утечка таблицы `session_token` даёт готовые хеши, по которым
+можно проверить утечку самого токена из логов (см. A41) — а пароли при такой
+утечке были бы защищены bcrypt-ом, а токены нет.
+
+**Рекомендация.** HMAC-SHA256 с серверным секретом либо bcrypt.
+
+#### A53. [прочитано] `SECRET_KEY` не используется для аутентификации
+
+**Severity: Low.** Где: `backend/shared/config.py:7`, `backend/app.py:27`.
+
+`SECRET_KEY` загружается в конфиг, но **нигде не участвует** в проверке
+токенов: токены случайные и хешируются SHA-256. То есть настройка создаёт
+иллюзию защиты, а её дефолт (`dev-secret-key-change-me`) — публичную строку
+в репозитории.
+
+**Рекомендация.** Либо использовать `SECRET_KEY` как ключ HMAC (см. A52), либо
+убрать переменную и не создавать ложного ощущения защиты.
+
+#### A54. [прочитано] `README` обещает 5 вкладок админки — их 6
+
+**Severity: Low.** Где: `README.md:118-122` (5 вкладок), `README.md:214`
+(«4 таба»), `frontend/src/pages/admin/AdminPage.tsx:18-25` (**6** вкладок,
+добавлена «API (Swagger)»).
+
+В README число вкладок указано **дважды и оба раза неверно** — 5 и 4.
+
+**Рекомендация.** Привести к фактическому числу (6).
+
+#### A55. [прочитано] README обещает 4 роли — их 5, и «третье неопределённое» состояние прав
+
+**Severity: Low.** Где: `README.md:93-96` (admin/superuser/user/custom),
+`backend/shared/rbac/seed.py:3-9` (пятая — `treasurer`),
+`seed.py:157-160` (казначей: read/write/approve, но **admin = none**),
+`seed.py:108` (superuser: `treasury:admin` = none).
+
+README не знает про роль «Казначей». Хуже: `treasury:admin` (импорт казны,
+cookies, автосбор) не у `superuser` и не у `treasurer` — только у `admin`.
+README:94 обещает superuser «полный доступ, кроме админки» — фактически
+казначейский импорт недоступен и superuser тоже.
+
+**Рекомендация.** Описать 5 ролей и явно указать, кто может импортировать
+казну.
+
+#### A56. [прочитано] README обещает бэкап «каждый день в 03:00 UTC» — он ежечасный
+
+**Severity: Low.** Где: `README.md:237`, `Dockerfile.postgres:10`
+(`0 * * * *` — **ежечасно**), `backend/features/admin/routes.py:578`
+(API тоже сообщает «Daily at 03:00 UTC» — тоже неверно).
+
+**Последствие.** Пользователь видит в админке и в README расписание, которого
+нет. Плюс ежечасный бэкап без ротации — 24 дампа в сутки (см. A13).
+
+**Рекомендация.** Либо исправить cron на `0 3 * * *`, либо исправить текст в
+README и в ответе API — что вернее.
+
+#### A57. [прочитано] `<Input>` не связывает подпись с полем
+
+**Severity: Low.** Где: `frontend/src/components/ui/Input.tsx:9`.
+
+```tsx
+{label && <label className="input-label">{label}</label>}
+<input className={...} {...props} />
+```
+
+У `<label>` нет `htmlFor`, у `<input>` нет `id`. 8 использований `<Input>`.
+
+**Последствие.** Клик по подписи не фокусирует поле; скринридер читает поле
+без подписи.
+
+**Рекомендация.** Генерировать `id` (или принимать его) и прописывать `htmlFor`.
+
+#### A58. [прочитано] Кликабельные `<div>`/`<td>` недоступны с клавиатуры
+
+**Severity: Low.** Где: `frontend/src/components/clan/ClanOverview.tsx:275,291,310,326,341`
+(`<div onClick={…}>` без `role`/`tabIndex`), `frontend/src/components/clan/TreasuryTab.tsx:447`
+(`<td onClick={…}>`), `frontend/src/components/snapshots/CharacterPanel.tsx:165-171`
+(`role="button" tabIndex={0}`, но **без** `onKeyDown` — Enter и Space не
+работают).
+
+**Рекомендация.** Использовать `<button>`, либо добавить `role` + `tabIndex` +
+`onKeyDown`. Образец правильной реализации — `MemberStatusTab.tsx:226-231`.
+
+#### A59. [прочитано] 24 инлайн-стиля обходят систему CSS-токенов
+
+**Severity: Low.** Где: `frontend/src/App.tsx:322`,
+`TreasuryImport.tsx:857,943,947`, `ClanMembersTable.tsx:454`
+(каст CSS-переменной `as React.CSSProperties`), `ImprovementTrack.tsx:72`
+(захардкоженный `#dc3545`), `TreasuryPairsQueue.tsx:1063`.
+
+В проекте 67 CSS-файлов с токенами (`--bg-card`, `--text-primary`, `--gold`,
+`--red`).
+
+**Последствие.** Инлайн-значения не участвуют в переключении темы —
+захардкоженный красный в `ImprovementTrack.tsx:72` не меняется вместе с темой.
+
+**Рекомендация.** Перенести в CSS-классы с `var(--…)`.
+
+#### A60. [прочитано] `GAME_RANKS` в форме участника — из 20 рангов доступно 15
+
+**Severity: Low (деталь A43).** См. A43 — здесь про то, что починка затрагивает
+и другие два места: привести к одному списку надо все три копии сразу, иначе
+форма участника и отображение в закрытых профилях разойдутся ещё сильнее.
+
+**Рекомендация.** Один `GAME_RANKS` в `src/utils/`, три импорта.
+
+---
+
+### Порядок работ (рекомендация)
+
+1. **A1** — запись аудита теряется в проде прямо сейчас; починка на 11 строк
+   + регрессионные тесты.
+2. **A3** — однострочная правка (`str` → `json.dumps`) + тест на round-trip.
+3. **A2** — единый декоратор для SSE с проверкой `is_active` и уровня.
+4. **A4** — CI для фронтенда: закрывает класс дефектов, а не один баг.
+5. **A38, A39, A41** — прод-контур: healthcheck в prod-compose, монтирование
+   тома бэкапов в бэкенд, токен в логах nginx.
+6. **A5, A6, A7, A8** — rate-limit и IP в аудите, фатальность миграций, тестовая
+   БД в проде, образы под root.
+7. **A32, A33** — SSE-утечка и мёртвая кнопка «Отменить» + снос `console.log`,
+   который печатает казну в консоль браузера.
+8. **A40, A42, A44** — общие UI-компоненты: Escape в `Modal`, id тостов,
+   `type="button"` по умолчанию. Три правки в трёх файлах — 20+ мест выигрывают.
+9. **A9-A20, A31, A34, A43-A51** — по одной находке за коммит, с тестом на каждую.
+10. **A21-A30, A35-A37, A52-A60** — документация, гигиена, покрытие.
+
+### Что НЕ проверялось
+
+- **Прод-окружение не трогалось**: ни один вывод не основан на данных с
+  продовой VM. Всё подтверждено на коде и локальных прогонах.
+- **Фронтенд не проверялся в браузере**: UI-дефекты (A18-A20) подтверждены
+  линтером и чтением кода, но не воспроизведены вживую.
+- **Нагрузка не измерялась**: A12 (индексы) и A12-N+1 выведены из кода;
+  реальное влияние на время ответа не замерялось на данных 15 000 операций.
+- **Тесты фронтенда не запускались**: их нет.
+- **Миграции проверены только на цепочку `down_revision`**: цепочка
+  `001 → 002 → (003, 004) → 005 → 006 → 007 → … → 017` корректна, единственный
+  merge-point (`006_hash_session_tokens`) объединяет ветку. Реальный `alembic
+  upgrade head` на чистой БД не прогонялся.
+- **Платежи, 2FA, внешние интеграции** — вне периметра аудита.
+- **Скорость парсера dwar.ru** не измерялась: A16 и A14 — про парсер и бэкапы,
+  но без замеров на живых данных.
