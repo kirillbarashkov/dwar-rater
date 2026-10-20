@@ -7,6 +7,8 @@
 """
 import json
 
+import pytest
+
 from shared.models import db
 from shared.models.character_snapshot import CharacterSnapshot
 from shared.models.closed_profile import ClosedProfile
@@ -14,11 +16,37 @@ from shared.models.closed_profile import ClosedProfile
 NICK = 'a61probe'
 
 
-def _make_profile(app):
+@pytest.fixture(autouse=True)
+def cleanup_probe_rows(app):
+    """Убрать за собой.
+
+    Общий TRUNCATE в conftest — молчаливый no-op (в списке есть несуществующая
+    таблица equipment_item), поэтому БД между тестами не чистится. Тест,
+    который что-то пишет, обязан убирать это сам: иначе
+    test_snapshots_empty_list видит оставшиеся слепки.
+    """
+    yield
     with app.app_context():
-        existing = ClosedProfile.query.filter_by(nick=NICK).first()
-        if existing:
-            ClosedProfile.query.filter_by(nick=NICK).delete()
+        # Порядок важен: closed_profiles.snapshot_id ссылается на character_snapshot,
+        # поэтому профиль сначала обрываем (FK → NULL), потом удаляем слепок.
+        ClosedProfile.query.filter_by(nick=NICK).update({'snapshot_id': None})
+        db.session.commit()
+        CharacterSnapshot.query.filter_by(nick=NICK).delete()
+        db.session.commit()
+
+
+def _make_profile(app):
+    """Создать профиль заново, устойчиво к остаткам прошлого прогона.
+
+    closed_profiles.snapshot_id ссылается на character_snapshot, поэтому старый
+    профиль сначала обрываем (FK → NULL), иначе удаление падает с
+    ForeignKeyViolation.
+    """
+    with app.app_context():
+        ClosedProfile.query.filter_by(nick=NICK).update({'snapshot_id': None})
+        db.session.commit()
+        ClosedProfile.query.filter_by(nick=NICK).delete()
+        db.session.commit()
         db.session.add(ClosedProfile(nick=NICK, status='closed'))
         db.session.commit()
 

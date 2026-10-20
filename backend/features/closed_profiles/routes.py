@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timezone
+import json
 from shared.services.parser import fetch_character_page, parse_character
 from shared.services.processor import process_character
 from shared.services.cache_service import save_character_cache
@@ -227,7 +228,9 @@ def save_snapshot_for_profile(nick):
         rank=snapshot_data.get('rank', ''),
         clan=snapshot_data.get('clan', ''),
         snapshot_name=data.get('snapshot_name', f'{nick} - открытый профиль'),
-        snapshot_data=str(snapshot_data),
+        # JSON, а не str(dict): все читатели (snapshots/export/tracks routes)
+        # разбирают эту колонку через json.loads, и Python-repr там падает.
+        snapshot_data=json.dumps(snapshot_data, ensure_ascii=False),
     )
     db.session.add(snapshot)
     db.session.flush()
