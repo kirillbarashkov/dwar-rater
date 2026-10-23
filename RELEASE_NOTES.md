@@ -1,5 +1,5 @@
-# v2.36.10
+# v2.36.11
 
 ## Исправления
-- fix(proxy): ProxyFix — аудит и rate-limit видят IP клиента (A5); fix(prod): прод больше не создаёт тестовую БД (A7); A11 снята [bump:patch]
+- fix(prod): healthcheck'и и ожидание готовности Postgres — бэкенд не стартует на неготовой БД (A38) [bump:patch]
 
