@@ -317,6 +317,11 @@ def create_app():
         data_logger.info('=== STARTUP COMPLETE ===')
         data_logger.info('')
 
+    # A5: бэкенд в проде стоит за nginx (bridge-сеть dwar-net), поэтому
+    # request.remote_addr без ProxyFix — это IP nginx, а не клиента.
+    from shared.middleware.proxy import install_proxy_fix
+    install_proxy_fix(app)
+
     return app
 
 

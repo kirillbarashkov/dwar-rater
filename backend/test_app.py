@@ -117,4 +117,8 @@ def create_test_app():
     def method_not_allowed(e):
         return jsonify({'error': 'Method not allowed'}), 405
 
+    # A5: то же, что в create_app — иначе тесты не проверяют поведение прода.
+    from shared.middleware.proxy import install_proxy_fix
+    install_proxy_fix(app)
+
     return app
