@@ -18,6 +18,19 @@ from shared.middleware.rate_limiter import check_rate_limit
 from shared.middleware.security import add_security_headers
 
 
+def _handle_migration_failure(err):
+    """A6: в проде провал миграции фатален — см. shared/services/migration_guard.py."""
+    from shared.services.data_logger import data_logger
+    from shared.services.migration_guard import handle_migration_failure
+
+    handle_migration_failure(
+        err,
+        strict=Config.STRICT_MIGRATIONS,
+        logger=data_logger,
+        create_all=db.create_all,
+    )
+
+
 def create_app():
     app = Flask(
         __name__,
@@ -223,8 +236,7 @@ def create_app():
                         else:
                             data_logger.info(f'Alembic: already at revision {head_rev}')
                 except Exception as e:
-                    data_logger.warning(f'Alembic migration failed, falling back to db.create_all(): {e}')
-                    db.create_all()
+                    _handle_migration_failure(e)
                 finally:
                     fcntl.flock(migration_lock, fcntl.LOCK_UN)
                     migration_lock.close()
@@ -294,8 +306,7 @@ def create_app():
                     else:
                         data_logger.info(f'Alembic: already at revision {head_rev}')
             except Exception as e:
-                data_logger.warning(f'Alembic migration failed, falling back to db.create_all(): {e}')
-                db.create_all()
+                _handle_migration_failure(e)
 
         from shared.models.clan_info import ClanMemberInfo, ClanInfo
         member_count = ClanMemberInfo.query.filter_by(is_deleted=False).count()

@@ -50,6 +50,9 @@ services:
       ADMIN_PASS: ${ADMIN_PASS}
       RATE_LIMIT_MAX: "100"
       RATE_LIMIT_WINDOW: "60"
+      # A6: в проде падение миграции — фатальная ошибка старта, а не тихий
+      # create_all() по моделям (расхождение схемы всплывёт уже в бою).
+      STRICT_MIGRATIONS: "true"
       CORS_ORIGINS: ${CORS_ORIGINS}
     # A38: healthcheck бэкенда — чтобы деплой и компоуз видели готовность
     # приложения, а не только запущенный процесс.

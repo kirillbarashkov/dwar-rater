@@ -21,6 +21,13 @@ class Config:
     ADMIN_USER = os.environ.get('ADMIN_USER', 'admin')
     ADMIN_PASS = os.environ.get('ADMIN_PASS', 'admin')
 
+    # A6: в проде падение миграции обязано быть фатальным. Иначе схема
+    # создаётся через create_all() по моделям — без данных, без истории
+    # миграций и без добавления столбцов в существующие таблицы, что даёт
+    # UndefinedColumn уже во время работы. По умолчанию выключено, чтобы
+    # локальная разработка на SQLite не падала на первом же расхождении.
+    STRICT_MIGRATIONS = os.environ.get('STRICT_MIGRATIONS', 'false').lower() == 'true'
+
     _cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173')
     CORS_ORIGINS = [origin.strip() for origin in _cors_origins.split(',') if origin.strip()]
 
