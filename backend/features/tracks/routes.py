@@ -106,8 +106,8 @@ def generate_track():
     force_refresh = bool(data.get('force_refresh', False))
 
     if force_refresh:
-        from shared.rbac import get_user_permission
-        if get_user_permission(user, 'analyze', 'write') == 'none':
+        from shared.rbac import has_permission
+        if not has_permission(user, 'analyze', 'write'):
             return jsonify({'error': 'Недостаточно прав для force_refresh'}), 403
         char_url = user.character_url if hasattr(user, 'character_url') else None
         if not char_url:
@@ -169,8 +169,8 @@ def re_evaluate_track(track_id):
     force_refresh = bool(data.get('force_refresh', False))
 
     if force_refresh:
-        from shared.rbac import get_user_permission
-        if get_user_permission(g.current_user, 'analyze', 'write') == 'none':
+        from shared.rbac import has_permission
+        if not has_permission(g.current_user, 'analyze', 'write'):
             return jsonify({'error': 'Недостаточно прав для force_refresh'}), 403
         char_url = g.current_user.character_url if hasattr(g.current_user, 'character_url') else None
         if not char_url:

@@ -20,9 +20,8 @@ def analyze():
     force_refresh = data.get('force_refresh', False)
 
     if force_refresh:
-        from shared.rbac import get_user_permission
-        level = get_user_permission(g.current_user, 'analyze', 'write')
-        if level == 'none':
+        from shared.rbac import has_permission
+        if not has_permission(g.current_user, 'analyze', 'write'):
             return jsonify({'error': 'Недостаточно прав'}), 403
 
     try:

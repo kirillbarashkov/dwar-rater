@@ -213,16 +213,41 @@ def require_permission(feature: str, action: str):
                 return jsonify({'error': 'Аккаунт деактивирован'}), 403
 
             level = get_user_permission(user, feature, action)
-            if level == 'none':
-                return jsonify({'error': 'Доступ запрещён'}), 403
-
-            # 'read' level blocks write/delete/admin/approve actions
-            if level == 'read' and action in ('write', 'delete', 'admin', 'approve'):
+            if not _level_allows(level, action):
+                if level == 'none':
+                    return jsonify({'error': 'Доступ запрещён'}), 403
                 return jsonify({'error': 'Недостаточно прав'}), 403
 
             return f(*args, **kwargs)
         return decorated
     return decorator
+
+
+def _level_allows(level: str, action: str) -> bool:
+    """Разрешает ли уровень `level` выполнить действие `action`.
+
+    Единственное место, где закодировано правило «read не даёт изменяющих
+    действий». Любая проверка прав обязана идти через него — иначе ветки
+    расходятся (A2: SSE-эндпоинты проверяли только `!= 'none'` и пускали
+    уровень read на действия администратора).
+    """
+    if level == 'none':
+        return False
+    if level == 'read' and action in ('write', 'delete', 'admin', 'approve'):
+        return False
+    return True
+
+
+def has_permission(user, feature: str, action: str) -> bool:
+    """Может ли `user` выполнить `action` над `feature`.
+
+    Для мест, где декоратор неприменим: SSE-стримы (отдают forbidden событием,
+    а не 403), проверки внутри тела маршрута, ветвления по уровню доступа.
+    Учитывает активность аккаунта — как и `require_permission`.
+    """
+    if not user or not getattr(user, 'is_active', False):
+        return False
+    return _level_allows(get_user_permission(user, feature, action), action)
 
 
 def get_user_permission(user, feature: str, action: str) -> str:

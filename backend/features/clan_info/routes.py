@@ -79,7 +79,10 @@ from shared.services.tax_engine import (
     parse_ddmmyyyy,
     prev_ym,
 )
-from shared.rbac import require_permission, feature, Permission as PermDef, get_user_permission
+from shared.rbac import (
+    require_permission, feature, Permission as PermDef,
+    get_user_permission, has_permission,
+)
 
 
 clan_info_bp = Blueprint("clan_info", __name__)
@@ -4583,7 +4586,7 @@ def auto_fetch_treasury_stream(clan_id):
             if expires > datetime.now(timezone.utc):
                 current_user = User.query.get(session_token.user_id)
 
-    if not current_user or get_user_permission(current_user, "treasury", "admin") == "none":
+    if not has_permission(current_user, "treasury", "admin"):
 
         def error_gen():
             yield (
@@ -4712,7 +4715,7 @@ def auto_fetch_members_stream(clan_id):
             if expires > datetime.now(timezone.utc):
                 current_user = User.query.get(session_token.user_id)
 
-    if not current_user or get_user_permission(current_user, "clan_info", "admin") == "none":
+    if not has_permission(current_user, "clan_info", "admin"):
 
         def error_gen():
             yield (
@@ -5218,7 +5221,7 @@ def import_level_events_stream(clan_id):
             if expires > datetime.now(timezone.utc):
                 current_user = User.query.get(session_token.user_id)
 
-    if not current_user or get_user_permission(current_user, "clan_info", "admin") == "none":
+    if not has_permission(current_user, "clan_info", "admin"):
 
         def error_gen():
             yield (

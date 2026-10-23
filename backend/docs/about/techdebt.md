@@ -103,15 +103,16 @@ TDD с падающим тестом на каждую правку). Соста
 Объём проверенного кода: backend — 159 файлов `.py`, 26 862 строки; frontend —
 113 файлов `.ts`/`.tsx`, 22 538 строк; 54 тестовых файла, 431 тест-функция.
 
-Четыре находки подтверждены прогоном. Две закрыты (A1, A3), одна — A61, одна ждёт
-реализации (A2):
+Четыре находки подтверждены прогоном, ещё две (A1, A2) вскрыли более широкий
+класс дефектов. Все закрыты:
 
 | # | Находка | Где | Статус |
 |---|---------|-----|--------|
 | A1 | Записи `audit_log` **терялись** при 11 админских операциях | `features/admin/routes.py` | ✅ закрыто 2026-10-20 |
-| A2 | Право уровня `read` **пробивает** гейт `admin` на SSE-эндпоинтах | `features/clan_info/routes.py` | план готов, ждёт реализации |
+| A2 | Право уровня `read` **пробивало** гейт `admin`/`write` — 6 мест | `rbac/__init__.py`, `clan_info`, `tracks`, `analyze` | ✅ закрыто 2026-10-21 |
 | A3 | Слепок писался **не в JSON** — ломал чтение слепка | `features/closed_profiles/routes.py` | ✅ закрыто 2026-10-20 |
 | A61 | Исчерпание пула соединений роняло 11 тестов на хосте | `tests/conftest.py` | ✅ закрыто 2026-10-20 |
+| A4 | Фронтенд не проверялся в CI (типы, линт, сборка) | `.github/workflows/deploy.yml` | ✅ закрыто 2026-10-21 |
 
 Остальное — по нарастанию серьёзности: 8 High, 21 Medium, 21 Low.
 
@@ -223,7 +224,7 @@ Windows**: `with open(filepath, 'wb')` держал файл открытым, �
 
 ---
 
-### A2. [доказано] Уровень права `read` проходит гейт `admin` на SSE-эндпоинтах
+### A2. ✅ ЗАКРЫТО (2026-10-21) — Уровень права `read` проходил гейт `admin` (SSE, force_refresh)
 
 **Severity: High.** Где: `backend/features/clan_info/routes.py:4586`, `:4715`, `:5221`.
 
@@ -284,6 +285,42 @@ def require_permission_from_token(feature, action):
 
 и повесить его на все три SSE-эндпоинта. Тогда «ручная проверка» и
 `require_permission` не смогут разойтись снова.
+
+**Решение (2026-10-21).** Вместо отдельного декоратора — хелпер
+`has_permission(user, feature, action)` + приватная `_level_allows(level, action)`
+в `shared/rbac/__init__.py`. Причина: декоратор не годится для SSE (там нужен
+ответ событием `error/forbidden` со статусом 200, а не 403), а правило «read не
+даёт изменяющих действий» должно жить **в одном месте**. `require_permission`
+теперь тоже ходит через `_level_allows`, поэтому ветки физически не могут
+разойтись.
+
+**Класс дефекта оказался шире трёх SSE.** Тот же `== 'none'` стоял ещё в трёх
+местах на гейте `write`:
+
+| Файл | Действие | Было |
+|---|---|---|
+| `features/clan_info/routes.py:4589` | `treasury:admin` (SSE) | `read` проходил |
+| `features/clan_info/routes.py:4718` | `clan_info:admin` (SSE) | `read` проходил |
+| `features/clan_info/routes.py:5224` | `clan_info:admin` (SSE) | `read` проходил |
+| `features/analyze/routes.py:24` | `analyze:write` (force_refresh) | `read` проходил |
+| `features/tracks/routes.py:110` | `analyze:write` (force_refresh) | `read` проходил |
+| `features/tracks/routes.py:173` | `analyze:write` (force_refresh) | `read` проходил |
+
+То есть пользователь с `read` мог не только запускать импорт казны/состава/
+уровней, но и заставлять сервер перезапрашивать персонажа с dwar.ru
+(единственное место, где `read` давал реальный расход ресурсов).
+
+`features/clans/routes.py:39` (`clans:write == 'full'`) не тронут — там проверка
+строже правила, дефекта нет.
+
+**Тест:** `backend/tests/test_permission_levels.py` — 7 тестов: три SSE,
+два force_refresh, контроль «full по-прежнему проходит» и проверка самого
+правила `_level_allows`. Контрольный тест важен: без него фикс мог бы закрыть
+доступ всем.
+
+**Грабли теста:** `SessionToken` не принимает `token=` — хранится
+`token_hash=SessionToken.hash_token(token)` плюс обязательный `expires_at`.
+
 
 ---
 
@@ -361,7 +398,7 @@ conftest — молчаливый no-op, см. A61, поэтому тест об
 
 ### High
 
-#### A4. Фронтенд не собирается, не типизируется и не линтится в CI
+#### A4. ✅ ЗАКРЫТО (2026-10-21) — Фронтенд не собирался, не типизировался и не линтился в CI
 
 **Severity: High.** Где: `.github/workflows/` (все 5 файлов).
 
@@ -380,6 +417,26 @@ conftest — молчаливый no-op, см. A61, поэтому тест об
 job как `needs` для деплоя. Уже существующие 17 ошибок линта — либо починить
 (см. TD-2), либо зафиксировать как baseline (`--max-warnings`/eslint-disable по
 правилам), чтобы новые ошибки ловились.
+
+**Решение (2026-10-21).** Job `frontend` добавлен **внутрь `deploy.yml`**, а не
+отдельным workflow: так проверка физически не может быть забыта — деплой на неё
+опирается. Шаги: `npm ci` → `npm run build` (он включает `tsc -b`) → `npx eslint src`.
+
+Важная деталь: `deploy` использует `if: always() && needs.test.result == 'success'`,
+поэтому одного `needs: [test, frontend, ...]` **недостаточно** — падение
+фронтенда не остановило бы деплой. Добавлено явное
+`needs.frontend.result == 'success'`. Без этой правки job был бы декоративным.
+
+**Baseline линта — через конфиг** (`frontend/eslint.config.js`), а не inline-директивы
+в 17 местах: пять правил, которые уже нарушены в существующем коде, понижены до
+`warn`. `npx eslint src` теперь выходит с кодом 0 при 25 предупреждениях, и
+**любая новая ошибка** валит CI. Правила: `react-hooks/set-state-in-effect`,
+`no-case-declarations`, `react-refresh/only-export-components`,
+`@typescript-eslint/no-unused-vars`, `@typescript-eslint/no-explicit-any`.
+
+**Остаточный долг.** Предупреждения (25 в 12 файлах) видны, но не блокируют.
+Поднимать правила обратно по мере починки файлов. Фронтенд по-прежнему без
+тестов: в `package.json` нет скрипта `test` (вынесено отдельной находкой).
 
 #### A5. `ProxyFix` не установлен — `ip_address` в аудите и rate-limit считают IP nginx
 
