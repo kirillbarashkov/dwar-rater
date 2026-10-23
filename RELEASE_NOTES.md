@@ -1,10 +1,5 @@
-# v2.36.8
+# v2.36.9
 
 ## Исправления
-- fix(admin): _audit() перед commit() — 11 записей аудита больше не теряются (A1)
-- fix(closed_profiles): сохранять слепок в JSON — A3, читатели больше не падают
-
-## Прочее
-- test(admin): админские действия обязаны оставлять след в audit_log (A1)
-- test(closed_profiles): слепок обязан читаться как JSON (A3)
+- fix(rbac): read больше не проходит гейт admin/write — 6 мест (A2); ci(frontend): tsc+eslint+build в deploy.yml (A4) [bump:patch]
 
