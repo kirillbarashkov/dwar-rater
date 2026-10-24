@@ -24,12 +24,12 @@ Web-приложение для анализа персонажей игры **�
 
 | Компонент | Технологии |
 |---|---|
-| Фронтенд | React 18 + TypeScript + Vite |
+| Фронтенд | React 19 + TypeScript + Vite |
 | Бэкенд | Python 3.14 + Flask + SQLAlchemy |
 | СУБД | PostgreSQL 16 |
 | Миграции | Alembic |
 | Деплой | Docker Compose |
-| Тесты | pytest (45 тестов) |
+| Тесты | pytest (504 функции в 65 файлах) |
 
 ## Быстрый старт
 
@@ -45,6 +45,9 @@ docker compose up -d
 - **Swagger API:** http://localhost:5000/apidocs
 
 **Логин:** `admin` / **Пароль:** `change-me-in-production`
+
+> Значение берётся из `ADMIN_PASS` в `.env`. Если переменная не задана, код
+> подставляет `admin` (`shared/config.py:22`) — в проде это недопустимо.
 
 > При первом входе система потребует сменить пароль.
 
@@ -94,6 +97,7 @@ cp .env.example .env
 | **superuser** | Полный доступ кроме админки | 8ч | Опциональна |
 | **user** | Чтение всего, запись анализа/треков/сравнений | 24ч | Нет |
 | **custom** | Права назначаются индивидуально через админку | 24ч | Нет |
+| **treasurer** | Казна: просмотр инфо/состава и операции казны | 24ч | Нет |
 
 ### Матрица фич
 
@@ -103,11 +107,17 @@ cp .env.example .env
 | `snapshots` | read, write, delete, admin (очистка кэша) |
 | `clans` | read, write, admin (управление чатом) |
 | `clan_info` | read, write, admin (импорт/экспорт казны) |
+| `treasury` | read, write, approve (зачёты и подтверждения), admin |
 | `scenarios` | read, write |
 | `tracks` | read, write |
 | `compare` | read, write |
 | `closed_profiles` | read, write |
+| `character` | read, write (привязка персонажа к пользователю) |
 | `admin` | read, write, admin (audit log) |
+| `about` | read (страница «О проекте») |
+
+Всего в `shared/rbac/seed.py` — **15 фич и 122 права**; матрицу можно
+редактировать в админке (вкладка «Роли и права»), не трогая код.
 
 ## Админ-панель
 
@@ -120,6 +130,7 @@ cp .env.example .env
 3. **Бэкапы БД** — создание, скачивание, восстановление, удаление бэкапов
 4. **Audit Log** — журнал всех действий с фильтрами
 5. **Матрица фич** — справочник всех фич и действий
+6. **API (Swagger)** — встроенная документация OpenAPI
 
 ## API
 
@@ -135,6 +146,11 @@ cp .env.example .env
 | `GET` | `/api/auth/me` | Текущий пользователь + права |
 | `POST` | `/api/auth/change-password` | Смена пароля |
 | `POST` | `/api/auth/2fa/setup` | Настройка TOTP 2FA |
+| `POST` | `/api/auth/2fa/verify` | Подтвердить включение 2FA |
+| `POST` | `/api/auth/2fa/disable` | Отключить 2FA |
+| `PUT` | `/api/auth/profile` | Обновить профиль |
+| `GET` | `/api/auth/sessions` | Мои активные сессии |
+| `DELETE` | `/api/auth/sessions/:id` | Завершить свою сессию |
 
 ### Основные
 
@@ -149,6 +165,15 @@ cp .env.example .env
 | `GET` | `/api/clans` | Список кланов |
 | `GET` | `/api/clan/:id/info` | Информация о клане |
 | `GET` | `/api/closed-profiles` | Закрытые профили |
+| `GET` | `/api/character/:nick` | Привязка персонажа к пользователю |
+| `GET` | `/api/version` | Версия, git hash, release notes |
+| `GET` | `/api/health` | Health-check (для Docker) |
+| `GET` | `/api/about` | Данные страницы «О проекте» |
+
+**Казна клана** — самая крупная группа, **72 маршрута** под
+`/api/clan/:id/treasury/*`: операции, импорт/экспорт CSV, зачёты и
+подтверждения, компенсации, переносы ников, аналитика и три SSE-потока
+(`text/event-stream`) для длинных операций. Полный список — в Swagger.
 
 ### Админка
 
@@ -165,13 +190,26 @@ cp .env.example .env
 | `POST` | `/api/admin/backups` | Создать бэкап |
 | `POST` | `/api/admin/backups/:file/restore` | Восстановить из бэкапа |
 | `GET` | `/api/admin/audit` | Audit log |
+| `GET` | `/api/admin/audit/filters` | Доступные значения фильтров журнала |
+| `GET` | `/api/admin/features` | Справочник фич и действий |
+| `GET` | `/api/admin/permissions/user/:id` | Права пользователя |
+| `PUT` | `/api/admin/permissions/user/:id` | Установить права пользователя |
+| `DELETE` | `/api/admin/permissions/deprecated` | Удалить устаревшие права |
+| `GET` | `/api/admin/users/:id/sessions` | Сессии пользователя |
+| `DELETE` | `/api/admin/users/:id/sessions/others` | Завершить все чужие сессии |
+| `DELETE` | `/api/admin/users/:id/sessions/:sid` | Завершить конкретную сессию |
+| `DELETE` | `/api/admin/users/:id/character` | Отвязать персонажа |
+| `GET` | `/api/admin/backups/:file/download` | Скачать бэкап |
+| `DELETE` | `/api/admin/backups/:file` | Удалить бэкап |
+
+Всего в админском API — **22 маршрута**.
 
 ## Структура проекта
 
 ```
 dwar-rater/
 ├── backend/
-│   ├── features/              # Вертикальные срезы (10 фич)
+│   ├── features/              # Вертикальные срезы (15 фич)
 │   │   ├── admin/             # Админ-панель API
 │   │   ├── analyze/           # Анализ персонажа
 │   │   ├── auth/              # Аутентификация
@@ -196,7 +234,7 @@ dwar-rater/
 │   ├── migrations/            # Alembic миграции
 │   ├── docs/                  # OpenAPI спецификация
 │   ├── scripts/               # Генерация OpenAPI
-│   ├── tests/                 # 45 тестов (pytest)
+│   ├── tests/                 # 504 теста (pytest, 65 файлов)
 │   ├── app.py                 # App factory
 │   ├── test_app.py            # Test app factory (без Alembic)
 │   └── config.py              # Конфигурация
@@ -221,9 +259,11 @@ dwar-rater/
 │   ├── pre-destroy-check.sh   # Защита от удаления данных
 │   └── alembic-safe.sh        # Safe миграции с автобэкапом
 ├── .github/workflows/
+│   ├── deploy.yml             # Тесты → деплой на VM (главный пайплайн)
 │   ├── api-docs-check.yml     # Проверка актуальности API docs
 │   ├── design-md-lint.yml     # Валидация DESIGN.md
-│   └── destructive-ops-guard.yml  # Guard от разрушительных PR
+│   ├── destructive-ops-guard.yml  # Guard от разрушительных PR
+│   └── diagnostic.yml         # Ручная диагностика прода (workflow_dispatch)
 ├── Dockerfile.postgres        # PostgreSQL + cron бэкапы
 ├── docker-compose.yml
 ├── Makefile                   # make start/backup/migrate/destroy
@@ -234,7 +274,9 @@ dwar-rater/
 
 ### Автоматические
 
-Бэкап создаётся **каждый день в 03:00 UTC** через cron внутри PostgreSQL контейнера. Бэкапы хранятся в Docker volume `postgres_backups` и **не удаляются автоматически**.
+Бэкап создаётся **каждый час** через cron внутри PostgreSQL-контейнера
+(`0 * * * *`, см. `Dockerfile.postgres`). Старые бэкапы удаляются ротацией
+`scripts/backup-rotate.sh` по `BACKUP_KEEP_DAYS` (по умолчанию 7 дней). Бэкапы хранятся в Docker volume `postgres_backups` и **не удаляются автоматически**.
 
 ### Ручной бэкап
 
@@ -268,11 +310,14 @@ python -m cli analyze --url "https://w1.dwar.ru/user_info.php?nick=Test" --dry-r
 
 ```bash
 cd backend
-python -m pytest -v              # Все тесты (45)
+python -m pytest -v              # Все тесты (504 функции, ~520 кейсов)
 python -m pytest tests/test_url_validator.py -v  # Конкретный файл
 ```
 
-Тесты используют PostgreSQL (`dwar_rater_test`) с `TRUNCATE CASCADE` между тестами.
+Тесты используют PostgreSQL (`dwar_rater_test`). Базу пересоздаёт фикстура
+`conftest.py::_recreate_test_db()`; **между тестами данные не чистятся
+автоматически** — каждый тест обязан убирать за собой сам (общий `clan_id`
+в двух тестах уже приводил к падениям).
 
 ### Pre-commit hook
 
