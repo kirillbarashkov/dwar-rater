@@ -2604,18 +2604,53 @@ def unmute_treasury_anomaly(clan_id):
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/compensation", methods=["POST"])
 @require_permission("treasury", "write")
 def create_treasury_compensation(clan_id):
-    data = request.json
+    data = request.get_json(silent=True) or {}
     nick = data.get("nick")
     norm_amount = data.get("norm_amount", 0)
     comment = data.get("comment", "")
     months = data.get("months", [])
-    year = data.get("year", datetime.now().year)
+    year = _as_int(data.get("year"), datetime.now().year)
 
     if not nick:
         return jsonify({"error": "nick обязателен"}), 400
 
     if not months:
         return jsonify({"error": "months обязателен"}), 400
+
+    # A9: валидация ввода. Раньше проходило всё: 13-й месяц давал запись
+    # «15.13.2025», а нулевая или отрицательная сумма создавала операцию.
+    if not isinstance(months, list):
+        return jsonify({"error": "months должен быть списком"}), 400
+    try:
+        months = [int(m) for m in months]
+    except (TypeError, ValueError):
+        return jsonify({"error": "months должен содержать числа"}), 400
+    bad_months = [m for m in months if not 1 <= m <= 12]
+    if bad_months:
+        return jsonify(
+            {"error": "bad_month", "months": bad_months,
+             "message": f"месяц вне диапазона 1..12: {bad_months}"}
+        ), 400
+
+    if isinstance(norm_amount, bool) or not isinstance(norm_amount, (int, float)):
+        return jsonify({"error": "norm_amount должен быть числом"}), 400
+    if norm_amount <= 0:
+        return jsonify({"error": "norm_amount должен быть больше нуля"}), 400
+
+    # A9: закрытый месяц — та же проверка, что в массовых путях
+    # (_closed_months_touched / plan_compensations). Клан уже согласовал итог,
+    # и единичная компенсация не должна его пересчитывать задним числом.
+    closed_now = _closed_month_keys(clan_id)
+    blocked = sorted({(m, year) for m in months if (m, year) in closed_now})
+    if blocked:
+        month, yr = blocked[0]
+        return jsonify({
+            "error": "month_closed",
+            "month": month,
+            "year": yr,
+            "message": f"{month:02d}.{yr} закрыт — сначала переоткройте месяц",
+            "closed": [f"{m:02d}.{y}" for m, y in blocked],
+        }), 400
 
     created = []
     for month in months:
