@@ -927,7 +927,7 @@ def update_clan_member(clan_id, member_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/export", methods=["GET"])
-@require_permission("clan_info", "read")
+@require_permission("treasury", "read")
 def export_treasury_operations(clan_id):
     operations = (
         TreasuryOperation.query.filter_by(clan_id=clan_id)
@@ -964,7 +964,7 @@ def export_treasury_operations(clan_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/backup", methods=["POST"])
-@require_permission("clan_info", "write")
+@require_permission('treasury', 'admin')
 def save_treasury_backup(clan_id):
     import os
     from flask import current_app
@@ -1022,7 +1022,7 @@ def save_treasury_backup(clan_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/backups", methods=["GET"])
-@require_permission("clan_info", "read")
+@require_permission("treasury", "read")
 def list_treasury_backups(clan_id):
     import os
     import glob
@@ -1162,7 +1162,7 @@ def restore_treasury_backup(clan_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury", methods=["GET"])
-@require_permission("clan_info", "read")
+@require_permission("treasury", "read")
 def get_treasury_operations(clan_id):
     # Период — опционально. Вкладка аналитики работает по месяцу и раньше тянула
     # всю историю (15 000+ строк ≈ 3,5 МБ), хотя за месяц их 526–2 256. Экранам
@@ -2083,7 +2083,7 @@ def get_member_status(clan_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/totals", methods=["GET"])
-@require_permission("clan_info", "read")
+@require_permission('clan_info', 'read')
 def get_treasury_totals(clan_id):
     """Итоги по одному участнику за всё время, сгруппированные по типу и объекту.
 
@@ -2497,7 +2497,7 @@ def reopen_treasury_month(clan_id, year, month):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/anomalies", methods=["GET"])
-@require_permission("clan_info", "read")
+@require_permission('clan_info', 'read')
 def get_treasury_anomalies(clan_id):
     """What looks wrong in the stored treasury — read-only diagnostics.
 
@@ -3124,7 +3124,7 @@ def get_tax_ledger(clan_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/summary", methods=["GET"])
-@require_permission("clan_info", "read")
+@require_permission('clan_info', 'read')
 def get_treasury_summary(clan_id):
     """A chat-ready markdown summary of a month — read-only.
 
@@ -3961,7 +3961,7 @@ def import_treasury_operations(clan_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/date-coverage", methods=["GET"])
-@require_permission("clan_info", "read")
+@require_permission('clan_info', 'read')
 def get_treasury_date_coverage(clan_id):
     """Return date coverage structure: years -> months -> days with operation counts."""
     from collections import defaultdict
@@ -4185,7 +4185,7 @@ def save_treasury_cookies(clan_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/cookies/status", methods=["GET"])
-@require_permission("clan_info", "read")
+@require_permission("treasury", "read")
 def get_treasury_cookies_status(clan_id):
     cookie = ClanCookie.query.filter_by(clan_id=clan_id).first()
 
@@ -4384,7 +4384,7 @@ def auto_fetch_treasury_json(clan_id):
 
 
 @clan_info_bp.route("/api/clan/<int:clan_id>/treasury/auto-fetch", methods=["POST"])
-@require_permission("clan_info", "admin")
+@require_permission('treasury', 'admin')
 def auto_fetch_treasury(clan_id):
     from urllib.parse import unquote
 
