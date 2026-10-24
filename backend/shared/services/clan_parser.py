@@ -301,6 +301,8 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
             "estimated_pages": 0,
             "total_pages": total_pages,
             "sample_dates": {},
+            'boundaries_complete': True,
+            'boundary_errors': [],
         }
 
     start_day, end_day = _range_days(start_date_str, end_date_str)
@@ -317,6 +319,12 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
         (_op_date_day(op["date"]) for op in page_ops), default=""
     )
 
+    # A16: границы определяются сетевыми запросами. Раньше сбой глушился
+    # (`except Exception: pass`), и автосбор молча стартовал с неверных границ.
+    # Теперь причина попадает в лог, а вызывающая сторона получает признак
+    # boundaries_complete=False вместо «всё хорошо, дат нет».
+    boundary_errors = []
+
     # If even the newest op is older than start_date → no data in range
     if latest_on_page_0 and start_day and latest_on_page_0 < start_day:
         return {
@@ -328,6 +336,8 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
                 "page_0_latest": latest_on_page_0,
                 "page_0_earliest": earliest_on_page_0,
             },
+            'boundaries_complete': not boundary_errors,
+            'boundary_errors': list(boundary_errors),
         }
 
     def find_start_boundary(low, high):
@@ -351,7 +361,11 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
                     high = mid - 1
                 else:
                     low = mid + 1
-            except Exception:
+            except Exception as exc:
+                boundary_errors.append('find_start_boundary: %s' % exc)
+                data_logger.warning(
+                    f'[PARSER] find_start_boundary failed: {exc}', exc_info=True
+                )
                 break
         return result
 
@@ -376,7 +390,11 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
                     low = mid + 1
                 else:
                     high = mid - 1
-            except Exception:
+            except Exception as exc:
+                boundary_errors.append('find_end_boundary: %s' % exc)
+                data_logger.warning(
+                    f'[PARSER] find_end_boundary failed: {exc}', exc_info=True
+                )
                 break
         return result
 
@@ -407,6 +425,8 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
                 "page_0_latest": latest_on_page_0,
                 "page_0_earliest": earliest_on_page_0,
             },
+            'boundaries_complete': not boundary_errors,
+            'boundary_errors': list(boundary_errors),
         }
 
     estimated_pages = oldest_page - newest_page + 1
@@ -427,8 +447,11 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
             sample_dates["newest_page_earliest"] = min(
                 (_parse_date_to_comparable(op["date"]) for op in newest_ops), default=""
             )
-    except Exception:
-        pass
+    except Exception as exc:
+        boundary_errors.append('newest_page_sample: %s' % exc)
+        data_logger.warning(
+            f'[PARSER] newest_page_sample failed: {exc}', exc_info=True
+        )
 
     try:
         oldest_html, _ = fetch_clan_treasury_report(session=session, page=oldest_page)
@@ -440,8 +463,17 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
             sample_dates["oldest_page_earliest"] = min(
                 (_parse_date_to_comparable(op["date"]) for op in oldest_ops), default=""
             )
-    except Exception:
-        pass
+    except Exception as exc:
+        boundary_errors.append('oldest_page_sample: %s' % exc)
+        data_logger.warning(
+            f'[PARSER] oldest_page_sample failed: {exc}', exc_info=True
+        )
+
+    if boundary_errors:
+        data_logger.warning(
+            f'[PARSER] Boundaries estimated with {len(boundary_errors)} error(s): '
+            f'{boundary_errors}'
+        )
 
     return {
         "start_page": newest_page,
@@ -449,6 +481,8 @@ def estimate_pages_in_range(session, start_date_str, end_date_str, max_pages=500
         "estimated_pages": max(0, estimated_pages),
         "total_pages": total_pages,
         "sample_dates": sample_dates,
+        'boundaries_complete': not boundary_errors,
+        'boundary_errors': list(boundary_errors),
     }
 
 

@@ -4593,6 +4593,10 @@ def estimate_treasury_pages(clan_id):
             "estimated_pages": estimated,
             "total_pages": result["total_pages"],
             "sample_dates": sample_dates,
+            # A16: если границы не удалось определить, клиент должен это
+            # видеть, а не молча собирать неполный диапазон.
+            "boundaries_complete": result.get("boundaries_complete", True),
+            "boundary_errors": result.get("boundary_errors", []),
             "requested_start_date": requested_start_date,
             "effective_start_date": start_date,
             "trimmed": trimmed,
