@@ -1,0 +1,22 @@
+# A8: без этого файла `COPY . .` накрывал бы node_modules, установленные
+# через npm ci, хостовой копией. На Windows туда попадают нативные
+# бинарники win32 (например @rolldown/binding-win32-x64-msvc) рядом с
+# linux-сборкой — образ раздувался до ~771 МБ, большая часть — мусор,
+# который в Linux-контейнере вообще не используется.
+node_modules/
+dist/
+.vite/
+
+# Локальные секреты и артефакты разработки в образ попадать не должны.
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Docker-файлы не нужны внутри образа.
+Dockerfile
+Dockerfile.prod
+.dockerignore

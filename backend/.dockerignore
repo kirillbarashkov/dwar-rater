@@ -1,0 +1,32 @@
+# A8: в образ пеклись logs/ (~596 КБ), .pytest_cache/ и локальная база.
+# Ничего из этого не нужно для работы приложения.
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+logs/
+instance/
+*.sqlite3
+*.db
+
+# Секреты: в образ идут только значения, приходящие через env compose.
+.env
+.env.*
+!.env.example
+
+# ВАЖНО: tests/ и docs/ НЕ исключаем.
+#   * docs/ читает рантайм — страница «О проекте» отдаёт openapi.yaml и
+#     markdown из docs/ (включая этот самый techdebt.md);
+#   * tests/ использует pre-commit hook (прогон внутри контейнера).
+# Исключение любого из них ломает прод или проверку, а выигрыш — килобайты.
+
+.git/
+.gitignore
+.dockerignore
+Dockerfile

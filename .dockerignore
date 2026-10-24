@@ -8,3 +8,23 @@ venv/
 .env
 users.json
 frontend/
+
+# A8: контекст postgres-образа — корень репозитория, поэтому в демон уходил
+# весь проект. Для сборки нужен только scripts/db-backup.sh.
+.git/
+.coord/
+node_modules/
+**/node_modules/
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage*
+logs/
+**/logs/
+*.sqlite3
+*.log
+.env.*
+Dockerfile*
+docs/
