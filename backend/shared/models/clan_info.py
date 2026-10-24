@@ -1,5 +1,8 @@
 import re
 import json
+import logging
+
+_log = logging.getLogger(__name__)
 from datetime import datetime
 from shared.models import db
 
@@ -26,18 +29,34 @@ class ClanInfo(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def get_council(self):
+        """Совет клана или [] — но повреждение поля видно в логе.
+
+        A17: раньше здесь стоял голый `except:`, который ловил всё, включая
+        KeyboardInterrupt/SystemExit, и молча отдавал пустой список: битое
+        поле выглядело как «совета нет». Теперь ловятся только ожидаемые
+        ошибки разбора, и они логируются.
+        """
         try:
             return json.loads(self.council)
-        except:
+        except (json.JSONDecodeError, TypeError) as exc:
+            _log.warning(
+                'ClanInfo(%s).get_council: повреждённое поле council: %r (%s)',
+                getattr(self, 'clan_id', '?'), self.council, exc,
+            )
             return []
 
     def set_council(self, value):
         self.council = json.dumps(value, ensure_ascii=False)
 
     def get_clan_structure(self):
+        """Структура клана или {} — повреждение поля логируется (A17)."""
         try:
             return json.loads(self.clan_structure)
-        except:
+        except (json.JSONDecodeError, TypeError) as exc:
+            _log.warning(
+                'ClanInfo(%s).get_clan_structure: повреждённое поле clan_structure: %r (%s)',
+                getattr(self, 'clan_id', '?'), self.clan_structure, exc,
+            )
             return {}
 
     def set_clan_structure(self, value):
