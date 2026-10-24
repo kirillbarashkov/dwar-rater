@@ -1,5 +1,5 @@
-# v2.36.17
+# v2.36.18
 
 ## Исправления
-- fix(backup): ротация по BACKUP_KEEP_DAYS, pipefail и gunzip -t, честная политика в UI (A13) [bump:patch]
+- fix(migration): предмиграционный дамп пишется в файл и проверяется (A14) [bump:patch]
 
