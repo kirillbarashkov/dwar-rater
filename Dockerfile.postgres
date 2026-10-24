@@ -3,6 +3,10 @@ FROM postgres:16-alpine
 RUN apk add --no-cache dcron
 
 COPY scripts/db-backup.sh /usr/local/bin/db-backup.sh
+# A13: ротация вызывается из db-backup.sh как $(dirname $0)/backup-rotate.sh,
+# поэтому лежит рядом.
+COPY scripts/backup-rotate.sh /usr/local/bin/backup-rotate.sh
+RUN chmod +x /usr/local/bin/backup-rotate.sh
 RUN chmod +x /usr/local/bin/db-backup.sh && \
     mkdir -p /backups
 

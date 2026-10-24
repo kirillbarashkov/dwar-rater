@@ -554,6 +554,22 @@ def _get_backup_info(filepath):
     }
 
 
+def _backup_retention_label():
+    """A13: правда о политике хранения вместо жёсткой строки.
+
+    Раньше здесь было 'No automatic deletion', хотя BACKUP_KEEP_DAYS
+    задан в .env — интерфейс врал оператору о том, что бэкапы не удаляются.
+    """
+    raw = os.environ.get('BACKUP_KEEP_DAYS', '')
+    try:
+        days = int(raw)
+    except (TypeError, ValueError):
+        return 'Rotation disabled (BACKUP_KEEP_DAYS is not set)'
+    if days <= 0:
+        return 'Rotation disabled (BACKUP_KEEP_DAYS=0)'
+    return f'Automatic deletion after {days} days'
+
+
 def _human_size(size):
     for unit in ['B', 'KB', 'MB', 'GB']:
         if size < 1024:
@@ -567,7 +583,13 @@ def _human_size(size):
 def list_backups():
     """List all database backups."""
     if not os.path.exists(BACKUP_DIR):
-        return jsonify({'backups': [], 'total': 0, 'total_size': 0})
+        # A13: ранний выход обязан отдавать те же поля политики, иначе
+        # интерфейс на пустом каталоге молчит о том, что бэкапы удаляются.
+        return jsonify({
+            'backups': [], 'total': 0, 'total_size': 0,
+            'schedule': 'Hourly (cron 0 * * * * in the postgres container)',
+            'retention': _backup_retention_label(),
+        })
 
     backups = []
     total_size = 0
@@ -582,8 +604,8 @@ def list_backups():
         'backups': backups,
         'total': len(backups),
         'total_size': _human_size(total_size),
-        'schedule': 'Daily at 03:00 UTC',
-        'retention': 'No automatic deletion',
+        'schedule': 'Hourly (cron 0 * * * * in the postgres container)',
+        'retention': _backup_retention_label(),
     })
 
 

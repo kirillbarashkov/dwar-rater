@@ -7,6 +7,9 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dwar_rater}
+      # A13: сколько дней хранить дампы. Без этой строки переменная из .env
+      # не доходила до контейнера, и ротация молча не работала.
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
       POSTGRES_USER: ${POSTGRES_USER:-dwar}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
