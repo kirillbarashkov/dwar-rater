@@ -1,3 +1,4 @@
+import { showToast } from '../ui/Toast';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { ClanMemberData, LeftMemberData } from '../../types/clanInfo';
 import type { ClanInfoData } from '../../utils/parseMembers';
@@ -104,7 +105,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
     try {
       const data = await getClanMembers(clanId);
       setMembers(data);
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось загрузить состав клана', 'error'); }
     finally { setIsLoading(false); }
   }, [clanId]);
 
@@ -112,7 +113,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
     try {
       const data = await getLeftMembers(clanId);
       setLeftMembers(data);
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось загрузить вышедших из клана', 'error'); }
   }, [clanId]);
 
   useEffect(() => {
@@ -207,7 +208,7 @@ if (sortConfig.key) {
       setMembers((prev) => [...prev, newMember]);
       setShowAddModal(false);
       setForm({ nick: '', icon: '', game_rank: '', level: 1, profession: '', profession_level: 0, clan_role: '', join_date: '', trial_until: '' });
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось добавить участника', 'error'); }
   };
 
   const handleEdit = async () => {
@@ -216,7 +217,7 @@ if (sortConfig.key) {
       const updated = await updateClanMember(clanId, editingMember.id, form);
       setMembers((prev) => prev.map((m) => m.id === editingMember.id ? { ...m, ...updated } : m));
       setEditingMember(null);
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось сохранить данные участника', 'error'); }
   };
 
   const handleDelete = (member: ClanMemberData & { id?: number }) => {
@@ -234,7 +235,7 @@ if (sortConfig.key) {
       loadLeftMembers();
       setDeletingMember(null);
       setDeleteReason('');
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось удалить участника', 'error'); }
   };
 
 const handleAnalyze = (nick: string) => {

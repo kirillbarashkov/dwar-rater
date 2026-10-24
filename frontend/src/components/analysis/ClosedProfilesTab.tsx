@@ -71,7 +71,7 @@ export function ClosedProfilesTab() {
     try {
       const data = await getClosedProfiles();
       setProfiles(data);
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось загрузить закрытые профили', 'error'); }
     finally { setIsLoading(false); }
   };
 
@@ -92,7 +92,7 @@ export function ClosedProfilesTab() {
       }
       setShowAddModal(false);
       setAddNick('');
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось добавить персонажа', 'error'); }
   };
 
   const handleCheck = async (nick: string) => {
@@ -125,7 +125,7 @@ export function ClosedProfilesTab() {
       showToast('Слепок сохранён', 'success');
       await loadProfiles();
       setShowResultModal(false);
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось сохранить слепок', 'error'); }
   };
 
   const handleBatchScan = async (nicks?: string[]) => {
@@ -151,7 +151,7 @@ export function ClosedProfilesTab() {
       } else {
         showToast(`Все ещё закрыты: ${stillClosed.length}`, 'info');
       }
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось выполнить сканирование', 'error'); }
     finally { setIsScanning(false); }
   };
 
@@ -167,7 +167,7 @@ export function ClosedProfilesTab() {
       setSelected(new Set());
       await loadProfiles();
       showToast('Удалено', 'success');
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось удалить помеченные профили', 'error'); }
   };
 
   const handleDelete = async (id: number) => {
@@ -175,7 +175,7 @@ export function ClosedProfilesTab() {
       await deleteClosedProfile(id);
       setSelected(prev => { const next = new Set(prev); next.delete(id); return next; });
       await loadProfiles();
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось удалить профиль', 'error'); }
   };
 
   const handleEditNotes = (profile: ClosedProfileData) => {
@@ -190,7 +190,7 @@ export function ClosedProfilesTab() {
       await updateClosedProfile(editingProfile.id, { notes: editNotes });
       await loadProfiles();
       setShowNotesModal(false);
-    } catch { /* ignore */ }
+    } catch { showToast('Не удалось сохранить заметку', 'error'); }
   };
 
   const toggleSelect = (id: number) => {
