@@ -14,7 +14,7 @@ on:
           - set-password
           - fix-schema
       new_password:
-        description: 'New password (for set-password only, min 8 chars)'
+        description: 'New password (set-password only, min 8 chars). Значение маскируется в логах; для обычной смены предпочтителен reset-password — он берёт ADMIN_PASS из .env'
         required: false
         type: string
 
@@ -24,17 +24,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # A24: значения из workflow_dispatch input GitHub НЕ маскирует — в отличие
+      # от secrets. Регистрируем его в списке маскировки до первого шага, который
+      # может его напечатать (включая вывод удалённого скрипта).
+      - name: Mask the password input
+        if: ${{ github.event.inputs.new_password != '' }}
+        env:
+          SECRET_VALUE: ${{ github.event.inputs.new_password }}
+        run: echo "::add-mask::$SECRET_VALUE"
+
       - name: SSH diagnostic
         uses: appleboy/ssh-action@v1
+        env:
+          # A24: передаём через env, а не подстановкой в текст скрипта — иначе
+          # пароль с кавычками или $( ) ломал бы скрипт (инъекция команд).
+          DIAG_ACTION: ${{ github.event.inputs.action }}
+          DIAG_PASSWORD: ${{ github.event.inputs.new_password }}
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 5m
+          envs: DIAG_ACTION,DIAG_PASSWORD
           script: |
             cd ~/dwar-rater
-            ACTION="${{ github.event.inputs.action }}"
-            NEWPASS="${{ github.event.inputs.new_password }}"
+            ACTION="$DIAG_ACTION"
+            NEWPASS="$DIAG_PASSWORD"
             ADMIN_PASS_VALUE=$(grep '^ADMIN_PASS=' .env | cut -d= -f2-)
             echo "=== Running _diag.py (action=$ACTION) ==="
             docker compose -f docker-compose.prod.yml exec -T -e DIAG_ACTION="$ACTION" -e DIAG_NEWPASS="$NEWPASS" -e ADMIN_PASS="$ADMIN_PASS_VALUE" backend python /app/_diag.py 2>&1
