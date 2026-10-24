@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect , useRef} from 'react';
 import './SearchBar.css';
 
 interface SearchBarProps {
@@ -17,9 +17,18 @@ export function SearchBar({ onAnalyze, isLoading, defaultUrl, compact, value: ex
   const url = externalValue ?? internalUrl;
   const setUrl = externalOnChange ?? setInternalUrl;
 
+  // A19: `setUrl` — это либо setState, либо колбэк родителя, и его идентичность
+  // может меняться на каждом рендере. Положить его прямо в зависимости — риск
+  // цикла «эффект → setState → новый колбэк → эффект». Держим актуальным через
+  // ref: зависимости остаются значениями, а вызов идёт всегда со свежим сеттером.
+  const setUrlRef = useRef(setUrl);
+  useEffect(() => {
+    setUrlRef.current = setUrl;
+  }, [setUrl]);
+
   useEffect(() => {
     if (defaultUrl && !externalValue) {
-      setUrl(defaultUrl);
+      setUrlRef.current(defaultUrl);
     }
   }, [defaultUrl, externalValue]);
 

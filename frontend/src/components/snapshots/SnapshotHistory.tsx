@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect , useCallback} from 'react';
 import type { Snapshot } from '../../types/snapshot';
 import { getSnapshots, clearCache } from '../../api/snapshots';
 import { SnapshotCard } from './SnapshotCard';
@@ -37,13 +37,10 @@ export function SnapshotHistory({ onLoad, initialNick = '', compact = false }: S
   const [cacheSelectedNicks, setCacheSelectedNicks] = useState<Set<string>>(new Set());
   const [isClearingCache, setIsClearingCache] = useState(false);
 
-  useEffect(() => {
-    if (!hasFetched) {
-      loadSnapshots(1, initialNick);
-    }
-  }, []);
-
-  const loadSnapshots = async (p: number, s: string) => {
+  // A19: загрузчик стабилен (использует только сеттеры), поэтому useCallback.
+  // Без этого его нельзя положить в зависимости эффекта — была бы новая
+  // идентичность на каждый рендер и повторный запрос.
+  const loadSnapshots = useCallback(async (p: number, s: string) => {
     setIsLoading(true);
     try {
       const data = await getSnapshots({ page: p, per_page: 10, nick: s || undefined });
@@ -55,7 +52,15 @@ export function SnapshotHistory({ onLoad, initialNick = '', compact = false }: S
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // A19: зависимость от initialNick — реальный баг: раньше эффект шёл с `[]`
+  // и при смене персонажа (компонент переиспользуется) список не перезагружался,
+  // оставаясь с ником первого рендера. Условие `if (!hasFetched)` было мёртвым:
+  // на маунте состояние всегда false.
+  useEffect(() => {
+    loadSnapshots(1, initialNick);
+  }, [loadSnapshots, initialNick]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

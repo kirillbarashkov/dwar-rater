@@ -95,25 +95,30 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   const [leftDateFilter, setLeftDateFilter] = useState('');
   const [leftReasonFilter, setLeftReasonFilter] = useState('');
 
-  useEffect(() => {
-    loadMembers();
-    loadLeftMembers();
-  }, [clanId]);
-
-  const loadMembers = async () => {
+  // A19: загрузчики зависят только от clanId, поэтому обёрнуты в useCallback.
+  // Эффект объявлен ПОСЛЕ них: иначе массив зависимостей ссылался бы на ещё не
+  // инициализированные const (TDZ во время рендера). Добавить загрузчики в
+  // зависимости, не стабилизировав их, значило бы перезапускать эффект на
+  // каждом рендере — бесконечные запросы.
+  const loadMembers = useCallback(async () => {
     try {
       const data = await getClanMembers(clanId);
       setMembers(data);
     } catch { /* ignore */ }
     finally { setIsLoading(false); }
-  };
+  }, [clanId]);
 
-  const loadLeftMembers = async () => {
+  const loadLeftMembers = useCallback(async () => {
     try {
       const data = await getLeftMembers(clanId);
       setLeftMembers(data);
     } catch { /* ignore */ }
-  };
+  }, [clanId]);
+
+  useEffect(() => {
+    loadMembers();
+    loadLeftMembers();
+  }, [loadMembers, loadLeftMembers]);
 
   const uniqueRoles = useMemo(() => {
     const roles = new Set<string>();
