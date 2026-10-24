@@ -1,5 +1,5 @@
-# v2.36.12
+# v2.36.13
 
-## Исправления
-- fix(startup): в проде провал миграции фатален — STRICT_MIGRATIONS вместо тихого create_all() (A6) [bump:patch]
+## Прочее
+- build(docker): .dockerignore — Windows-бинарники и .git больше не попадают в образы (A8, часть 1) [bump:patch]
 
