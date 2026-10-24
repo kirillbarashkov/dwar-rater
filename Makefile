@@ -15,6 +15,12 @@
 
 .PHONY: start stop restart backup migrate destroy status logs restore fe be
 
+# A25: значения из .env, а не хардкод «-U dwar -d dwar_rater».
+PG_USER := $(shell sed -n 's/^POSTGRES_USER=//p' .env 2>/dev/null | head -1)
+PG_DB := $(shell sed -n 's/^POSTGRES_DB=//p' .env 2>/dev/null | head -1)
+PG_USER := $(if $(PG_USER),$(PG_USER),dwar)
+PG_DB := $(if $(PG_DB),$(PG_DB),dwar_rater)
+
 start:
 	docker compose up -d
 
@@ -52,17 +58,20 @@ status:
 	@docker compose ps
 	@echo ""
 	@echo "=== Database ==="
-	@docker exec dwar_rater_postgres psql -U dwar -d dwar_rater -c "SELECT 'Tables' as metric, COUNT(*) as value FROM pg_tables WHERE schemaname='public' UNION ALL SELECT 'Backups', COUNT(*) FROM (SELECT 1 FROM pg_stat_file('/backups') LIMIT 0) t;" 2>/dev/null || echo "  DB not accessible"
+	@docker compose exec -T postgres psql -U "$(PG_USER)" -d "$(PG_DB)" -c "\
+	  SELECT 'Tables' AS metric, COUNT(*)::text AS value FROM pg_tables WHERE schemaname='public' \
+	  UNION ALL SELECT 'Users', COUNT(*)::text FROM app_user \
+	  UNION ALL SELECT 'Backups (sql.gz)', COUNT(*)::text FROM pg_ls_dir('/backups') AS f(name) WHERE name LIKE '%.sql.gz'"
 	@echo ""
 	@echo "=== Backup Volume ==="
-	@docker exec dwar_rater_postgres ls -lh /backups/ 2>/dev/null || echo "  No backups"
+	@docker compose exec -T postgres ls -lh /backups/ 2>/dev/null | tail -5 || echo "  No backups"
 
 logs:
 	docker logs dwar-rater-backend-1 --tail 50 -f
 
 restore:
 	@echo "=== Restore from latest backup ==="
-	@LATEST=$$(docker exec dwar_rater_postgres ls -t /backups/dwar_rater_backup_*.sql.gz 2>/dev/null | head -1); \
+	@LATEST=$$(docker compose exec -T postgres ls -t /backups/dwar_rater_backup_*.sql.gz 2>/dev/null | head -1); \
 	if [ -z "$$LATEST" ]; then \
 		echo "No backups found!"; \
 		exit 1; \
@@ -74,7 +83,7 @@ restore:
 		exit 1; \
 	fi; \
 	echo "Restoring..."; \
-	docker exec dwar_rater_postgres sh -c "gunzip -c $$LATEST | psql -U dwar -d dwar_rater"; \
+	docker compose exec -T postgres sh -c "gunzip -c $$LATEST | psql -U $(PG_USER) -d $(PG_DB)"; \
 	echo "Restore complete"
 
 destroy:
