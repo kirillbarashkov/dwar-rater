@@ -208,17 +208,11 @@ def create_app():
                             # Pre-migration backup
                             data_logger.info('Alembic: creating pre-migration backup...')
                             try:
-                                import subprocess
-                                backup_env = os.environ.copy()
-                                backup_env['POSTGRES_USER'] = os.environ.get('POSTGRES_USER', 'dwar')
-                                backup_env['POSTGRES_DB'] = os.environ.get('POSTGRES_DB', 'dwar_rater')
-                                subprocess.run(
-                                    ['pg_dump', '-U', backup_env['POSTGRES_USER'], '-d', backup_env['POSTGRES_DB'],
-                                     '--no-owner', '--no-acl'],
-                                    env=backup_env,
-                                    capture_output=True, timeout=60
-                                )
-                                data_logger.info('Alembic: pre-migration backup created')
+                                from shared.services.pre_migration_backup import create_pre_migration_backup
+                                # A14: pg_dump пишется в файл с проверкой кода возврата. Раньше
+                                # вывод уходил в память и терялся, а в лог писалось «created».
+                                _dump_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'pre_migration')
+                                create_pre_migration_backup(_dump_dir, logger=data_logger)
                             except Exception as backup_err:
                                 data_logger.warning(f'Alembic: pre-migration backup failed: {backup_err}')
 
@@ -279,17 +273,11 @@ def create_app():
                     if current_rev != head_rev:
                         data_logger.info('Alembic: creating pre-migration backup...')
                         try:
-                            import subprocess
-                            backup_env = os.environ.copy()
-                            backup_env['POSTGRES_USER'] = os.environ.get('POSTGRES_USER', 'dwar')
-                            backup_env['POSTGRES_DB'] = os.environ.get('POSTGRES_DB', 'dwar_rater')
-                            subprocess.run(
-                                ['pg_dump', '-U', backup_env['POSTGRES_USER'], '-d', backup_env['POSTGRES_DB'],
-                                 '--no-owner', '--no-acl'],
-                                env=backup_env,
-                                capture_output=True, timeout=60
-                            )
-                            data_logger.info('Alembic: pre-migration backup created')
+                            from shared.services.pre_migration_backup import create_pre_migration_backup
+                            # A14: pg_dump пишется в файл с проверкой кода возврата. Раньше
+                            # вывод уходил в память и терялся, а в лог писалось «created».
+                            _dump_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'pre_migration')
+                            create_pre_migration_backup(_dump_dir, logger=data_logger)
                         except Exception as backup_err:
                             data_logger.warning(f'Alembic: pre-migration backup failed: {backup_err}')
 
