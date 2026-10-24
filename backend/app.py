@@ -92,6 +92,10 @@ def create_app():
     def apidocs():
         return render_template('apidocs.html')
 
+    # A23: спецификация намеренно публичная — на ней держится открытый
+    # /apidocs (Swagger UI грузит её из браузера без токена). Секретов в
+    # файле нет, только описания маршрутов. Решение зафиксировано тестом
+    # tests/test_openapi_public.py и описано в README.
     @app.route('/api/openapi.yaml')
     def openapi_spec():
         spec_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'docs', 'openapi.yaml')
