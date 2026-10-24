@@ -111,6 +111,7 @@ def login():
     db.session.commit()
 
     _audit('login', user=user, target_type='session', target_id=session.id)
+    db.session.commit()
 
     from shared.rbac import load_user_permissions
     return jsonify({
@@ -141,6 +142,7 @@ def login_2fa():
     db.session.commit()
 
     _audit('login_2fa', user=user, target_type='session', target_id=session.id)
+    db.session.commit()
 
     from shared.rbac import load_user_permissions
     return jsonify({
@@ -252,6 +254,7 @@ def change_password():
     db.session.commit()
 
     _audit('password_change', user=user, target_type='user', target_id=user.id)
+    db.session.commit()
 
     return jsonify({'status': 'ok'})
 
@@ -280,6 +283,7 @@ def setup_2fa():
     qr_base64 = base64.b64encode(buffer.getvalue()).decode()
 
     _audit('2fa_setup', user=user, target_type='user', target_id=user.id)
+    db.session.commit()
 
     return jsonify({
         'secret': secret,
@@ -303,6 +307,7 @@ def verify_2fa():
         return jsonify({'error': 'Неверный код'}), 401
 
     _audit('2fa_verified', user=user, target_type='user', target_id=user.id)
+    db.session.commit()
 
     return jsonify({'status': 'ok'})
 
@@ -318,6 +323,7 @@ def disable_2fa():
     db.session.commit()
 
     _audit('2fa_disabled', user=user, target_type='user', target_id=user.id)
+    db.session.commit()
 
     return jsonify({'status': 'ok'})
 
@@ -378,5 +384,6 @@ def update_profile():
         old=old_value,
         new={'character_url': user.character_url, 'character_nick': user.character_nick},
     )
+    db.session.commit()
 
     return jsonify({'user': user.to_dict()})
