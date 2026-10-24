@@ -174,15 +174,6 @@ function HomePage() {
     analyze(decodeURIComponent(urlToAnalyze));
   }, [pendingAnalyzeUrl, isLoading, result, error, analyze]);
 
-  useEffect(() => {
-    if (result) {
-      setCurrentResult(result);
-      setLastAnalyzed(new Date());
-      // Stay on the track tab if the user analyzes from there
-      setActiveTab((prev) => (prev === 'track' ? 'track' : 'stats'));
-    }
-  }, [result]);
-
   const formatSnapshotName = (name: string, date: Date): string => {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');

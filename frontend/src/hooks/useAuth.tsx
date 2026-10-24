@@ -19,7 +19,10 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(getStoredUser());
   const [permissions, setPermissions] = useState<Record<string, 'full' | 'read' | 'none'>>(getStoredPermissions);
-  const [isLoading, setIsLoading] = useState(true);
+  // A18: начальное значение вычисляем сразу. Раньше здесь стоял `true`, а эффект
+  // синхронно ставил `false` в ветке «нет токена» — лишняя перерисовка на каждом
+  // маунте и нарушение react-hooks/set-state-in-effect.
+  const [isLoading, setIsLoading] = useState<boolean>(() => isAuthenticated());
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -42,9 +45,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setPermissions({});
         })
         .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
     }
+    // токена нет — isLoading уже false из инициализатора (A18)
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
