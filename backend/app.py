@@ -31,6 +31,14 @@ def _handle_migration_failure(err):
     )
 
 
+def _enforce_secrets():
+    """A22: дефолтные секреты не должны проходить молча."""
+    from shared.services.data_logger import data_logger
+    from shared.config import enforce_secrets
+
+    return enforce_secrets(Config.STRICT_SECRETS, logger=data_logger)
+
+
 def create_app():
     app = Flask(
         __name__,
@@ -38,6 +46,7 @@ def create_app():
         template_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates'),
     )
     app.config.from_object(Config)
+    _enforce_secrets()
 
     cors = CORS(app, resources={r"/api/*": {"origins": Config.CORS_ORIGINS, "supports_credentials": True}})
 

@@ -19,7 +19,14 @@ class Config:
 
     AUTH_ENABLED = os.environ.get('AUTH_ENABLED', 'true').lower() == 'true'
     ADMIN_USER = os.environ.get('ADMIN_USER', 'admin')
+    # A22: дефолт 'admin' оставлен только для локальной разработки. Любое
+    # дефолтное значение ловится enforce_secrets() при старте, а в проде
+    # (STRICT_SECRETS=true) делает старт фатальным.
     ADMIN_PASS = os.environ.get('ADMIN_PASS', 'admin')
+
+    # A22: включается в проде. Отдельный флаг, а не «определить прод по
+    # признакам», — чтобы поведение менялось настройкой, а не эвристикой.
+    STRICT_SECRETS = os.environ.get('STRICT_SECRETS', 'false').lower() == 'true'
 
     # A6: в проде падение миграции обязано быть фатальным. Иначе схема
     # создаётся через create_all() по моделям — без данных, без истории
@@ -43,3 +50,62 @@ class Config:
         'hp': 1.5,
     }
     EFFORT_RANK = {'low': 1, 'medium': 2, 'high': 3}
+
+
+# A22: известные дефолтные значения — секреты, которые нельзя пускать в прод.
+INSECURE_SECRETS = {
+    'SECRET_KEY': {
+        'dev-secret-key-change-me',
+        'change-me-in-production',
+        'pre-start-key',
+        'secret',
+    },
+    'ADMIN_PASS': {
+        'admin',
+        'change-me-in-production',
+        'pre-start-key',
+        'password',
+    },
+}
+
+
+def inspect_secrets(secret_key, admin_pass):
+    """Вернуть список проблем с секретами. Пустой список — всё в порядке.
+
+    Проверяются только «известные плохие» значения и пустота: надёжность
+    произвольного пароля здесь не оценивается (это не эвристика про энтропию,
+    а детектор дефолтов, которые лежат в репозитории открытым текстом).
+    """
+    problems = []
+    for name, value in (('SECRET_KEY', secret_key), ('ADMIN_PASS', admin_pass)):
+        text = '' if value is None else str(value).strip()
+        if not text:
+            problems.append(f'{name} не задан')
+        elif text in INSECURE_SECRETS[name]:
+            problems.append(f'{name} имеет дефолтное значение из репозитория')
+    return problems
+
+
+def enforce_secrets(strict, logger=None, secret_key=None, admin_pass=None):
+    """A22: не пропускать дефолтные секреты молча.
+
+    strict=True — старт падает (прод). strict=False — громкий CRITICAL в лог,
+    чтобы проблема была видна, но локальная разработка не умирала.
+
+    Возвращает список найденных проблем (пустой — секреты в порядке).
+    """
+    problems = inspect_secrets(
+        Config.SECRET_KEY if secret_key is None else secret_key,
+        Config.ADMIN_PASS if admin_pass is None else admin_pass,
+    )
+    if not problems:
+        return []
+
+    message = 'Небезопасные секреты: ' + '; '.join(problems)
+    hint = ('Задайте SECRET_KEY и ADMIN_PASS в .env (см. .env.example.prod) '
+            'или отключите STRICT_SECRETS для локальной разработки.')
+    if strict:
+        raise RuntimeError(f'{message}. {hint}')
+    if logger is not None:
+        logger.critical('%s. %s', message, hint)
+    return problems
