@@ -3802,6 +3802,17 @@ def import_treasury_operations(clan_id):
     # dropping real operations.
     authoritative = bool(replace or replace_range)
 
+    # A12: раньше на каждую строку импорта шёл отдельный SELECT
+    # (`filter_by(...).first()` внутри цикла) — при 15k операций это 15k
+    # запросов. Забираем существующие строки одним запросом и ищем по словарю.
+    # При replace/replace_range база только что очищена — выборка не нужна.
+    existing_by_key = {}
+    if not authoritative:
+        for row in TreasuryOperation.query.filter_by(clan_id=clan_id).all():
+            existing_by_key.setdefault(
+                (row.date, row.nick, row.operation_type, row.object_name), row
+            )
+
     data_logger.info(
         f"[TREASURY] Processing {len(operations_data)} operations from frontend"
     )
@@ -3839,13 +3850,9 @@ def import_treasury_operations(clan_id):
 
             existing = None
             if not authoritative:
-                existing = TreasuryOperation.query.filter_by(
-                    clan_id=clan_id,
-                    date=date,
-                    nick=nick,
-                    operation_type=operation_type,
-                    object_name=object_name,
-                ).first()
+                existing = existing_by_key.get(
+                    (date, nick, operation_type, object_name)
+                )
 
             if existing:
                 if existing.quantity == quantity:
@@ -3871,6 +3878,9 @@ def import_treasury_operations(clan_id):
                         compensation_comment=compensation_comment,
                     )
                     db.session.add(treasury_op)
+                    existing_by_key.setdefault(
+                        (date, nick, operation_type, object_name), treasury_op
+                    )
                     imported += 1
             else:
                 data_logger.debug(
@@ -3887,6 +3897,9 @@ def import_treasury_operations(clan_id):
                     compensation_comment=compensation_comment,
                 )
                 db.session.add(treasury_op)
+                existing_by_key.setdefault(
+                    (date, nick, operation_type, object_name), treasury_op
+                )
                 imported += 1
         except Exception as e:
             data_logger.error(f"[TREASURY] Error importing operation {i}: {str(e)}")

@@ -72,6 +72,14 @@ class ClanMemberInfo(db.Model):
 
 class TreasuryOperation(db.Model):
     __tablename__ = 'treasury_operations'
+    # A12: те же составные индексы, что создаёт миграция 018. Держим модель и
+    # миграции в согласии: create_all() (dev/SQLite и тестовая БД) не должен
+    # давать схему, отличную от прод. Уникального ключа нет намеренно — импорт
+    # пишет вторую строку при другой сумме (см. docstring миграции).
+    __table_args__ = (
+        db.Index('ix_treasury_operations_clan_date', 'clan_id', 'date'),
+        db.Index('ix_treasury_operations_clan_nick', 'clan_id', 'nick'),
+    )
     id = db.Column(db.Integer, primary_key=True)
     clan_id = db.Column(db.Integer, db.ForeignKey('clan_info.clan_id'), nullable=False, index=True)
     date = db.Column(db.String(20), default='')
