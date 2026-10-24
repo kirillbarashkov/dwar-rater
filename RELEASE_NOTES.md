@@ -1,5 +1,5 @@
-# v2.36.20
+# v2.36.21
 
 ## Исправления
-- fix(parser): сбой границ казны больше не глушится — лог и boundaries_complete (A16) [bump:patch]
+- fix(models): голый except: в JSON-полях клана заменён на конкретные исключения с логом (A17) [bump:patch]
 
