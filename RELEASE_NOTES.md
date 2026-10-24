@@ -1,5 +1,5 @@
-# v2.36.16
+# v2.36.17
 
-## Прочее
-- perf(treasury): составные индексы казны + снят N+1 в импорте (A12) [bump:patch]
+## Исправления
+- fix(backup): ротация по BACKUP_KEEP_DAYS, pipefail и gunzip -t, честная политика в UI (A13) [bump:patch]
 
