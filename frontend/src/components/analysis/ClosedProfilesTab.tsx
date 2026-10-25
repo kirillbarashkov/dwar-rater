@@ -1,3 +1,4 @@
+import { GAME_RANKS_BY_LEVEL as GAME_RANKS } from '../../utils/ranks';
 import { useState, useEffect, useRef } from 'react';
 import type { ClosedProfileData, CheckResult } from '../../types/closedProfile';
 import type { AnalysisResult } from '../../types/character';
@@ -21,13 +22,6 @@ import './ClosedProfilesTab.css';
 
 const CHECK_DURATION = 15;
 
-const GAME_RANKS: Record<number, string> = {
-  1: 'Рекрут', 2: 'Солдат', 3: 'Боец', 4: 'Воин', 5: 'Элитный воин',
-  6: 'Чемпион', 7: 'Гладиатор', 8: 'Полководец', 9: 'Мастер войны',
-  10: 'Герой', 11: 'Военный эксперт', 12: 'Магистр войны', 13: 'Вершитель',
-  14: 'Высший магистр', 15: 'Повелитель', 16: 'Легендарный завоеватель',
-  17: 'Властелин боя', 18: 'Победоносец', 19: 'Триумфатор', 20: 'Избранник богов',
-};
 
 export function ClosedProfilesTab() {
   const [profiles, setProfiles] = useState<ClosedProfileData[]>([]);
