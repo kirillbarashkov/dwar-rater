@@ -1,3 +1,4 @@
+import { clickableProps } from '../../utils/a11y';
 import { useState, useEffect } from 'react';
 import type { ClanInfoData, ClanMemberData, ClanStructure } from '../../types/clanInfo';
 import { getClanInfo, updateClanInfo, getClanMembers } from '../../api/clanInfo';
@@ -282,7 +283,7 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
         <div className="co-tree-label">Глава клана</div>
         <div className="co-tree-content">
           {structure.leader && (
-            <div className="co-tree-member co-tree-leader" onClick={() => handleAnalyze(structure.leader!.nick)}>
+            <div className="co-tree-member co-tree-leader" {...clickableProps(() => handleAnalyze(structure.leader!.nick))}>
               <span className="co-member-icon">👑</span>
               <span className="co-member-nick">{structure.leader!.nick}</span>
               {structure.leader!.description && (
@@ -298,7 +299,7 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
           <div className="co-tree-label co-tree-label-nested">Зам. главы</div>
           <div className="co-tree-content co-tree-content-nested">
             {structure.deputies.map((deputy, index) => (
-              <div key={index} className="co-tree-member" onClick={() => handleAnalyze(deputy.nick)}>
+              <div key={index} className="co-tree-member" {...clickableProps(() => handleAnalyze(deputy.nick))}>
                 <span className="co-member-icon">
                   {deputy.nick === 'Hozaika ozer' ? '💖' : deputy.nick === 'прото' ? '💰' : '⚔️'}
                 </span>
@@ -317,7 +318,7 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
           <div className="co-tree-label co-tree-label-nested">Совет клана</div>
           <div className="co-tree-content co-tree-content-nested">
             {structure.council.map((member, index) => (
-              <div key={index} className="co-tree-member" onClick={() => handleAnalyze(member.nick)}>
+              <div key={index} className="co-tree-member" {...clickableProps(() => handleAnalyze(member.nick))}>
                 <span className="co-member-icon">🎓</span>
                 <span className="co-member-nick">{member.nick}</span>
                 {member.description && (
@@ -333,7 +334,7 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
         <div className="co-tree-branch">
           <div className="co-tree-label co-tree-label-nested">Воевода</div>
           <div className="co-tree-content co-tree-content-nested">
-            <div className="co-tree-member" onClick={() => handleAnalyze(structure.commander!.nick)}>
+            <div className="co-tree-member" {...clickableProps(() => handleAnalyze(structure.commander!.nick))}>
               <span className="co-member-icon">⚔️</span>
               <span className="co-member-nick">{structure.commander!.nick}</span>
               {structure.commander!.description && (
@@ -348,7 +349,7 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
         <div className="co-tree-branch">
           <div className="co-tree-label co-tree-label-nested">Члены клана</div>
           <div className="co-tree-content co-tree-content-nested">
-            <div className="co-tree-member co-tree-link" onClick={goToMembers}>
+            <div className="co-tree-member co-tree-link" {...clickableProps(goToMembers)}>
               <span className="co-member-icon">📋</span>
               <span className="co-member-nick">Список всех участников</span>
               <span className="co-member-count">({info.current_players})</span>

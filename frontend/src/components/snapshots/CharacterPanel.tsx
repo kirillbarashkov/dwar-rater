@@ -1,3 +1,4 @@
+import { clickableProps } from '../../utils/a11y';
 import { useEffect, useState } from 'react';
 import type { AnalysisResult } from '../../types/character';
 import type { Snapshot } from '../../types/snapshot';
@@ -164,9 +165,7 @@ export function CharacterPanel({
         </div>
         <div
           className="cph-toggle"
-          onClick={() => setExpanded(!expanded)}
-          role="button"
-          tabIndex={0}
+          {...clickableProps(() => setExpanded(!expanded))}
           aria-expanded={expanded}
         >
           <span className="cph-toggle-icon">{expanded ? '▼' : '▶'}</span>

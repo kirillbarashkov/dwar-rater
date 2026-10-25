@@ -1,3 +1,4 @@
+import { clickableProps } from '../../utils/a11y';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getTreasuryOperations } from '../../api/clanInfo';
 import type { TreasuryOperationData } from '../../types/clanInfo';
@@ -444,7 +445,7 @@ export function TreasuryTab({ clanId }: TreasuryTabProps) {
                         {(currentPage - 1) * pageSize + index + 1}
                       </td>
                       <td className="treasury-date">{op.date}</td>
-                      <td className="treasury-nick treasury-link" onClick={() => handleAnalyze(op.nick)}>
+                      <td className="treasury-nick treasury-link" {...clickableProps(() => handleAnalyze(op.nick))}>
                         {op.nick}
                       </td>
                       <td className="treasury-type">
