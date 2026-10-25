@@ -1,3 +1,4 @@
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { getTaxLedger } from '../../api/clanInfo';
 import type { TaxLedgerResponse, TaxLedgerRow } from '../../types/clanInfo';
@@ -23,6 +24,7 @@ function signed(value: number): string {
 
 export function TaxLedger({ clanId, month: periodMonth, year: periodYear }: TaxLedgerProps) {
   const now = new Date();
+  const schedule = useSafeTimeout();
   const [fromMonth, setFromMonth] = useState(1);
   const [fromYear, setFromYear] = useState(periodYear);
   const [toMonth, setToMonth] = useState(periodMonth);
@@ -85,7 +87,7 @@ export function TaxLedger({ clanId, month: periodMonth, year: periodYear }: TaxL
       [header, ...lines].map((line) => line.join('\t')).join('\n')
     );
     setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
+    schedule(() => setCopied(false), 1500);
   };
 
   return (

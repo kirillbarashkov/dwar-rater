@@ -1,3 +1,4 @@
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 import type { SortConfig } from '../../types/clan';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import type { TreasuryOperationData, TaxCarryoverMonth, ReasonCode, BulkCompensationPlan } from '../../types/clanInfo';
@@ -123,6 +124,7 @@ export function TaxAnalytics({
   onBackToOverview,
   view = 'overview',
 }: TaxAnalyticsProps) {
+  const schedule = useSafeTimeout();
   const [editingCompensation, setEditingCompensation] = useState<{
     nick: string;
     level: number;
@@ -753,7 +755,7 @@ export function TaxAnalytics({
     setCopyStatus(
       copied ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'
     );
-    setTimeout(() => setCopyStatus(null), 2000);
+    schedule(() => setCopyStatus(null), 2000);
   };
 
   const renderStatusBadge = (summary: PlayerTaxSummary) => {

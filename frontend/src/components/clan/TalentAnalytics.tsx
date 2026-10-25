@@ -1,3 +1,4 @@
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 import type { SortConfig } from '../../types/clan';
 import { useMemo, useState } from 'react';
 import type { TreasuryOperationData, ClanMemberData } from '../../types/clanInfo';
@@ -119,6 +120,7 @@ export function TalentAnalytics({
   month: selectedMonth,
   year: selectedYear,
 }: TalentAnalyticsProps) {
+  const schedule = useSafeTimeout();
   const [activeTab, setActiveTab] = useState<TabKey>('universal');
   const [filters, setFilters] = useState({
     search: '',
@@ -318,7 +320,7 @@ export function TalentAnalytics({
     setCopyStatus(
       copied ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'
     );
-    setTimeout(() => setCopyStatus(null), 2000);
+    schedule(() => setCopyStatus(null), 2000);
   };
 
   const renderStatusBadge = (status: 'submitted' | 'not_submitted') => {
@@ -468,7 +470,7 @@ export function TalentAnalytics({
                   onClick={() => {
                     const headers = ['Игрок', 'Ресурсов'];
                     const rows = sortedSubmittedPlayers.map(p => [p.nick, Object.values(p.resources).reduce((s, v) => s + v, 0)].join('\t')).join('\n');
-                    void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
+                    void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); schedule(() => setCopyStatus(null), 2000); });
                   }}
                   title="Копировать таблицу"
                 >
@@ -523,7 +525,7 @@ export function TalentAnalytics({
                   onClick={() => {
                     const headers = ['Игрок'];
                     const rows = sortedNotSubmittedPlayers.map(p => p.nick).join('\n');
-                    void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); setTimeout(() => setCopyStatus(null), 2000); });
+                    void copyText([headers.join('\t'), rows].join('\n')).then((ok) => { setCopyStatus(ok ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'); schedule(() => setCopyStatus(null), 2000); });
                   }}
                   title="Копировать таблицу"
                 >

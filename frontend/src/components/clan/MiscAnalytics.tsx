@@ -1,3 +1,4 @@
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 import { useMemo, useState } from 'react';
 import type { TreasuryOperationData } from '../../types/clanInfo';
 import { parseDate, formatDateKey, isTaxOperation, isTalentOperation } from '../../utils/treasury';
@@ -34,6 +35,7 @@ const INITIAL_FILTERS = {
 };
 
 export function MiscAnalytics({ operations, month: initialMonth, year: initialYear }: MiscAnalyticsProps) {
+  const schedule = useSafeTimeout();
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   // Период раздела — источник истины: своего листателя у вкладки нет, значения
   // берутся из пропсов напрямую — без состояния и без эффекта синхронизации
@@ -221,7 +223,7 @@ export function MiscAnalytics({ operations, month: initialMonth, year: initialYe
     setCopyStatus(
       copied ? 'Скопировано!' : 'Не удалось скопировать — выделите таблицу вручную'
     );
-    setTimeout(() => setCopyStatus(null), 2000);
+    schedule(() => setCopyStatus(null), 2000);
   };
 
   const MONTHS_RU = [

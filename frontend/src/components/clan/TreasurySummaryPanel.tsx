@@ -1,3 +1,4 @@
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 import { useCallback, useEffect, useState } from 'react';
 import { getTreasurySummary } from '../../api/clanInfo';
 import type { TreasurySummaryResponse } from '../../types/clanInfo';
@@ -27,6 +28,7 @@ const FALLBACK_LABELS: Record<string, string> = {
  * table: a clan chat renders pipes as a wall of characters.
  */
 export function TreasurySummaryPanel({ clanId, month, year }: TreasurySummaryPanelProps) {
+  const schedule = useSafeTimeout();
   const [kind, setKind] = useState('totals');
   // Сводка — вспомогательный инструмент: свёрнута, пока не нужна. Иначе первый
   // экран «Обзора» занимает текст, который читают раз в день.
@@ -61,7 +63,7 @@ export function TreasurySummaryPanel({ clanId, month, year }: TreasurySummaryPan
     if (!data?.markdown) return;
     await copyText(data.markdown);
     setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
+    schedule(() => setCopied(false), 2000);
   };
 
   if (!clanId) return null;
