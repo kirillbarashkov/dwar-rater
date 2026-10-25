@@ -878,10 +878,8 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                           <Button type="button" variant="primary" onClick={async (e: any) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            console.log('[TREASURY] Button clicked, estimate:', pageEstimateRef.current);
                             const est = pageEstimateRef.current;
-                            if (!est) { console.log('[TREASURY] No estimate, calling estimatePages'); estimatePages(); return; }
-                            console.log('[TREASURY] Starting fetch, pages:', est.start_page, 'to', est.end_page + 1);
+                            if (!est) { estimatePages(); return; }
                             setIsAutoFetching(true);
                             setMessage(null);
                             setAutoFetchOps([]);
@@ -890,7 +888,6 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                               const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
                               const token = localStorage.getItem('auth_token');
                               const url = `${apiBase}/api/clan/${clanId}/treasury/auto-fetch-json`;
-                              console.log('[TREASURY] Fetching:', url);
                               const res = await fetch(url, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -901,17 +898,14 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                                   end_page: est.end_page + 1,
                                 }),
                               });
-                              console.log('[TREASURY] Response status:', res.status);
                               if (!res.ok) {
                                 const errorText = await res.text();
                                 console.error('[TREASURY] HTTP error:', res.status, errorText);
                                 throw new Error(`HTTP ${res.status}: ${errorText}`);
                               }
                               const data = await res.json();
-                              console.log('[TREASURY] Response data:', data);
                               if (data.success) {
                                 const ops = Array.isArray(data.operations) ? data.operations : [];
-                                console.log('[TREASURY] Success, ops count:', ops.length);
                                 setAutoFetchOps(ops);
                                 setFetchProgress({ phase: 'done', totalPages: data.pages_fetched, currentPage: data.pages_fetched, totalOps: ops.length, opsOnPage: 0, elapsed: 0, message: data.message });
                               } else {
