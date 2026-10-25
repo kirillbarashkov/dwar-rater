@@ -39,10 +39,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setPermissions(data.permissions);
           setSession(localStorage.getItem('auth_token') || '', u, data.permissions);
         })
-        .catch(() => {
-          clearSession();
-          setUser(null);
-          setPermissions({});
+        .catch((error: unknown) => {
+          // A50: раньше здесь стояло `clearSession()` на ЛЮБУЮ ошибку — секундный
+          // обрыв связи выкидывал пользователя из аккаунта и стирал токен из
+          // localStorage. Сессию сбрасываем только когда сервер прямо сказал, что
+          // она недействительна (401) или аккаунт деактивирован (403).
+          const status = (error as { response?: { status?: number } } | null)?.response?.status;
+          if (status === 401 || status === 403) {
+            clearSession();
+            setUser(null);
+            setPermissions({});
+          } else {
+            // Нет связи (или сервер ответил 5xx): оставляем сохранённую сессию и
+            // работаем с последними известными правами. Пользователь увидит ошибку
+            // запроса, но не потеряет вход.
+            setUser(getStoredUser());
+            setPermissions(getStoredPermissions());
+          }
         })
         .finally(() => setIsLoading(false));
     }
