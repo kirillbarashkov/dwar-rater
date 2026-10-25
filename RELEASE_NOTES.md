@@ -1,5 +1,5 @@
-# v2.36.59
+# v2.36.60
 
 ## Прочее
-- refactor(app): одна фабрика приложения — run_startup=False для тестов, копия в test_app.py удалена (A30) [bump:patch]
+- refactor(frontend): общий хук useAsyncData, операции казны в импорте грузятся им (A35, часть) [bump:patch]
 
