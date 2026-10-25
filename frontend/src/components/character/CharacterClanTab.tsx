@@ -11,9 +11,9 @@ import {
   TALENT_RESOURCE_GROUPS,
   getOriginalOwner,
 } from '../../utils/treasury';
+import { DEFAULT_CLAN_ID } from '../../utils/constants';
 import './CharacterClanTab.css';
 
-const CLAN_ID = 2315;
 const DEFAULT_NORM = 10;
 
 type TaxStatus = 'paid' | 'paid_delayed' | 'compensated' | 'not_paid' | 'future_member' | 'not_in_clan' | 'left_clan';
@@ -53,7 +53,7 @@ const STATUS_CLASSES: Record<TaxStatus, string> = {
   left_clan: 'char-clan-badge-left',
 };
 
-export function CharacterClanTab() {
+export function CharacterClanTab({ clanId = DEFAULT_CLAN_ID }: { clanId?: number } = {}) {
   const { user } = useAuth();
   const myNick = user?.character_nick ?? '';
 
@@ -81,9 +81,9 @@ export function CharacterClanTab() {
     Promise.all([
       // Только выбранный месяц: вкладка работает по одному месяцу, а история целиком
       // — это 15 000+ строк ≈ 3,5 МБ.
-      getTreasuryOperations(CLAN_ID, { month: selectedMonth, year: selectedYear }),
-      getClanMembers(CLAN_ID),
-      getLevelHistory(CLAN_ID),
+      getTreasuryOperations(clanId, { month: selectedMonth, year: selectedYear }),
+      getClanMembers(clanId),
+      getLevelHistory(clanId),
     ])
       .then(([ops, mems, lvlHist]) => {
         if (cancelled) return;
@@ -102,7 +102,7 @@ export function CharacterClanTab() {
   useEffect(() => {
     if (!myNick) return;
     let cancelled = false;
-    getTreasuryTotals(CLAN_ID, myNick)
+    getTreasuryTotals(clanId, myNick)
       .then((data) => { if (!cancelled) setTotals(data); })
       .catch(() => { if (!cancelled) setTotals([]); });
     return () => { cancelled = true; };
@@ -331,7 +331,7 @@ export function CharacterClanTab() {
     return (
       <div className="char-clan-tab">
         <div className="char-clan-empty">
-          Персонаж «{myNick}» не найден в составе клана 2315. Если вы состоите в другом клане, этот раздел недоступен.
+          Персонаж «{myNick}» не найден в составе клана {clanId}. Если вы состоите в другом клане, этот раздел недоступен.
         </div>
       </div>
     );

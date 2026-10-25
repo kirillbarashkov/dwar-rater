@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation, useNavi
 import { useCharacterAnalysis } from './hooks/useCharacterAnalysis';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
-import { TREASURY_TABS } from './utils/constants';
+import { TREASURY_TABS, DEFAULT_CLAN_ID } from './utils/constants';
 import { Button } from './components/ui/Button';
 import { Input } from './components/ui/Input';
 import { Modal } from './components/ui/Modal';
@@ -354,15 +354,15 @@ function ClanPageWrapper() {
   const renderContent = () => {
     if (activeGroup === 'clan' || activeGroup === 'treasury-nav') {
       switch (activeTab) {
-        case 'info': return <ClanOverview clanId={Number(clanId) || 2315} onSwitchTab={handleSwitchTab} />;
-        case 'members': return <ClanMembersTable clanId={Number(clanId) || 2315} />;
-        case 'treasury': return <TreasuryTab clanId={Number(clanId) || 2315} />;
-        case 'treasury-import': return <TreasuryImport clanId={Number(clanId) || 2315} />;
-        case 'analytics': return <TreasuryAnalytics clanId={Number(clanId) || 2315} />;
-        case 'treasury-pairs': return <TreasuryPairsQueue clanId={Number(clanId) || 2315} />;
-        case 'member-status': return <MemberStatusTab clanId={Number(clanId) || 2315} />;
-        case 'loans': return <TreasuryLoansTab clanId={Number(clanId) || 2315} />;
-        case 'exclusions': return <TreasuryExclusionsTab clanId={Number(clanId) || 2315} />;
+        case 'info': return <ClanOverview clanId={Number(clanId) || DEFAULT_CLAN_ID} onSwitchTab={handleSwitchTab} />;
+        case 'members': return <ClanMembersTable clanId={Number(clanId) || DEFAULT_CLAN_ID} />;
+        case 'treasury': return <TreasuryTab clanId={Number(clanId) || DEFAULT_CLAN_ID} />;
+        case 'treasury-import': return <TreasuryImport clanId={Number(clanId) || DEFAULT_CLAN_ID} />;
+        case 'analytics': return <TreasuryAnalytics clanId={Number(clanId) || DEFAULT_CLAN_ID} />;
+        case 'treasury-pairs': return <TreasuryPairsQueue clanId={Number(clanId) || DEFAULT_CLAN_ID} />;
+        case 'member-status': return <MemberStatusTab clanId={Number(clanId) || DEFAULT_CLAN_ID} />;
+        case 'loans': return <TreasuryLoansTab clanId={Number(clanId) || DEFAULT_CLAN_ID} />;
+        case 'exclusions': return <TreasuryExclusionsTab clanId={Number(clanId) || DEFAULT_CLAN_ID} />;
       }
     }
     return null;

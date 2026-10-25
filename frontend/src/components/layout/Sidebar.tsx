@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, usePermission } from '../../hooks/useAuth';
-import { TREASURY_TABS } from '../../utils/constants';
+import { TREASURY_TABS, DEFAULT_CLAN_ID } from '../../utils/constants';
 import './Sidebar.css';
 
 interface TabItem {
@@ -149,12 +149,12 @@ export function Sidebar({
         // Переход обязателен ВСЕГДА, а не только с чужой страницы: подсветка
         // сайдбара выводится из адреса, поэтому без navigate адрес не менялся и
         // фокус оставался на прежнем разделе («Клан» ↔ «Казначейство»).
-        navigate(`/clan/2315?tab=${children[0]?.key || 'info'}`);
+        navigate(`/clan/${DEFAULT_CLAN_ID}?tab=${children[0]?.key || 'info'}`);
       } else if (willExpand && groupKey === TREASURY_GROUP_KEY) {
         // Содержимое «Казначейства» рендерит раскладка клановой страницы, а её
         // вкладка живёт в адресе. Раньше переход был только с чужой страницы —
         // из-за этого баг воспроизводился лишь при «Клан → Казначейство».
-        navigate(`/clan/2315?tab=${children[0]?.key || 'treasury'}`);
+        navigate(`/clan/${DEFAULT_CLAN_ID}?tab=${children[0]?.key || 'treasury'}`);
       } else if (willExpand && groupKey === 'character' && !isCharacterPage) {
         navigate('/character');
       } else if (willExpand && groupKey === 'analysis' && (isClanPage || isCharacterPage)) {
@@ -180,7 +180,7 @@ export function Sidebar({
     if (groupKey === 'clan' || groupKey === TREASURY_GROUP_KEY) {
       // Всегда, даже находясь на клановой странице: иначе адрес не меняется и
       // подсветка раздела остаётся на прежнем пункте.
-      navigate(`/clan/2315?tab=${tabKey}`);
+      navigate(`/clan/${DEFAULT_CLAN_ID}?tab=${tabKey}`);
     } else if (groupKey === 'character' && !isCharacterPage) {
       navigate('/character');
     } else if (groupKey === 'track' && !isHomePage) {

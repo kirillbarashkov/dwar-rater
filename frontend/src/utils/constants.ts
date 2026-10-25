@@ -20,3 +20,10 @@ export const TREASURY_TABS = [
   'exclusions',
   'treasury-import',
 ];
+
+/**
+ * A27: клан по умолчанию. Раньше `2315` был вписан в 15 местах трёх файлов —
+ * в адресах сайдбара, в дефолтах клановых вкладок и в тексте ошибки.
+ * Переопределяется при сборке: VITE_CLAN_ID=1234 npm run build.
+ */
+export const DEFAULT_CLAN_ID = Number(import.meta.env.VITE_CLAN_ID) || 2315;
