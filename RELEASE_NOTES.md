@@ -1,5 +1,5 @@
-# v2.36.54
+# v2.36.55
 
 ## Исправления
-- fix(rbac): экспорт закрыт правом export:read, переключатель в матрице заработал (A64) [bump:patch]
+- fix(docker): контейнеры не под root — uid 10001 и nginx 101, no-new-privileges, фолбэк instance-каталога (A62) [bump:patch]
 
