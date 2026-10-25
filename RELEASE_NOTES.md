@@ -1,5 +1,5 @@
-# v2.36.32
+# v2.36.33
 
-## Прочее
-- test(coverage): export API, cache_service и 9 разделов exporter; зарегистрирована A64 (A28) [bump:patch]
+## Исправления
+- fix(rate_limit): fail-open больше не молчит — WARNING с exc_info (A29) [bump:patch]
 
