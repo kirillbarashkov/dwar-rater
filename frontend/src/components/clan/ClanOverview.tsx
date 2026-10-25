@@ -49,13 +49,6 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
     });
   }, [clanId]);
 
-  useEffect(() => {
-    if (info?.clan_structure) {
-      setEditStructure(JSON.parse(JSON.stringify(info.clan_structure)));
-      setCouncilSlots(info.clan_structure.council_slots || 4);
-    }
-  }, [info]);
-
   if (isLoading) return <LoadingSpinner />;
   if (!info) return <p className="clan-error">Не удалось загрузить информацию о клане</p>;
 
@@ -107,6 +100,23 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  /**
+   * A48: форма заполняется серверными данными **в момент входа в правку**, а не
+   * эффектом на `info`. Раньше эффект копировал `clan_structure` при каждом
+   * изменении `info`, а сохранение само обновляет `info` (`setInfo(refreshed)`) —
+   * и несохранённые правки затирались ровно тогда, когда пользователь их
+   * сохранял или когда клан перезагружался в фоне.
+   */
+  const startEditingStructure = () => {
+    const source = info && info.clan_structure ? info.clan_structure : undefined;
+    if (source) {
+      setEditStructure(JSON.parse(JSON.stringify(source)));
+      setCouncilSlots(source.council_slots || 4);
+    }
+    setSaveError('');
+    setEditingStructure(true);
   };
 
   const handleCancelEdit = () => {
@@ -443,7 +453,7 @@ export function ClanOverview({ clanId, onSwitchTab }: ClanOverviewProps) {
         <div className="co-structure-header">
           <h3 className="co-section-title">Структура клана</h3>
           {!editingStructure && (
-            <button className="co-edit-btn" onClick={() => setEditingStructure(true)}>
+            <button className="co-edit-btn" onClick={startEditingStructure}>
               ✏️ Редактировать
             </button>
           )}
