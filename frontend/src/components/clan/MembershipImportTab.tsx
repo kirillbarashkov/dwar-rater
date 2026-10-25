@@ -1,3 +1,4 @@
+import { apiUrl } from '../../api/client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getTreasuryCookiesStatus, importMemberDiff, importHistoryEvents, getMembershipEvents, saveLevelEvents, getLevelEvents } from '../../api/clanInfo';
 import type { MembershipEvent } from '../../types/clanInfo';
@@ -103,9 +104,9 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
     setHistoryEvents([]);
     setFetchProgress({ phase: 'counting', totalPages: 0, currentPage: 0, totalEvents: 0, elapsed: 0, message: 'Подключение...' });
 
-    const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
+    
     const token = localStorage.getItem('auth_token');
-    const url = `${apiBase}/api/clan/${clanId}/members/auto-fetch-stream${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    const url = apiUrl(`/api/clan/${clanId}/members/auto-fetch-stream${token ? `?token=${encodeURIComponent(token)}` : ''}`);
 
     const es = new EventSource(url);
     streamRef.current = es;
@@ -561,9 +562,9 @@ function LevelEventsImport({ clanId }: { clanId: number }) {
     setLevelEvents([]);
     setFetchProgress({ totalPages: 0, currentPage: 0, totalEvents: 0, message: 'Загрузка...' });
 
-    const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
+    
     const token = localStorage.getItem('auth_token');
-    const url = `${apiBase}/api/clan/${clanId}/level-events/import-stream?token=${encodeURIComponent(token || '')}`;
+    const url = apiUrl(`/api/clan/${clanId}/level-events/import-stream?token=${encodeURIComponent(token || '')}`);
 
     const es = new EventSource(url);
     streamRef.current = es;

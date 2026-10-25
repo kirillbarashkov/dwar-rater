@@ -1,3 +1,4 @@
+import { apiFetch } from '../../api/client';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   getTreasuryOperations,
@@ -360,15 +361,9 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     setPageEstimate(null);
     setMessage(null);
     try {
-      const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
-      const token = localStorage.getItem('auth_token');
       const startDate = selectedStartDate || '01.01.2025';
-      const res = await fetch(`${apiBase}/api/clan/${clanId}/treasury/estimate`, {
+      const res = await apiFetch(`/api/clan/${clanId}/treasury/estimate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify({
           start_date: startDate,
           end_date: selectedEndDate || undefined,
@@ -885,15 +880,13 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                             setAutoFetchOps([]);
                             setFetchProgress({ phase: 'fetching', totalPages: est.total_pages, currentPage: est.start_page, totalOps: 0, opsOnPage: 0, elapsed: 0, message: `Сбор со страниц ${est.start_page}...` });
                             try {
-                              const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
-                              const token = localStorage.getItem('auth_token');
-                              const url = `${apiBase}/api/clan/${clanId}/treasury/auto-fetch-json`;
+                              const url = `/api/clan/${clanId}/treasury/auto-fetch-json`;
                               const controller = new AbortController();
                               abortRef.current = controller;
-                              const res = await fetch(url, {
+                              const res = await apiFetch(url, {
                                 signal: controller.signal,
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+
                                 body: JSON.stringify({
                                   start_date: selectedStartDate || '01.01.2025',
                                   end_date: selectedEndDate || undefined,
