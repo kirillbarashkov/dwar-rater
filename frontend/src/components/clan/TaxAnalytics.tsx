@@ -701,10 +701,11 @@ export function TaxAnalytics({
           cmp = debtOf(a) - debtOf(b);
           break;
         }
-        case 'status':
+        case 'status': {
           const statusOrder: Record<string, number> = { paid: 0, paid_delayed: 1, compensated: 2, not_paid: 3, future_member: 4 };
           cmp = (statusOrder[a.status] || 5) - (statusOrder[b.status] || 5);
           break;
+        }
       }
       return mainSort.direction === 'asc' ? cmp : -cmp;
     });

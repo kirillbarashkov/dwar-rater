@@ -3,6 +3,7 @@ from datetime import datetime, date
 import json
 import requests
 from sqlalchemy.orm import selectinload
+from shared.utils.sse_ticket import resolve_sse_user
 from shared.services.clan_parser import (
     fetch_clan_page,
     parse_clan_info,
@@ -4625,18 +4626,8 @@ def auto_fetch_treasury_stream(clan_id):
     from datetime import datetime, timezone
 
     # Auth via query param (for SSE) or standard header
-    token = request.args.get("token") or request.headers.get(
-        "Authorization", ""
-    ).replace("Bearer ", "")
-    current_user = None
-    if token:
-        session_token = SessionToken.find_by_token(token)
-        if session_token:
-            expires = session_token.expires_at
-            if expires.tzinfo is None:
-                expires = expires.replace(tzinfo=timezone.utc)
-            if expires > datetime.now(timezone.utc):
-                current_user = User.query.get(session_token.user_id)
+    # A37: билет SSE (?ticket=) или прежний путь (?token= / Bearer).
+    current_user = resolve_sse_user(request)
 
     if not has_permission(current_user, "treasury", "admin"):
 
@@ -4754,18 +4745,8 @@ def auto_fetch_members_stream(clan_id):
     from shared.models.user import User
     from datetime import datetime, timezone
 
-    token = request.args.get("token") or request.headers.get(
-        "Authorization", ""
-    ).replace("Bearer ", "")
-    current_user = None
-    if token:
-        session_token = SessionToken.find_by_token(token)
-        if session_token:
-            expires = session_token.expires_at
-            if expires.tzinfo is None:
-                expires = expires.replace(tzinfo=timezone.utc)
-            if expires > datetime.now(timezone.utc):
-                current_user = User.query.get(session_token.user_id)
+    # A37: билет SSE (?ticket=) или прежний путь (?token= / Bearer).
+    current_user = resolve_sse_user(request)
 
     if not has_permission(current_user, "clan_info", "admin"):
 
@@ -5256,22 +5237,8 @@ def import_level_events_stream(clan_id):
     from urllib.parse import unquote
     import json
 
-    token = request.args.get("token") or request.headers.get(
-        "Authorization", ""
-    ).replace("Bearer ", "")
-    current_user = None
-    if token:
-        from shared.rbac.models import SessionToken
-        from shared.models.user import User
-        from datetime import datetime, timezone
-
-        session_token = SessionToken.find_by_token(token)
-        if session_token:
-            expires = session_token.expires_at
-            if expires.tzinfo is None:
-                expires = expires.replace(tzinfo=timezone.utc)
-            if expires > datetime.now(timezone.utc):
-                current_user = User.query.get(session_token.user_id)
+    # A37: билет SSE (?ticket=) или прежний путь (?token= / Bearer).
+    current_user = resolve_sse_user(request)
 
     if not has_permission(current_user, "clan_info", "admin"):
 

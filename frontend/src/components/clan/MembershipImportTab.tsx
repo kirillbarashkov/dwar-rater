@@ -1,3 +1,4 @@
+import { sseTicket } from '../../api/auth';
 import { apiUrl } from '../../api/client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getTreasuryCookiesStatus, importMemberDiff, importHistoryEvents, getMembershipEvents, saveLevelEvents, getLevelEvents } from '../../api/clanInfo';
@@ -96,7 +97,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
     setFetchProgress((prev) => ({ ...prev, phase: 'error', message: 'Сбор отменён пользователем' }));
   }, [eventSource]);
 
-  const handleStartFetch = useCallback(() => {
+  const handleStartFetch = useCallback(async () => {
     setIsFetching(true);
     setMessage(null);
     setJoinedMembers([]);
@@ -104,9 +105,9 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
     setHistoryEvents([]);
     setFetchProgress({ phase: 'counting', totalPages: 0, currentPage: 0, totalEvents: 0, elapsed: 0, message: 'Подключение...' });
 
-    
-    const token = localStorage.getItem('auth_token');
-    const url = apiUrl(`/api/clan/${clanId}/members/auto-fetch-stream${token ? `?token=${encodeURIComponent(token)}` : ''}`);
+    // A37: в URL идёт минутный билет, а не токен сессии (8–24 часа жизни).
+    const ticket = await sseTicket();
+    const url = apiUrl(`/api/clan/${clanId}/members/auto-fetch-stream?ticket=${encodeURIComponent(ticket)}`);
 
     const es = new EventSource(url);
     streamRef.current = es;
@@ -135,7 +136,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
               message: `Найдено ${data.total_pages} страниц истории. Начинаю сбор...`,
             });
             break;
-          case 'progress':
+          case 'progress': {
             const pct = data.total_pages > 0 ? Math.round(((data.page + 1) / data.total_pages) * 100) : 0;
             setFetchProgress({
               phase: 'fetching',
@@ -145,6 +146,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
               elapsed: data.elapsed || 0,
               message: `Страница ${data.page + 1} из ${data.total_pages} (${pct}%) · ${data.total_events} событий`,
             });
+            }
             break;
           case 'done':
             setHistoryEvents(data.events || []);
@@ -556,15 +558,15 @@ function LevelEventsImport({ clanId }: { clanId: number }) {
     }
   };
 
-  const handleFetchLevelEvents = () => {
+  const handleFetchLevelEvents = async () => {
     setIsFetching(true);
     setMessage(null);
     setLevelEvents([]);
     setFetchProgress({ totalPages: 0, currentPage: 0, totalEvents: 0, message: 'Загрузка...' });
 
-    
-    const token = localStorage.getItem('auth_token');
-    const url = apiUrl(`/api/clan/${clanId}/level-events/import-stream?token=${encodeURIComponent(token || '')}`);
+    // A37: билет вместо токена сессии.
+    const ticket = await sseTicket();
+    const url = apiUrl(`/api/clan/${clanId}/level-events/import-stream?ticket=${encodeURIComponent(ticket)}`);
 
     const es = new EventSource(url);
     streamRef.current = es;
@@ -576,7 +578,7 @@ function LevelEventsImport({ clanId }: { clanId: number }) {
           case 'counting':
             setFetchProgress({ totalPages: data.total_pages, currentPage: 0, totalEvents: 0, message: `Найдено ${data.total_pages} страниц` });
             break;
-          case 'progress':
+          case 'progress': {
             const pct = data.total_pages > 0 ? Math.round(((data.page + 1) / data.total_pages) * 100) : 0;
             setFetchProgress({
               totalPages: data.total_pages,
@@ -584,6 +586,7 @@ function LevelEventsImport({ clanId }: { clanId: number }) {
               totalEvents: data.total_events,
               message: `Страница ${data.page + 1} из ${data.total_pages} (${pct}%) · ${data.total_events} событий`,
             });
+            }
 
             break;
           case 'done':

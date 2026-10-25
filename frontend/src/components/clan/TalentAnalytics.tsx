@@ -269,11 +269,12 @@ export function TalentAnalytics({
         case 'nick':
           cmp = a.nick.localeCompare(b.nick);
           break;
-        case 'total':
+        case 'total': {
           const aTotal = Object.values(a.resources).reduce((s, v) => s + v, 0);
           const bTotal = Object.values(b.resources).reduce((s, v) => s + v, 0);
           cmp = bTotal - aTotal;
           break;
+        }
       }
       return submittedSort.direction === 'asc' ? cmp : -cmp;
     });

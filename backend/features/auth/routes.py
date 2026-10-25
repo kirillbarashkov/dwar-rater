@@ -10,6 +10,8 @@ import os
 import secrets
 import bcrypt
 import pyotp
+
+from shared.utils.sse_ticket import TICKET_TTL, issue_ticket
 import qrcode
 import base64
 import io
@@ -284,6 +286,19 @@ def change_password():
     db.session.commit()
 
     return jsonify({'status': 'ok'})
+
+
+@auth_bp.route('/api/auth/sse-ticket', methods=['POST'])
+def issue_sse_ticket():
+    """A37: короткоживущий билет для EventSource."""
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    session = SessionToken.find_by_token(token)
+    if not session or session.is_expired:
+        return jsonify({'error': 'Требуется авторизация'}), 401
+    user = session.user
+    if not user or not user.is_active:
+        return jsonify({'error': 'Аккаунт деактивирован'}), 403
+    return jsonify({'ticket': issue_ticket(user.id), 'expires_in': TICKET_TTL})
 
 
 @auth_bp.route('/api/auth/2fa/setup', methods=['POST'])

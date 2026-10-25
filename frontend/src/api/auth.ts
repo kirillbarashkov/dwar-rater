@@ -67,6 +67,12 @@ export async function changePassword(
   });
 }
 
+/** A37: короткоживущий билет для EventSource — вместо токена сессии в URL. */
+export async function sseTicket(): Promise<string> {
+  const response = await apiClient.post<{ ticket: string }>('/api/auth/sse-ticket');
+  return response.data.ticket;
+}
+
 export async function updateProfile(characterUrl: string): Promise<UpdateProfileResponse> {
   const response = await apiClient.put<UpdateProfileResponse>('/api/auth/profile', { character_url: characterUrl });
   return response.data;
