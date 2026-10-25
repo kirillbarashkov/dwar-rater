@@ -43,7 +43,7 @@ function dwarProfileLink(nick?: string | null) {
 
 function StepItem({ step, onToggle }: { step: ImprovementStep; onToggle: (id: string) => void }) {
   const priorityColors: Record<string, string> = {
-    high: '#dc3545',
+    high: 'var(--red)',
     medium: 'var(--gold)',
     low: 'var(--text-muted)',
   };

@@ -1,3 +1,4 @@
+import { cssVars } from '../../utils/cssVars';
 import { GAME_RANKS } from '../../utils/ranks';
 import { showToast } from '../ui/Toast';
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -452,7 +453,7 @@ const handleAnalyze = (nick: string) => {
                 <span className="cm-level">[{m.level}]</span>
                 {m.game_rank && <span className="cm-game-rank">{m.game_rank}</span>}
                 {m.profession && (
-                  <span className="cm-prof" style={{ '--prof-color': PROFESSION_COLORS[m.profession] || 'var(--bg-secondary)' } as React.CSSProperties} title={`${m.profession}: ${m.profession_level}`}>
+                  <span className="cm-prof" style={cssVars({ '--prof-color': PROFESSION_COLORS[m.profession] || 'var(--bg-secondary)' })} title={`${m.profession}: ${m.profession_level}`}>
                     {m.profession}: {m.profession_level}
                   </span>
                 )}
