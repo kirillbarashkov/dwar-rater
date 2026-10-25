@@ -39,7 +39,15 @@ def _enforce_secrets():
     return enforce_secrets(Config.STRICT_SECRETS, logger=data_logger)
 
 
-def create_app():
+def create_app(run_startup: bool = True):
+    """A30: единственная фабрика приложения.
+
+    `run_startup=False` даёт то же приложение без стартовых шагов (миграции,
+    сиды, создание админа) — это режим тестов. Раньше тесты шли против
+    отдельной фабрики в `test_app.py`, где не выполнялась часть кода
+    (`session_auth`, `security_checks`, обработчики ошибок), то есть проверяли
+    не то приложение, что работает в проде.
+    """
     app = Flask(
         __name__,
         static_folder=os.path.join(BASE_DIR, 'static'),
@@ -140,6 +148,13 @@ def create_app():
     @app.after_request
     def after_request(response):
         return add_security_headers(response)
+
+    # A30: тестовый режим — то же приложение без миграций, сидов и создания
+    # администратора (этим занимается conftest). Дальше стартовые шаги не идут.
+    if not run_startup:
+        from shared.middleware.proxy import install_proxy_fix
+        install_proxy_fix(app)
+        return app
 
     with app.app_context():
         from shared.services.data_logger import data_logger
