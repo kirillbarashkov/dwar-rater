@@ -53,8 +53,18 @@ export async function logout() {
   }
 }
 
-export async function changePassword(newPassword: string) {
-  await apiClient.post('/api/auth/change-password', { new_password: newPassword });
+export async function changePassword(
+  newPassword: string,
+  currentPassword: string,
+  totpCode?: string,
+) {
+  // A63: сервер требует текущий пароль — без него смена пароля означала бы
+  // захват аккаунта по одному украденному токену сессии.
+  await apiClient.post('/api/auth/change-password', {
+    new_password: newPassword,
+    current_password: currentPassword,
+    ...(totpCode ? { totp_code: totpCode } : {}),
+  });
 }
 
 export async function updateProfile(characterUrl: string): Promise<UpdateProfileResponse> {

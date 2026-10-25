@@ -242,14 +242,41 @@ def change_password():
         return jsonify({'error': 'Требуется авторизация'}), 401
 
     user = session.user
-    data = request.json
-    if not data or 'new_password' not in data:
+    data = request.get_json(silent=True) or {}
+
+    # A63: пароль меняется только с подтверждением текущего. Иначе украденный
+    # токен сессии не просто даёт доступ, а забирает аккаунт: владельца
+    # выбрасывает, а вернуть вход можно только через админа.
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+
+    if not current_password:
+        return jsonify({'error': 'current_password обязателен'}), 400
+    if not new_password:
         return jsonify({'error': 'new_password обязателен'}), 400
 
-    if len(data['new_password']) < 8:
+    if len(new_password) < 8:
         return jsonify({'error': 'Пароль должен быть не менее 8 символов'}), 400
 
-    user.password_hash = bcrypt.hashpw(data['new_password'].encode(), bcrypt.gensalt()).decode()
+    pw_hash = user.password_hash
+    if isinstance(pw_hash, bytes):
+        pw_hash = pw_hash.decode('utf-8')
+    if not bcrypt.checkpw(current_password.encode(), pw_hash.encode()):
+        _audit('password_change_failed', user=user, target_type='user', target_id=user.id)
+        db.session.commit()
+        return jsonify({'error': 'Текущий пароль неверен'}), 403
+
+    # Второй фактор: для пользователя с 2FA украденного токена недостаточно.
+    if user.totp_secret:
+        code = str(data.get('totp_code') or '').strip()
+        if not code:
+            return jsonify({'error': 'totp_code обязателен'}), 400
+        if not pyotp.TOTP(user.totp_secret).verify(code):
+            _audit('password_change_failed_2fa', user=user, target_type='user', target_id=user.id)
+            db.session.commit()
+            return jsonify({'error': 'Неверный код 2FA'}), 403
+
+    user.password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
     user.must_change_password = False
     db.session.commit()
 

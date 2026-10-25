@@ -108,8 +108,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setPermissions({});
   }, []);
 
-  const changePassword = useCallback(async (newPassword: string) => {
-    await apiChangePassword(newPassword);
+  const changePassword = useCallback(async (
+    newPassword: string,
+    currentPassword: string,
+    totpCode?: string,
+  ) => {
+    await apiChangePassword(newPassword, currentPassword, totpCode);
     if (user) {
       const updated = { ...user, must_change_password: false };
       setUser(updated);

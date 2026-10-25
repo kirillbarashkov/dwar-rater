@@ -18,6 +18,10 @@ export function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   // Store username for password change flow (Chrome needs it to update saved password)
   const [changePasswordUsername, setChangePasswordUsername] = useState('');
+  // A63: смена пароля подтверждается текущим. Пароль уже введён на этом экране,
+  // поэтому держим его до конца сценария, а не просим ввести заново.
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +33,7 @@ export function LoginPage() {
         setRequires2fa(true);
         setUserId2fa(result.user_id || 0);
       } else if (result.must_change_password) {
+        setCurrentPassword(password);
         setChangePasswordUsername(username);
         setMustChangePassword(true);
       } else {
@@ -68,7 +73,7 @@ export function LoginPage() {
     }
     setLoading(true);
     try {
-      await changePassword(newPassword);
+      await changePassword(newPassword, currentPassword, totpCode.trim() || undefined);
       navigate('/character?tab=info', { replace: true });
     } catch {
       setError('Ошибка смены пароля');
@@ -103,6 +108,16 @@ export function LoginPage() {
               placeholder="Подтвердите пароль"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            <input
+              type="text"
+              name="totp-code"
+              id="change-totp-code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="Код 2FA (если включена)"
+              value={totpCode}
+              onChange={(e) => setTotpCode(e.target.value)}
             />
             {error && <div className="login-error">{error}</div>}
             <button type="submit" className="btn btn-primary" disabled={loading}>

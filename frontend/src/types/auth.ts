@@ -16,7 +16,11 @@ export interface AuthContextType {
   login: (username: string, password: string) => Promise<{ requires_2fa?: boolean; user_id?: number; must_change_password: boolean }>;
   login2fa: (userId: number, code: string) => Promise<void>;
   logout: () => void;
-  changePassword: (newPassword: string) => Promise<void>;
+  changePassword: (
+    newPassword: string,
+    currentPassword: string,
+    totpCode?: string,
+  ) => Promise<void>;
   updateProfile: (characterUrl: string) => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
