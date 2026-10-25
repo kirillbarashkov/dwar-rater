@@ -32,7 +32,7 @@ FILE_EXTENSIONS = {
     PermDef('read', 'Экспорт аналитики', 'POST /api/export/character'),
 ])
 @export_bp.route('/api/export/character', methods=['POST'])
-@require_permission('analyze', 'read')
+@require_permission('export', 'read')
 def export_character():
     """Export character analysis to HTML, Markdown, or PDF."""
     data = request.json

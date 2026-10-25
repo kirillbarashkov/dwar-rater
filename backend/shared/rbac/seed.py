@@ -12,6 +12,8 @@ PERMISSIONS = [
     # analyze
     ('analyze', 'read', 'Анализ персонажа', 'POST /api/analyze — парсинг персонажа'),
     ('analyze', 'write', 'Принудительное обновление', 'force_refresh=true'),
+    # export
+    ('export', 'read', 'Экспорт аналитики', 'POST /api/export/character — HTML/Markdown/PDF'),
     # snapshots
     ('snapshots', 'read', 'Просмотр снапшотов', 'GET /api/snapshots'),
     ('snapshots', 'write', 'Сохранение снапшота', 'POST /api/save-snapshot'),
@@ -58,6 +60,7 @@ DEFAULT_ROLE_PERMISSIONS = [
     # admin: everything full
     ('admin', 'analyze', 'read', 'full'),
     ('admin', 'analyze', 'write', 'full'),
+    ('admin', 'export', 'read', 'full'),
     ('admin', 'snapshots', 'read', 'full'),
     ('admin', 'snapshots', 'write', 'full'),
     ('admin', 'snapshots', 'delete', 'full'),
@@ -92,6 +95,7 @@ DEFAULT_ROLE_PERMISSIONS = [
     # superuser: everything full EXCEPT admin.*
     ('superuser', 'analyze', 'read', 'full'),
     ('superuser', 'analyze', 'write', 'full'),
+    ('superuser', 'export', 'read', 'full'),
     ('superuser', 'snapshots', 'read', 'full'),
     ('superuser', 'snapshots', 'write', 'full'),
     ('superuser', 'snapshots', 'delete', 'full'),
@@ -124,6 +128,7 @@ DEFAULT_ROLE_PERMISSIONS = [
     # user: read on everything, write on select features
     ('user', 'analyze', 'read', 'full'),
     ('user', 'analyze', 'write', 'full'),
+    ('user', 'export', 'read', 'full'),
     ('user', 'snapshots', 'read', 'full'),
     ('user', 'snapshots', 'write', 'full'),
     ('user', 'snapshots', 'delete', 'none'),
