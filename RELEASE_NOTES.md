@@ -1,5 +1,5 @@
-# v2.36.33
+# v2.36.34
 
-## Исправления
-- fix(rate_limit): fail-open больше не молчит — WARNING с exc_info (A29) [bump:patch]
+## Прочее
+- chore(frontend): убраны 7 отладочных console.log с данными казны (A33); A31 закрыта в срезе A18 [bump:patch]
 
