@@ -1,5 +1,5 @@
-# v2.36.31
+# v2.36.32
 
 ## Прочее
-- refactor(frontend): DEFAULT_CLAN_ID вместо 15 хардкодов, проп в CharacterClanTab (A27) [bump:patch]
+- test(coverage): export API, cache_service и 9 разделов exporter; зарегистрирована A64 (A28) [bump:patch]
 
