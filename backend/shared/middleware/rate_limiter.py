@@ -1,6 +1,9 @@
+import logging
 import time
 from shared.models import db
 from sqlalchemy import text
+
+_log = logging.getLogger(__name__)
 
 
 class RateLimit(db.Model):
@@ -82,5 +85,10 @@ def check_rate_limit(max_requests, window_seconds, user_id=None):
 
         return count <= max_requests
     except Exception:
-        # Fail open: if rate limiter DB is unavailable, don't block requests
+        # A29: fail open намеренно — падение лимитера не должно ронять
+        # приложение. Но молчать нельзя: при сбое БД защита от перебора
+        # отключается целиком, и без записи в лог это выглядит как «всё
+        # в порядке», пока кто-то не начнёт подбирать пароль.
+        _log.warning('check_rate_limit: БД лимитера недоступна, запросы пропускаются',
+                     exc_info=True)
         return True
