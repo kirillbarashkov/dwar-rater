@@ -1,12 +1,7 @@
+import type { ParsedTreasuryOperation } from '../types/clanInfo';
 
+export type { ParsedTreasuryOperation };
 
-export interface ParsedTreasuryOperation {
-  date: string;
-  nick: string;
-  operation_type: string;
-  object_name: string;
-  quantity: number;
-}
 
 export function parseTreasuryOperations(html: string): ParsedTreasuryOperation[] {
   const operations: ParsedTreasuryOperation[] = [];

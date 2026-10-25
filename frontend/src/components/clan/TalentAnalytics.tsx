@@ -1,3 +1,4 @@
+import type { SortConfig } from '../../types/clan';
 import { useMemo, useState } from 'react';
 import type { TreasuryOperationData, ClanMemberData } from '../../types/clanInfo';
 import { isTalentOperation, isTalentResource, getOriginalOwner } from '../../utils/treasury';
@@ -18,12 +19,7 @@ interface PlayerTalentSummary {
   status: 'submitted' | 'not_submitted';
 }
 
-type SortDirection = 'asc' | 'desc';
 
-interface SortConfig {
-  column: string | null;
-  direction: SortDirection;
-}
 
 interface GroupConfig {
   key: string;

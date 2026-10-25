@@ -1,3 +1,4 @@
+import type { SubCategory, EquipCategory } from '../../types/character';
 import { useState } from 'react';
 import type { EquipmentItem, EquipmentByKind } from '../../types/character';
 import './EquipmentTab.css';
@@ -5,20 +6,6 @@ import './EquipmentTab.css';
 interface EquipmentTabProps {
   equipment?: EquipmentByKind;
   sets?: Record<string, string[]>;
-}
-
-interface SubCategory {
-  key: string;
-  label: string;
-  kinds: string[];
-}
-
-interface EquipCategory {
-  key: string;
-  label: string;
-  icon: string;
-  priority: number;
-  subCategories: SubCategory[];
 }
 
 const EQUIP_CATEGORIES: EquipCategory[] = [

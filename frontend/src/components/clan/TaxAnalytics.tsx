@@ -1,3 +1,4 @@
+import type { SortConfig } from '../../types/clan';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import type { TreasuryOperationData, TaxCarryoverMonth, ReasonCode, BulkCompensationPlan } from '../../types/clanInfo';
 import type { ClanMemberData } from '../../types/clanInfo';
@@ -99,12 +100,7 @@ interface MonthSummary {
   expectedTotal: number;
 }
 
-type SortDirection = 'asc' | 'desc';
 
-interface SortConfig {
-  column: string | null;
-  direction: SortDirection;
-}
 
 const DEFAULT_NORM = 10;
 

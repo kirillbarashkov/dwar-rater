@@ -1,6 +1,9 @@
 import type { ClanMemberData, ClanStructure } from '../types/clanInfo';
 
-export interface ClanInfoData {
+// A45: имя было `ClanInfoData` — как у DTO ответа API (`types/clanInfo.ts`),
+// хотя это другая сущность: результат разбора HTML-страницы, где все поля
+// необязательны и есть `current_players`/`clan_structure`.
+export interface ParsedClanInfo {
   name?: string;
   logo_big?: string;
   logo_small?: string;
@@ -15,7 +18,7 @@ export interface ClanInfoData {
 
 export interface ParseResult {
   members: Partial<ClanMemberData>[];
-  clanInfo?: ClanInfoData;
+  clanInfo?: ParsedClanInfo;
   errors: string[];
 }
 
@@ -41,9 +44,9 @@ interface RawMember {
 
 const DEFAULT_CLAN_ROLE = 'Рыцарь Ордена';
 
-function parseClanInfo(content: string): ClanInfoData | undefined {
+function parseClanInfo(content: string): ParsedClanInfo | undefined {
   const lines = content.split(/\r?\n/);
-  const result: ClanInfoData = {};
+  const result: ParsedClanInfo = {};
   let inStructure = false;
   let structureText = '';
 

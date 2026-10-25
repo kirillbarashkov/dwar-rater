@@ -2,7 +2,7 @@ import { GAME_RANKS } from '../../utils/ranks';
 import { showToast } from '../ui/Toast';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { ClanMemberData, LeftMemberData } from '../../types/clanInfo';
-import type { ClanInfoData } from '../../utils/parseMembers';
+import type { ParsedClanInfo } from '../../utils/parseMembers';
 import { getClanMembers, addClanMember, updateClanMember, deleteClanMember, importClanMembers, getLeftMembers } from '../../api/clanInfo';
 import { usePermission } from '../../hooks/useAuth';
 import { parseMembersFile } from '../../utils/parseMembers';
@@ -77,7 +77,7 @@ export function ClanMembersTable({ clanId }: ClanMembersTableProps) {
   const [editingMember, setEditingMember] = useState<(ClanMemberData & { id?: number }) | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importedMembers, setImportedMembers] = useState<Partial<ClanMemberData>[]>([]);
-  const [importedClanInfo, setImportedClanInfo] = useState<ClanInfoData | undefined>();
+  const [importedClanInfo, setImportedClanInfo] = useState<ParsedClanInfo | undefined>();
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [importSkipped, setImportSkipped] = useState(0);
   const [overwriteExisting, setOverwriteExisting] = useState(false);

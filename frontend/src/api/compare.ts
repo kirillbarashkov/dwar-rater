@@ -1,13 +1,7 @@
+import type { CompareCharacter } from '../types/compare';
+export type { CompareCharacter };
 import apiClient from './client';
 import type { AnalysisResult } from '../types/character';
-
-interface CompareCharacter {
-  id: number;
-  name: string;
-  data: AnalysisResult;
-  added_at: string;
-  sort_order: number;
-}
 
 interface CompareListResponse {
   characters: CompareCharacter[];

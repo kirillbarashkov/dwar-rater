@@ -25,3 +25,11 @@ export interface ChatMessage {
   created_at: string;
   is_deleted: boolean;
 }
+
+// A45: канон сортировки для аналитики казны и талантов.
+export type SortDirection = 'asc' | 'desc';
+
+export interface SortConfig {
+  column: string | null;
+  direction: SortDirection;
+}

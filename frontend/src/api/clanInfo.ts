@@ -1,3 +1,5 @@
+import type { DateCoverage, ParsedTreasuryOperation } from '../types/clanInfo';
+export type { DateCoverage, ParsedTreasuryOperation };
 import apiClient from './client';
 import type {
   ClanInfoData,
@@ -88,19 +90,6 @@ export interface TreasuryFetchResult {
   error?: string;
 }
 
-export interface DateCoverage {
-  years: Record<string, {
-    months: Record<string, {
-      days: string[];
-      total_ops: number;
-    }>;
-    total_ops: number;
-  }>;
-  total_dates_with_data: number;
-  total_operations: number;
-  earliest_date: string | null;
-  latest_date: string | null;
-}
 
 export async function getTreasuryDateCoverage(clanId: number): Promise<DateCoverage> {
   const response = await apiClient.get(`/api/clan/${clanId}/treasury/date-coverage`);
@@ -375,14 +364,6 @@ export async function reopenTreasuryMonth(
     { reason }
   );
   return response.data;
-}
-
-export interface ParsedTreasuryOperation {
-  date: string;
-  nick: string;
-  operation_type: string;
-  object_name: string;
-  quantity: number;
 }
 
 export async function saveTreasuryCookies(

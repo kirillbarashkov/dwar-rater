@@ -395,3 +395,13 @@ export interface TreasuryJournalResponse {
   reason_codes: ReasonCode[];
   actions: string[];
 }
+
+
+// A45: канон для DTO разобранной операции казны (был дубль в utils/treasury.ts).
+export interface ParsedTreasuryOperation {
+  date: string;
+  nick: string;
+  operation_type: string;
+  object_name: string;
+  quantity: number;
+}

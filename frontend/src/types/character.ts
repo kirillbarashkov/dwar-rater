@@ -145,3 +145,18 @@ export interface AnalysisResult {
     premium_level: string;
   };
 }
+
+// A45: канон категорий снаряжения (дублировались в двух вкладках анализа).
+export interface SubCategory {
+  key: string;
+  label: string;
+  kinds: string[];
+}
+
+export interface EquipCategory {
+  key: string;
+  label: string;
+  icon: string;
+  priority: number;
+  subCategories: SubCategory[];
+}

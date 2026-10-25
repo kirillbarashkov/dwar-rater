@@ -1,22 +1,9 @@
+import type { SubCategory, EquipCategory } from '../../types/character';
 import { useState, useEffect, useCallback } from 'react';
 import { getCompareCharacters, deleteCompareCharacter } from '../../api/compare';
 import { getClanInfo } from '../../api/clanInfo';
 import type { AnalysisResult, EquipmentItem } from '../../types/character';
 import './CharacterComparison.css';
-
-interface SubCategory {
-  key: string;
-  label: string;
-  kinds: string[];
-}
-
-interface EquipCategory {
-  key: string;
-  label: string;
-  icon: string;
-  priority: number;
-  subCategories: SubCategory[];
-}
 
 const EQUIP_CATEGORIES: EquipCategory[] = [
   {
