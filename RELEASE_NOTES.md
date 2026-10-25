@@ -1,5 +1,5 @@
-# v2.36.30
+# v2.36.31
 
-## Исправления
-- fix(rbac): детальные данные казны — только treasury:*, выгрузка закрыта для роли user (A26) [bump:patch]
+## Прочее
+- refactor(frontend): DEFAULT_CLAN_ID вместо 15 хардкодов, проп в CharacterClanTab (A27) [bump:patch]
 
