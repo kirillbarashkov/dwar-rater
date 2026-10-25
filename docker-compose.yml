@@ -35,6 +35,10 @@ services:
     # A62: запрет получать новые привилегии (setuid-бинарники внутри образа).
     security_opt:
       - no-new-privileges:true
+    # A39: тот же том, что у postgres. Без него бэкап из админки жил в слое
+    # контейнера и исчезал при пересоздании, а список в UI не совпадал с `ls` в томе.
+    volumes:
+      - postgres_backups:/backups
     env_file:
       - .env
     environment:

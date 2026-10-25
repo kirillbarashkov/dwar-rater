@@ -28,14 +28,23 @@ def create_pre_migration_backup(dump_dir, *, logger=None, runner=None):
     os.makedirs(dump_dir, exist_ok=True)
 
     stamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
-    path = os.path.join(dump_dir, f'pre_migration_{stamp}.sql.gz')
+    # A39: имя должно попадать в шаблон `dwar_rater_backup_*.sql.gz`. Иначе
+    # `make restore`, ротация и pre-destroy-check (все ищут этот шаблон)
+    # премиграционную копию не видят — она лежит рядом и считается мусором.
+    path = os.path.join(dump_dir, f'dwar_rater_backup_pre_migration_{stamp}.sql.gz')
 
     user = os.environ.get('POSTGRES_USER', 'dwar')
     dbname = os.environ.get('POSTGRES_DB', 'dwar_rater')
+    # A39: без -h/-p pg_dump идёт в локальный сокет. В контейнере бэкенда
+    # Postgres'а нет — дамп падал с "connection to server on socket ... failed",
+    # то есть премиграционных копий в проде не было вообще.
+    host = os.environ.get('POSTGRES_HOST', 'localhost')
+    port = os.environ.get('POSTGRES_PORT', '5432')
 
     try:
         result = runner(
-            ['pg_dump', '-U', user, '-d', dbname, '--no-owner', '--no-acl'],
+            ['pg_dump', '-h', host, '-p', port, '-U', user, '-d', dbname,
+             '--no-owner', '--no-acl'],
             capture_output=True,
             timeout=300,
         )

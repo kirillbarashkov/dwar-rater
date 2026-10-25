@@ -7,10 +7,18 @@ COPY scripts/db-backup.sh /usr/local/bin/db-backup.sh
 # поэтому лежит рядом.
 COPY scripts/backup-rotate.sh /usr/local/bin/backup-rotate.sh
 RUN chmod +x /usr/local/bin/backup-rotate.sh
+# A39: каталог общий с бэкендом (там тот же gid 70 под именем dbbackups).
+# setgid + group-write — иначе файлы, созданные cron'ом postgres, бэкенд
+# (uid 10001) не сможет ни перезаписать, ни удалить.
 RUN chmod +x /usr/local/bin/db-backup.sh && \
-    mkdir -p /backups
+    mkdir -p /backups && \
+    chown postgres:postgres /backups && \
+    chmod 2775 /backups
 
 # Set up cron to run backup every hour
 RUN echo "0 * * * * /usr/local/bin/db-backup.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root
 
-CMD ["sh", "-c", "crond -f -l 2 & docker-entrypoint.sh postgres"]
+# A39: том, созданный до этой правки, пришёл с root:root 755 — чиним права на
+# старте (контейнер запускается под root, официальный entrypoint дальше сам
+# сбрасывает права на postgres).
+CMD ["sh", "-c", "chown postgres:postgres /backups 2>/dev/null; chmod 2775 /backups 2>/dev/null; crond -f -l 2 & exec docker-entrypoint.sh postgres"]

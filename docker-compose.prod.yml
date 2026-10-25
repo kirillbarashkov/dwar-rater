@@ -36,6 +36,10 @@ services:
         APP_BRANCH: ${APP_BRANCH:-unknown}
         APP_BUILD_DATE: ${APP_BUILD_DATE:-unknown}
     container_name: dwar_rater_backend
+    # A39: общий том бэкапов с postgres — бэкап из админки переживает пересоздание
+    # контейнера и виден тем же инструментам, что и ежечасный cron-дамп.
+    volumes:
+      - postgres_backups:/backups
     restart: unless-stopped
     # A62: процесс под uid 10001 (см. backend/Dockerfile) и без новых привилегий.
     security_opt:

@@ -38,8 +38,15 @@ RUN chmod +x entrypoint.sh
 # бэкапам. UID фиксированный, чтобы права на томах были предсказуемы.
 RUN groupadd -g 10001 app \
     && useradd -u 10001 -g app -m -s /usr/sbin/nologin app \
+    && chown -R app:app /app \
+    # A39: /backups — общий том с контейнером postgres (там группа postgres = gid 70).
+    # Обе стороны должны писать в один каталог, поэтому заводим ту же группу и
+    # вешаем setgid: новые файлы наследуют группу, а не только создатель.
+    && (groupadd -g 70 dbbackups 2>/dev/null || groupadd -o -g 70 dbbackups) \
+    && usermod -aG dbbackups app \
     && mkdir -p /backups \
-    && chown -R app:app /app /backups
+    && chown 10001:70 /backups \
+    && chmod 2775 /backups
 
 USER app
 

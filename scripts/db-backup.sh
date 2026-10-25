@@ -6,6 +6,10 @@
 # возврата gzip, поэтому упавший pg_dump (битый дамп) проходил как успешный.
 set -euo pipefail
 
+# A39: /backups — общий том с бэкендом (uid 10001), поэтому файлы создаём
+# группой-разделяемой (664), иначе бэкенд не сможет их удалить или перезаписать.
+umask 002
+
 BACKUP_DIR="${BACKUP_DIR:-/backups}"
 KEEP_DAYS="${BACKUP_KEEP_DAYS:-0}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
