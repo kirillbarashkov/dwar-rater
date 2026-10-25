@@ -1,6 +1,6 @@
 from shared.models import db
 from datetime import datetime, timezone
-import hashlib
+from shared.utils import token_hash
 
 
 class Permission(db.Model):
@@ -104,15 +104,32 @@ class SessionToken(db.Model):
 
     @staticmethod
     def hash_token(token: str) -> str:
-        """Hash a plain token for storage/lookup (sha256)."""
-        return hashlib.sha256(token.encode()).hexdigest()
+        """A52: HMAC-SHA256 с серверным секретом (было — голый SHA-256)."""
+        return token_hash.hash_token(token)
 
     @classmethod
     def find_by_token(cls, token: str):
-        """Lookup session by plain token (hashes internally)."""
+        """Lookup session by plain token (hashes internally).
+
+        A52: строки, посчитанные прежним голым SHA-256, находятся вторым
+        запросом и обновляются до HMAC — иначе деплой разлогинил бы всех.
+        """
         if not token:
             return None
-        return cls.query.filter_by(token_hash=cls.hash_token(token)).first()
+        found = cls.query.filter_by(token_hash=cls.hash_token(token)).first()
+        if found is not None:
+            return found
+        legacy = cls.query.filter_by(
+            token_hash=token_hash.legacy_hash_token(token)
+        ).first()
+        if legacy is None:
+            return None
+        legacy.token_hash = cls.hash_token(token)
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        return legacy
 
     @property
     def is_expired(self):
