@@ -254,7 +254,7 @@ dwar-rater/
 │       │   ├── clan/          # Компоненты кланов
 │       │   └── chat/          # Чат клана
 │       ├── pages/
-│       │   ├── admin/         # Админ-панель (4 таба)
+│       │   ├── admin/         # Админ-панель (6 вкладок)
 │       │   └── auth/          # Страница логина
 │       ├── hooks/             # useAuth, usePermission
 │       ├── styles/            # DESIGN.md токены, темы
