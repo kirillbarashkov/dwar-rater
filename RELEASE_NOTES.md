@@ -1,5 +1,5 @@
-# v2.36.42
+# v2.36.43
 
 ## Исправления
-- fix(types): двойные приведения убраны — toPayload и проверка формы слепка (A46) [bump:patch]
+- fix(api): apiFetch/apiUrl — обработка 401 и одно правило адреса для fetch и SSE (A47) [bump:patch]
 
