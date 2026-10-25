@@ -1,3 +1,4 @@
+import { toPayload } from '../../utils/payload';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ImprovementStep, TrackPhase, TargetType, CharacterSummary } from '../../types/track';
 import { generateTrack, updateStep, reEvaluateTrack } from '../../api/tracks';
@@ -229,13 +230,13 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
   /** Resolve the source character dict according to sourceMode. */
   const resolveSource = async (): Promise<Record<string, unknown> | null> => {
     if (sourceMode === 'current') {
-      return (character as unknown as Record<string, unknown>) ?? null;
+      return character ? toPayload(character) : null;
     }
     if (sourceMode === 'snapshot') {
       if (!sourceSnapshotId) return null;
       try {
         const snap = await getSnapshot(Number(sourceSnapshotId));
-        return snap as unknown as Record<string, unknown>;
+        return toPayload(snap);
       } catch {
         return null;
       }
@@ -244,7 +245,7 @@ export function ImprovementTrackPanel({ character }: ImprovementTrackPanelProps)
     if (!sourceUrl.trim()) return null;
     try {
       const analyzed = await analyzeCharacter(sourceUrl.trim(), forceRefresh);
-      return analyzed as unknown as Record<string, unknown>;
+      return toPayload(analyzed);
     } catch {
       return null;
     }

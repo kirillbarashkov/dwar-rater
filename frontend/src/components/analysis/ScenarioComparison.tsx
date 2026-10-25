@@ -1,3 +1,4 @@
+import { toPayload } from '../../utils/payload';
 import { useState, useEffect } from 'react';
 import type { ScenarioComparisonResult, GapAnalysis, ScenarioSummary } from '../../types/scenario';
 import { getScenarios, compareScenario } from '../../api/scenarios';
@@ -48,7 +49,7 @@ export function ScenarioComparison({ character }: ScenarioComparisonProps) {
     if (!selectedId) return;
     setIsLoading(true);
     try {
-      const result = await compareScenario(selectedId, character as unknown as Record<string, unknown>);
+      const result = await compareScenario(selectedId, toPayload(character));
       setComparison(result);
     } catch {
       // ignore

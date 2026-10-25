@@ -4,6 +4,8 @@ import { useCharacterAnalysis } from './hooks/useCharacterAnalysis';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { TREASURY_TABS, DEFAULT_CLAN_ID } from './utils/constants';
+import { asAnalysisResult } from './utils/analysisShape';
+import { toPayload } from './utils/payload';
 import { Button } from './components/ui/Button';
 import { Input } from './components/ui/Input';
 import { Modal } from './components/ui/Modal';
@@ -201,7 +203,15 @@ function HomePage() {
   }, [result]);
 
   const handleLoadSnapshot = (data: Snapshot & Record<string, unknown>) => {
-    setCurrentResult(data as unknown as AnalysisResult);
+    // A46: раньше здесь стояло `as unknown as AnalysisResult` — слепок попадал
+    // во вкладки анализа без проверки формы. Теперь проверяем и говорим, если
+    // это не результат анализа.
+    const parsed = asAnalysisResult(data);
+    if (!parsed) {
+      showToast('В слепке нет результата анализа — снимите новый слепок', 'error');
+      return;
+    }
+    setCurrentResult(parsed);
     setLastAnalyzed(new Date(data.analyzed_at as string));
     setActiveTab((prev) => (prev === 'track' ? 'track' : 'stats'));
   };
@@ -210,7 +220,7 @@ function HomePage() {
     if (!currentResult) return;
     try {
       await saveSnapshot({
-        snapshot_data: currentResult as unknown as Record<string, unknown>,
+        snapshot_data: toPayload(currentResult),
         snapshot_name: snapshotName,
         url: '',
       });

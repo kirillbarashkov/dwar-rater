@@ -1,3 +1,4 @@
+import { toPayload } from '../../utils/payload';
 import { useState, useCallback } from 'react';
 import { exportCharacter, EXPORT_SECTIONS, EXPORT_FORMATS, PAGE_FORMATS } from '../../api/export';
 import type { AnalysisResult } from '../../types/character';
@@ -54,7 +55,7 @@ export function ExportTab({ currentResult }: ExportTabProps) {
         format,
         page_format: pageFormat,
         sections: Array.from(sections),
-        data: currentResult as unknown as Record<string, unknown>,
+        data: toPayload(currentResult),
       });
 
       // Trigger download
