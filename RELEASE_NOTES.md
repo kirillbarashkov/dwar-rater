@@ -1,5 +1,5 @@
-# v2.36.34
+# v2.36.35
 
-## Прочее
-- chore(frontend): убраны 7 отладочных console.log с данными казны (A33); A31 закрыта в срезе A18 [bump:patch]
+## Исправления
+- fix(frontend): SSE закрывается при размонтировании, Отменить -> AbortController (A32) [bump:patch]
 
