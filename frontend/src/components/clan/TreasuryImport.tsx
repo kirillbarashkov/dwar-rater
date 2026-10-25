@@ -344,16 +344,16 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
     elapsed: number;
     message: string;
   }>({ phase: 'counting', totalPages: 0, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: '' });
-  const [eventSource, setEventSource] = useState<EventSource | null>(null);
+  // A32: здесь давно не EventSource, а fetch, поэтому «Отменить» ничего не
+  // отменяла. Реальное прерывание запроса — AbortController.
+  const abortRef = useRef<AbortController | null>(null);
 
   const cancelAutoFetch = useCallback(() => {
-    if (eventSource) {
-      eventSource.close();
-      setEventSource(null);
-    }
+    abortRef.current?.abort();
+    abortRef.current = null;
     setIsAutoFetching(false);
     setFetchProgress((prev) => ({ ...prev, phase: 'error', message: 'Сбор отменён пользователем' }));
-  }, [eventSource]);
+  }, []);
 
   const estimatePages = useCallback(async () => {
     setIsEstimating(true);
@@ -888,7 +888,10 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                               const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
                               const token = localStorage.getItem('auth_token');
                               const url = `${apiBase}/api/clan/${clanId}/treasury/auto-fetch-json`;
+                              const controller = new AbortController();
+                              abortRef.current = controller;
                               const res = await fetch(url, {
+                                signal: controller.signal,
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify({
@@ -913,9 +916,14 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                                 if (data.error === 'session_expired') refreshCookieStatus();
                               }
                             } catch (err) {
-                              console.error('[TREASURY] Fetch error:', err);
+                              if ((err as Error)?.name === 'AbortError') {
+                                // A32: отмена — ожидаемое действие, а не сбой.
+                              } else {
+                                console.error('[TREASURY] Fetch error:', err);
+                              }
                               setFetchProgress({ phase: 'error', totalPages: 0, currentPage: 0, totalOps: 0, opsOnPage: 0, elapsed: 0, message: `Ошибка: ${err instanceof Error ? err.message : String(err)}` });
                             } finally {
+                              abortRef.current = null;
                               setIsAutoFetching(false);
                             }
                           }}>

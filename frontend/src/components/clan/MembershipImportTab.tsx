@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getTreasuryCookiesStatus, importMemberDiff, importHistoryEvents, getMembershipEvents, saveLevelEvents, getLevelEvents } from '../../api/clanInfo';
 import type { MembershipEvent } from '../../types/clanInfo';
 import type { LevelChangeEvent } from '../../api/clanInfo';
@@ -61,6 +61,16 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
   }>({ phase: 'idle', totalPages: 0, currentPage: 0, totalEvents: 0, elapsed: 0, message: '' });
 
   const [eventSource, setEventSource] = useState<EventSource | null>(null);
+  // A32: тот же поток нужен при размонтировании. Состояние для этого не
+  // годится — в cleanup попадёт значение из первого рендера (null).
+  const streamRef = useRef<EventSource | null>(null);
+
+  useEffect(() => () => {
+    // Пользователь ушёл со страницы во время потока: закрываем соединение,
+    // иначе оно живёт до таймаута сервера, а SSE-генератор висит на бэкенде.
+    streamRef.current?.close();
+    streamRef.current = null;
+  }, []);
 
   useEffect(() => {
     getTreasuryCookiesStatus(clanId).then(setCookieStatus).catch(() => setCookieStatus({ has_cookies: false, is_valid: false }));
@@ -98,6 +108,7 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
     const url = `${apiBase}/api/clan/${clanId}/members/auto-fetch-stream${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 
     const es = new EventSource(url);
+    streamRef.current = es;
 
     es.onmessage = (e) => {
       try {
@@ -522,6 +533,13 @@ function LevelEventsImport({ clanId }: { clanId: number }) {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [savedEvents, setSavedEvents] = useState<LevelChangeEvent[]>([]);
+  // A32: соединение закрывается при размонтировании (второй поток в файле).
+  const streamRef = useRef<EventSource | null>(null);
+
+  useEffect(() => () => {
+    streamRef.current?.close();
+    streamRef.current = null;
+  }, []);
 
   useEffect(() => {
     getTreasuryCookiesStatus(clanId).then(setCookieStatus).catch(() => setCookieStatus({ has_cookies: false, is_valid: false }));
@@ -548,6 +566,7 @@ function LevelEventsImport({ clanId }: { clanId: number }) {
     const url = `${apiBase}/api/clan/${clanId}/level-events/import-stream?token=${encodeURIComponent(token || '')}`;
 
     const es = new EventSource(url);
+    streamRef.current = es;
 
     es.onmessage = (e) => {
       try {
@@ -564,6 +583,7 @@ function LevelEventsImport({ clanId }: { clanId: number }) {
               totalEvents: data.total_events,
               message: `Страница ${data.page + 1} из ${data.total_pages} (${pct}%) · ${data.total_events} событий`,
             });
+
             break;
           case 'done':
             setLevelEvents(data.events as LevelChangeEvent[]);
