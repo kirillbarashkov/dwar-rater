@@ -1,3 +1,4 @@
+import { useAsyncData } from '../../hooks/useAsyncData';
 import { apiFetch } from '../../api/client';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
@@ -186,7 +187,12 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [importResult, setImportResult] = useState<{ imported: number; updated: number; skipped: number } | null>(null);
 
-  const [dbOperations, setDbOperations] = useState<TreasuryOperationData[]>([]);
+  // A35: загрузка идёт через общий хук — одно поведение при ошибке на все вкладки.
+  const { data: dbOperations, setData: setDbOperations } = useAsyncData<TreasuryOperationData[]>(
+    () => getTreasuryOperations(clanId),
+    [clanId],
+    [],
+  );
   const [dateCoverage, setDateCoverage] = useState<DateCoverage | null>(null);
   const [selectedStartDate, setSelectedStartDate] = useState<string | null>(null);
   const [selectedEndDate, setSelectedEndDate] = useState<string | null>(null);
@@ -218,7 +224,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
   pageEstimateRef.current = pageEstimate;
 
   useEffect(() => {
-    getTreasuryOperations(clanId).then(setDbOperations).catch(() => setDbOperations([]));
+    // A35: операции грузит useAsyncData (см. объявление dbOperations).
     loadDateCoverage();
   }, [clanId]);
 
@@ -1137,11 +1143,12 @@ function HtmlImportTab({ clanId, onImportComplete }: { clanId: number; onImportC
   const [isImporting, setIsImporting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [importResult, setImportResult] = useState<{ imported: number; updated: number; skipped: number } | null>(null);
-  const [dbOperations, setDbOperations] = useState<TreasuryOperationData[]>([]);
-
-  useEffect(() => {
-    getTreasuryOperations(clanId).then(setDbOperations).catch(() => setDbOperations([]));
-  }, [clanId]);
+  // A35: загрузка идёт через общий хук — одно поведение при ошибке на все вкладки.
+  const { data: dbOperations, setData: setDbOperations } = useAsyncData<TreasuryOperationData[]>(
+    () => getTreasuryOperations(clanId),
+    [clanId],
+    [],
+  );
 
   const parsedRows = useMemo((): ParsedRow[] => {
     if (!pastedHtml.trim()) return [];
