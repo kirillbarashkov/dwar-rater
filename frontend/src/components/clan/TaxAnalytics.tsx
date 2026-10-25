@@ -141,7 +141,9 @@ export function TaxAnalytics({
   // список работы, а не алфавит; любую колонку можно пересортировать кликом.
   const [mainSort, setMainSort] = useState<SortConfig>({ column: 'debt', direction: 'desc' });
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
-  const [editingRow, setEditingRow] = useState<string | null>(null);
+  // A49: ключ правки — id операции. Ник не годится: два участника с никами,
+  // отличающимися регистром, получали один ключ, и правка открывалась у обоих.
+  const [editingRowId, setEditingRowId] = useState<number | null>(null);
   const [editingData, setEditingData] = useState<{ quantity: number; compensationFlag: boolean; compensationComment: string } | null>(null);
   const [editReason, setEditReason] = useState('');
   const [levelHistory, setLevelHistory] = useState<Record<string, Array<{ date: string; old_level: number; new_level: number }>>>({});
@@ -830,18 +832,27 @@ export function TaxAnalytics({
     }
   };
 
+  /** Операция, которую правит строка: у компенсации — зачёт, иначе платёж. */
+  const targetOperationId = (player: PlayerTaxSummary): number | undefined =>
+    player.status === 'compensated' ? player.operationId : player.paymentOpId;
+
   const startInlineEdit = (player: PlayerTaxSummary) => {
-    setEditingRow(player.nick);
+    const targetId = targetOperationId(player);
+    // A49: количество берём из самой операции. `totalPaid` — производная сумма
+    // (onTime + delayed, без компенсации), и сохранение записывало в операцию
+    // другое число, чем в ней лежало.
+    const operation = targetId ? operations.find(o => o.id === targetId) : undefined;
+    setEditingRowId(targetId ?? null);
     setEditReason('');
     setEditingData({
-      quantity: player.totalPaid,
+      quantity: operation?.quantity ?? player.totalPaid,
       compensationFlag: player.status === 'compensated',
       compensationComment: player.compensationComment || '',
     });
   };
 
   const cancelInlineEdit = () => {
-    setEditingRow(null);
+    setEditingRowId(null);
     setEditingData(null);
   };
 
@@ -850,8 +861,7 @@ export function TaxAnalytics({
     // through the month's money operation. `operationId` is only filled for
     // compensation rows, so using it alone made editing a normal payment a
     // silent no-op.
-    const targetId =
-      player.status === 'compensated' ? player.operationId : player.paymentOpId;
+    const targetId = targetOperationId(player);
     if (!clanId || !editingData || !targetId) return;
 
     setIsSaving(true);
@@ -863,7 +873,7 @@ export function TaxAnalytics({
         reason: editReason || undefined,
       });
 
-      setEditingRow(null);
+      setEditingRowId(null);
       setEditingData(null);
       if (onRefresh) {
         onRefresh();
@@ -1242,7 +1252,7 @@ export function TaxAnalytics({
                           <td className="tax-rank">{idx + 1}</td>
                           <td className="tax-nick">{p.nick}</td>
                           <td>{p.playerLevel ?? '-'}</td>
-                          {editingRow === p.nick ? (
+                          {editingRowId === targetOperationId(p) ? (
                             <>
                               <td>
                                 <input
@@ -1316,7 +1326,7 @@ export function TaxAnalytics({
                           <td className="tax-actions">
                             {canManage &&
                               !monthClosed &&
-                              editingRow !== p.nick &&
+                              editingRowId !== targetOperationId(p) &&
                               (p.paymentOpId || p.operationId) && (
                               <button
                                 className="tax-edit-btn"
@@ -1329,7 +1339,7 @@ export function TaxAnalytics({
                                 </svg>
                               </button>
                             )}
-                            {canManage && !monthClosed && editingRow !== p.nick && (
+                            {canManage && !monthClosed && editingRowId !== targetOperationId(p) && (
                               <ReassignButton
                                 clanId={clanId}
                                 operationId={p.paymentOpId}
@@ -1340,7 +1350,7 @@ export function TaxAnalytics({
                                 onDone={() => onRefresh?.()}
                               />
                             )}
-                            {editingRow === p.nick && (
+                            {editingRowId === targetOperationId(p) && (
                               <>
                                 <select
                                   className="tax-edit-input tax-edit-reason"
