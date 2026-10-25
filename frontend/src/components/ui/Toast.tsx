@@ -9,6 +9,12 @@ interface ToastMessage {
 
 let toastCallback: ((message: string, type: 'success' | 'error' | 'info' | 'warning') => void) | null = null;
 
+// A42: идентификатор тоста — счётчик, а не `Date.now()`. Два уведомления,
+// поднятые в одну миллисекунду, получали ОДИН id: таймер первого удалял оба
+// (`filter(t => t.id !== id)`), и тост исчезал, не успев показаться. Плюс
+// совпадали React-ключи.
+let nextToastId = 0;
+
 // eslint-disable-next-line react-refresh/only-export-components
 export function showToast(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') {
   if (toastCallback) {
@@ -21,7 +27,7 @@ export function ToastProvider() {
 
   useEffect(() => {
     toastCallback = (message: string, type: 'success' | 'error' | 'info' | 'warning') => {
-      const id = Date.now();
+      const id = ++nextToastId;
       setToasts(prev => [...prev, { id, message, type }]);
       setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== id));
