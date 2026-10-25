@@ -1,3 +1,4 @@
+import { Modal } from '../ui/Modal';
 import { useCallback, useEffect, useState } from 'react';
 import {
   applyExclusions,
@@ -314,9 +315,11 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
         ))}
 
       {editing && (
-        <div className="ex-modal-backdrop" onClick={() => setEditing(null)}>
-          <div className="ex-modal" onClick={(event) => event.stopPropagation()}>
-            <h3 className="ex-modal-title">Группа «{editing.name}»</h3>
+        <Modal
+          isOpen
+          title={`Группа «${editing.name}»`}
+          onClose={() => setEditing(null)}
+        >
 
             <div className="ex-modal-row">
               <label className="ex-modal-label" htmlFor="ex-edit-name">
@@ -371,8 +374,7 @@ export function TreasuryExclusionsTab({ clanId }: Props) {
                 Отмена
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

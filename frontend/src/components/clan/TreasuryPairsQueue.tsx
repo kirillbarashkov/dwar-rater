@@ -1,3 +1,4 @@
+import { Modal } from '../ui/Modal';
 import { useCallback, useEffect, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -947,12 +948,12 @@ export function TreasuryPairsQueue({ clanId }: Props) {
       )}
 
       {historyFor && (
-        <div className="tp-modal-backdrop" onClick={() => setHistoryFor(null)}>
-          <div
-            className="tp-modal tp-modal-wide"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h3 className="tp-modal-title">История пары #{historyFor.id}</h3>
+        <Modal
+          isOpen
+          wide
+          title={`История пары #${historyFor.id}`}
+          onClose={() => setHistoryFor(null)}
+        >
 
             {historyLoading && <div className="treasury-empty">Загружаю историю…</div>}
 
@@ -998,14 +999,11 @@ export function TreasuryPairsQueue({ clanId }: Props) {
                 Закрыть
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {reviseTarget && (
-        <div className="tp-modal-backdrop" onClick={() => setReviseTarget(null)}>
-          <div className="tp-modal" onClick={(event) => event.stopPropagation()}>
-            <h3 className="tp-modal-title">Корректировка пары</h3>
+        <Modal isOpen title="Корректировка пары" onClose={() => setReviseTarget(null)}>
             <div className="tp-modal-row">
               <label className="tp-modal-label" htmlFor="tp-revise-kind" title="Тип операции">
                 Что это
@@ -1046,8 +1044,7 @@ export function TreasuryPairsQueue({ clanId }: Props) {
                 Отмена
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {menu && (
