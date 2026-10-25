@@ -37,6 +37,9 @@ services:
         APP_BUILD_DATE: ${APP_BUILD_DATE:-unknown}
     container_name: dwar_rater_backend
     restart: unless-stopped
+    # A62: процесс под uid 10001 (см. backend/Dockerfile) и без новых привилегий.
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       postgres:
         condition: service_healthy
@@ -76,11 +79,15 @@ services:
         APP_VERSION: ${APP_VERSION:-dev}
     container_name: dwar_rater_frontend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       backend:
         condition: service_started
+    # A62: внутри контейнера nginx слушает 8080 (непривилегированный порт),
+    # снаружи остаётся 80.
     ports:
-      - "80:80"
+      - "80:8080"
     networks:
       - dwar-net
 

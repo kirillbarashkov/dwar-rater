@@ -146,6 +146,13 @@ def create_app():
         import logging
 
         instance_dir = os.path.join(BASE_DIR, 'backend', 'instance')
+        # A62: в контейнере код лежит в /app, поэтому BASE_DIR = '/', и путь
+        # превращался в /backend/instance — каталог, которого в образе нет.
+        # Под root он молча создавался; под непривилегированным пользователем это
+        # PermissionError на старте. Поэтому если родителя нет — берём каталог
+        # самого приложения (как уже сделано для alembic.ini ниже).
+        if not os.path.isdir(os.path.dirname(instance_dir)):
+            instance_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance')
         os.makedirs(instance_dir, exist_ok=True)
         data_logger.info(f'Instance directory: {instance_dir}')
 

@@ -32,6 +32,17 @@ COPY RELEASE_NOTES.md* ./
 COPY . .
 RUN chmod +x entrypoint.sh
 
+# A62: процесс не должен быть root. Бэкенд запускает pg_dump/pg_restore/psql
+# через subprocess, и под root любая их ошибка (или компрометация приложения)
+# даёт root внутри контейнера, а с монтированными томами — доступ к данным и
+# бэкапам. UID фиксированный, чтобы права на томах были предсказуемы.
+RUN groupadd -g 10001 app \
+    && useradd -u 10001 -g app -m -s /usr/sbin/nologin app \
+    && mkdir -p /backups \
+    && chown -R app:app /app /backups
+
+USER app
+
 EXPOSE 5000
 
 ENTRYPOINT ["./entrypoint.sh"]

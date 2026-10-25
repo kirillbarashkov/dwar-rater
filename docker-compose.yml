@@ -32,6 +32,9 @@ services:
         APP_BUILD_DATE: ${APP_BUILD_DATE:-unknown}
     ports:
       - "5000:5000"
+    # A62: запрет получать новые привилегии (setuid-бинарники внутри образа).
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - .env
     environment:
@@ -58,6 +61,8 @@ services:
         APP_VERSION: ${APP_VERSION:-dev}
     ports:
       - "5173:5173"
+    security_opt:
+      - no-new-privileges:true
     environment:
       - VITE_API_URL=
     depends_on:
