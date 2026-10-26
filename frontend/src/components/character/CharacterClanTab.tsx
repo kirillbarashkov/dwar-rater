@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { TreasuryOperationData, ClanMemberData } from '../../types/clanInfo';
 import { getTreasuryOperations, getClanMembers, getLevelHistory, getTreasuryTotals } from '../../api/clanInfo';
 import { useAuth } from '../../hooks/useAuth';
@@ -72,12 +72,10 @@ export function CharacterClanTab({ clanId = DEFAULT_CLAN_ID }: { clanId?: number
 
   // Первая загрузка — со спиннером, смена месяца — тихая: старые цифры остаются на
   // экране, пока не придут новые, иначе вкладка мигает на каждый клик по месяцу.
-  const firstLoad = useRef(true);
   useEffect(() => {
     let cancelled = false;
-    const silent = !firstLoad.current;
-    firstLoad.current = false;
-    if (!silent) setLoading(true);
+    // A18: loading инициализирован как true, поэтому дублирующий setLoading(true)
+    // на входе в эффект убран — он вызывал лишний каскадный рендер.
     Promise.all([
       // Только выбранный месяц: вкладка работает по одному месяцу, а история целиком
       // — это 15 000+ строк ≈ 3,5 МБ.
