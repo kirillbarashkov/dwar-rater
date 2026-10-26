@@ -223,7 +223,7 @@ export function CharacterComparison() {
     if (!char) return;
     if (compareChars.some(c => c.id === charId)) return;
     setCompareChars(prev => [...prev, { id: char.id, name: char.name, data: char.data }]);
-  }, [compareChars.length, compareList, compareChars]);
+  }, [compareList, compareChars]);
 
   const handleRemoveCharacter = useCallback((index: number) => {
     setCompareChars(prev => prev.filter((_, i) => i !== index));

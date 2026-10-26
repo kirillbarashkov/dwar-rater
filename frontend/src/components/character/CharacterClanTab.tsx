@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { TreasuryOperationData, ClanMemberData } from '../../types/clanInfo';
 import { getTreasuryOperations, getClanMembers, getLevelHistory, getTreasuryTotals } from '../../api/clanInfo';
 import { useAuth } from '../../hooks/useAuth';
@@ -97,7 +97,7 @@ export function CharacterClanTab({ clanId = DEFAULT_CLAN_ID }: { clanId?: number
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; }
-  }, [selectedMonth, selectedYear]);
+  }, [clanId, selectedMonth, selectedYear]);
 
   useEffect(() => {
     if (!myNick) return;
@@ -106,7 +106,7 @@ export function CharacterClanTab({ clanId = DEFAULT_CLAN_ID }: { clanId?: number
       .then((data) => { if (!cancelled) setTotals(data); })
       .catch(() => { if (!cancelled) setTotals([]); });
     return () => { cancelled = true; };
-  }, [myNick]);
+  }, [clanId, myNick]);
 
   const myNickLower = myNick.toLowerCase();
   const myMember = useMemo(() => members.find((m) => m.nick.toLowerCase() === myNickLower), [members, myNickLower]);
@@ -162,7 +162,8 @@ export function CharacterClanTab({ clanId = DEFAULT_CLAN_ID }: { clanId?: number
   const isAfterLeft = !!leftInfo && monthIndex > leftInfo.year * 12 + leftInfo.month;
   const outsideWindow = isBeforeJoin || isAfterLeft;
 
-  const getLevelAtDate = (dateStr: string): number | null => {
+  // A19: мемоизирован — иначе taxInfo пересчитывался на каждый рендер.
+  const getLevelAtDate = useCallback((dateStr: string): number | null => {
     const history = levelHistory[myNickLower];
     if (!history || history.length === 0) return null;
     const parsed = parseDate(dateStr);
@@ -180,7 +181,7 @@ export function CharacterClanTab({ clanId = DEFAULT_CLAN_ID }: { clanId?: number
       }
     }
     return level;
-  };
+  }, [levelHistory, myNickLower]);
 
   const taxInfo = useMemo<TaxInfo | null>(() => {
     if (!myNick) return null;
@@ -229,7 +230,7 @@ export function CharacterClanTab({ clanId = DEFAULT_CLAN_ID }: { clanId?: number
     const effectiveDelayed = onTime >= normAmount ? 0 : delayed;
 
     return { status, totalPaid, onTimePaid: onTime, delayedPaid: effectiveDelayed, normAmount, isOver };
-  }, [operations, myNick, myNickLower, selectedMonth, selectedYear, myLevel, isPaymentDue, isBeforeJoin, isAfterLeft]);
+  }, [operations, myNick, myNickLower, selectedMonth, selectedYear, myLevel, isPaymentDue, isBeforeJoin, isAfterLeft, getLevelAtDate]);
 
   const resourceInfos = useMemo<ResourceInfo[]>(() => {
     if (!myNick) return [];

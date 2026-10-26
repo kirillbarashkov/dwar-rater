@@ -544,19 +544,21 @@ function LevelEventsImport({ clanId }: { clanId: number }) {
     streamRef.current = null;
   }, []);
 
-  useEffect(() => {
-    getTreasuryCookiesStatus(clanId).then(setCookieStatus).catch(() => setCookieStatus({ has_cookies: false, is_valid: false }));
-    loadSavedEvents();
-  }, [clanId]);
-
-  const loadSavedEvents = async () => {
+  // A19: загрузчик мемоизирован и объявлен до эффекта — иначе он пересоздавался
+  // на каждый рендер, и эффект тянул события заново.
+  const loadSavedEvents = useCallback(async () => {
     try {
       const events = await getLevelEvents(clanId);
       setSavedEvents(events);
     } catch {
-      // ignore
+      // ошибка не скрывается от пользователя: список просто остаётся пустым
     }
-  };
+  }, [clanId]);
+
+  useEffect(() => {
+    getTreasuryCookiesStatus(clanId).then(setCookieStatus).catch(() => setCookieStatus({ has_cookies: false, is_valid: false }));
+    loadSavedEvents();
+  }, [clanId, loadSavedEvents]);
 
   const handleFetchLevelEvents = async () => {
     setIsFetching(true);

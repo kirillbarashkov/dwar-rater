@@ -419,7 +419,9 @@ export function TaxAnalytics({
     return null;
   };
 
-  const getPaymentStartMonth = (nick: string): { month: number; year: number } | null => {
+  // A19: хелперы мемоизированы — иначе они пересоздавались на каждый рендер и
+  // useMemo ниже пересчитывался всегда, даже когда данные не менялись.
+  const getPaymentStartMonth = useCallback((nick: string): { month: number; year: number } | null => {
     const joinInfo = memberJoinDates[nick.toLowerCase()];
     if (!joinInfo) return null;
     
@@ -427,16 +429,16 @@ export function TaxAnalytics({
       return { month: 1, year: joinInfo.year + 1 };
     }
     return { month: joinInfo.month + 1, year: joinInfo.year };
-  };
+  }, [memberJoinDates]);
 
-  const isPaymentDue = (nick: string): boolean => {
+  const isPaymentDue = useCallback((nick: string): boolean => {
     const joinInfo = memberJoinDates[nick.toLowerCase()];
     if (!joinInfo) return true;
     
     if (selectedYear > joinInfo.year) return true;
     if (selectedYear === joinInfo.year && selectedMonth > joinInfo.month) return true;
     return false;
-  };
+  }, [memberJoinDates, selectedMonth, selectedYear]);
 
   const taxPayments = useMemo(() => {
     const payments: TaxPayment[] = [];
@@ -603,7 +605,7 @@ export function TaxAnalytics({
       delayedTotal,
       expectedTotal,
     };
-  }, [taxPayments, members, selectedMonth, selectedYear, memberLevels, memberNorms, getLevelAtDate, operations, carriedByNick]);
+  }, [taxPayments, members, selectedMonth, selectedYear, memberLevels, memberNorms, getLevelAtDate, operations, carriedByNick, getPaymentStartMonth, isPaymentDue, memberJoinDates, memberLeftDates]);
 
   const filteredPlayers = useMemo(() => {
     if (!monthSummary) return [];
@@ -736,7 +738,7 @@ export function TaxAnalytics({
     }
   };
 
-  const handleCopyTable = async (players: PlayerTaxSummary[], _title: string) => {
+  const handleCopyTable = async (players: PlayerTaxSummary[]) => {
     if (players.length === 0) return;
     
     const headers = ['#', 'Игрок', 'Уровень', 'Уплачено', 'Норма', 'Статус', 'Комментарий'];
@@ -1186,7 +1188,7 @@ export function TaxAnalytics({
                     {copyStatus && <span className="tax-copy-status">{copyStatus}</span>}
                     <button 
                       className="tax-copy-btn" 
-                      onClick={() => handleCopyTable(sortedFilteredPlayers, 'Сводная')}
+                      onClick={() => handleCopyTable(sortedFilteredPlayers)}
                       title="Копировать таблицу"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">

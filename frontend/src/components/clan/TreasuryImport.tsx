@@ -223,11 +223,6 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
   const pageEstimateRef = useRef<typeof pageEstimate>(null);
   pageEstimateRef.current = pageEstimate;
 
-  useEffect(() => {
-    // A35: операции грузит useAsyncData (см. объявление dbOperations).
-    loadDateCoverage();
-  }, [clanId]);
-
   const loadDateCoverage = useCallback(() => {
     getTreasuryDateCoverage(clanId).then((data) => {
       setDateCoverage(data);
@@ -237,6 +232,12 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
       }
     }).catch(() => setDateCoverage(null));
   }, [clanId]);
+
+  useEffect(() => {
+    // A35: операции грузит useAsyncData (см. объявление dbOperations).
+    loadDateCoverage();
+  }, [clanId, loadDateCoverage]);
+
 
   const startIso = displayToIso(selectedStartDate);
   const endIso = displayToIso(selectedEndDate);
@@ -876,7 +877,7 @@ function ImportTab({ clanId, onImportComplete }: { clanId: number; onImportCompl
                           <div className="estimate-details">
                             <span>Страницы: {pageEstimate.start_page} → {pageEstimate.end_page}</span>
                           </div>
-                          <Button type="button" variant="primary" onClick={async (e: any) => {
+                          <Button type="button" variant="primary" onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
                             e.preventDefault();
                             e.stopPropagation();
                             const est = pageEstimateRef.current;
