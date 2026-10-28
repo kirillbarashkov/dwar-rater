@@ -24,13 +24,6 @@ function formatUpdated(value: string | null): string {
   return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-/** Тема по умолчанию: как в Header — сохранённый выбор, иначе системный. */
-function initialTheme(): string {
-  const stored = localStorage.getItem('theme');
-  if (stored) return stored;
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-}
-
 export function AboutPage() {
   const navigate = useNavigate();
   const [data, setData] = useState<AboutPayload | null>(null);
@@ -38,14 +31,6 @@ export function AboutPage() {
   const [activeTab, setActiveTab] = useState(
     () => new URLSearchParams(window.location.search).get('tab') ?? 'description',
   );
-
-  // `data-theme` на <html> выставляет Header — а эту страницу он не рендерит.
-  // При заходе по прямой ссылке (или F5) атрибут не выставлялся вовсе, и «О проекте»
-  // показывалась тёмной даже при выбранной светлой теме. Логика — та же, что в Header,
-  // чтобы страница не расходилась с остальным интерфейсом.
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', initialTheme());
-  }, []);
 
   useEffect(() => {
     let alive = true;

@@ -2,18 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../api/client';
 import { useAuth } from '../../hooks/useAuth';
+import { applyTheme, preferredTheme, type Theme } from '../../utils/theme';
 import './Header.css';
-
-function getInitialTheme(): string {
-  const stored = localStorage.getItem('theme');
-  if (stored) return stored;
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-}
 
 export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [theme, setTheme] = useState(getInitialTheme);
+  const [theme, setTheme] = useState<Theme>(preferredTheme);
   const [versionInfo, setVersionInfo] = useState<{
     version: string;
     git_hash: string;
@@ -23,8 +18,7 @@ export function Header() {
   } | null>(null);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
+    applyTheme(theme);
   }, [theme]);
 
   useEffect(() => {

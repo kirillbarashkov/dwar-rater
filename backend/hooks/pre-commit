@@ -1,36 +1,65 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-# Pre-commit hook for Dwar Rater
-# Runs backend tests inside Docker container.
-# Warns on failure but does NOT block commits (tests have known DB isolation issues).
+# Pre-commit hook for Dwar Rater.
 #
-# Install: cp backend/hooks/pre-commit .git/hooks/pre-commit
+# Прогон идёт по РАБОЧЕМУ дереву через scripts/run_backend_tests.sh, а не
+# `docker exec` в готовый контейнер: образ несёт только код момента сборки,
+# поэтому правки и новые тесты в прогон не попадают (TD-8, false green).
+#
+# Падение тестов коммит останавливает — иначе гейт не гейт. Штатный обход для
+# коммитов, где прогон ничего не доказывает (только документация, правки CI):
+#
+#   git commit --no-verify
+#
+# Если прогон невозможен (нет Docker, не поднят демон, нет .env), хук не
+# блокирует работу, но громко говорит, что проверки не было.
+#
+# Install: cp backend/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+set -uo pipefail
 
-echo "Running pre-commit tests (in Docker)..."
+ROOT="$(git rev-parse --show-toplevel)"
+SCRIPT="$ROOT/scripts/run_backend_tests.sh"
 
-PROJECT_DIR="$(git rev-parse --show-toplevel)"
+skip() {
+  echo "[pre-commit] SKIP: $*" >&2
+  echo "[pre-commit] Тесты НЕ прогонялись — коммит не проверен." >&2
+  exit 0
+}
 
-# Find backend container
-BACKEND_CONTAINER=$(docker ps --format '{{.Names}}' | grep "dwar-rater-backend" | head -1)
+[ -f "$SCRIPT" ] || skip "нет $SCRIPT"
+[ -f "$ROOT/.env" ] || skip "нет .env в корне репозитория (нужны POSTGRES_USER/POSTGRES_PASSWORD)"
+command -v docker >/dev/null 2>&1 || skip "docker не найден в PATH"
+docker info >/dev/null 2>&1 || skip "докер-демон не запущен"
 
-if [ -z "$BACKEND_CONTAINER" ]; then
-    echo "[SKIP] Backend container not running."
-    echo "Start containers with: docker compose up -d"
-    exit 0
+# Коммит из одних текстов прогон ничего не доказывает: 446+ тестов на 11 минут
+# ради правки в реестре — это прямой путь к привычке `--no-verify`.
+# `README.md` исключение: его читают тесты (test_readme_*), поэтому считается кодом.
+STAGED="$(git diff --cached --name-only --diff-filter=ACMR)"
+ONLY_DOCS=1
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+  case "$file" in
+    README.md) ONLY_DOCS=0; break ;;
+    *.md) : ;;
+    *) ONLY_DOCS=0; break ;;
+  esac
+done <<EOF
+$STAGED
+EOF
+
+[ "$ONLY_DOCS" -eq 1 ] && skip "в индексе только markdown (README.md не в счёт — его читают тесты)"
+
+echo "[pre-commit] pytest по рабочему дереву (не по запечённому образу)…" >&2
+
+if bash "$SCRIPT"; then
+  echo "[pre-commit] тесты прошли." >&2
+  exit 0
 fi
 
-# Run tests inside the container
-if docker exec "$BACKEND_CONTAINER" python -m pytest -q --tb=line 2>&1; then
-    echo ""
-    echo "All tests passed."
-    exit 0
-else
-    echo ""
-    echo "========================================="
-    echo "WARNING: Some tests failed."
-    echo "Commit is allowed, but please fix tests."
-    echo "Known issue: test DB isolation with PostgreSQL."
-    echo "========================================="
-    # Exit 0 to allow commit despite test failures
-    exit 0
-fi
+echo "" >&2
+echo "=========================================" >&2
+echo "[pre-commit] ОСТАНОВЛЕНО: тесты не прошли." >&2
+echo "[pre-commit] Коммит не создан." >&2
+echo "[pre-commit] Правка не про код (docs/CI) — повтори с --no-verify." >&2
+echo "=========================================" >&2
+exit 1

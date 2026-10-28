@@ -1,2 +1,9 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Shell-скрипты запускаются напрямую (git-хук, make, CI): CRLF в рабочей копии
+# ломает shebang и режет `\r` в конце команд. `text=auto` при autocrlf=true
+# отдал бы их с CRLF на Windows — фиксируем LF в самой рабочей копии.
+*.sh text eol=lf
+backend/hooks/pre-commit text eol=lf
+
