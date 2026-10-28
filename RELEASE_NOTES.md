@@ -1,5 +1,5 @@
-# v2.36.64
+# v2.36.65
 
 ## Прочее
-- docs(audit): TD-7, TD-8, TD-11 закрыты, счётчики сверены с заголовками [bump:patch]
+- docs(techdebt): схема номеров TD/A и таблица связи A ↔ TD из ветки docs/techdebt-id-schemes [bump:patch]
 
