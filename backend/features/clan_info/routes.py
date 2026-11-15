@@ -36,6 +36,7 @@ from shared.services.treasury_exclusions import (
 )
 from shared.services.treasury_loans import collect_loans
 from shared.services.treasury_pair_service import (
+    STATUS_CONFIRMED as PAIR_STATUS_CONFIRMED,
     PairError,
     batch_decide,
     confirm_pair,
@@ -61,6 +62,7 @@ from shared.models.clan_info import (
     ClanMemberInfo,
     TreasuryOperation,
     TreasuryOperationPair,
+    TreasuryPairRevision,
     TreasuryExclusionGroup,
     TreasuryExclusionRule,
     TaxCarryover,
@@ -1124,6 +1126,8 @@ def restore_treasury_backup(clan_id):
             400,
         )
 
+    # Same FK order as the import: pairs and their revisions before the operations.
+    _purge_pairs_for_operations(clan_id)
     TreasuryOperation.query.filter_by(clan_id=clan_id).delete()
 
     imported = 0
@@ -3702,6 +3706,73 @@ def revert_treasury_journal_entry(clan_id, entry_id):
     )
 
 
+def _purge_pairs_for_operations(clan_id, op_ids=None):
+    """Remove pairs (and their revision log) that reference operations being deleted.
+
+    `treasury_operation_pair` and `treasury_pair_revision` hold plain foreign keys —
+    no ON DELETE CASCADE — so a bulk delete of operations aborts with
+    `ForeignKeyViolation` and the user sees HTTP 500 instead of the import
+    (prod 2026-11-15: replace_range import of 923 operations died on
+    `treasury_operation_pair_second_op_id_fkey`). Order matters: revisions point at
+    pairs, pairs point at operations.
+
+    A pair whose operation disappears cannot survive — it has no second half left to
+    compare against. If it was `confirmed`, the surviving counterpart returns to the
+    default class, otherwise its amount stays excluded from tax and resources with
+    nothing left to explain why. `split` pairs are deliberately left alone: the
+    surviving side carries a write-off decision of the treasurer, which a re-import
+    of the other half must not undo.
+
+    `op_ids=None` means the whole clan is about to be cleared.
+    """
+    query = TreasuryOperationPair.query.filter_by(clan_id=clan_id)
+    doomed = None if op_ids is None else set(op_ids)
+    if doomed is not None:
+        if not doomed:
+            return 0
+        query = query.filter(
+            db.or_(
+                TreasuryOperationPair.first_op_id.in_(doomed),
+                TreasuryOperationPair.second_op_id.in_(doomed),
+            )
+        )
+
+    pairs = query.all()
+    if not pairs:
+        return 0
+
+    survivors = set()
+    for pair in pairs:
+        if pair.status != PAIR_STATUS_CONFIRMED:
+            continue
+        for op_id in (pair.first_op_id, pair.second_op_id):
+            if op_id and (doomed is None or op_id not in doomed):
+                survivors.add(op_id)
+
+    pair_ids = [pair.id for pair in pairs]
+    for start in range(0, len(pair_ids), 500):
+        chunk = pair_ids[start : start + 500]
+        TreasuryPairRevision.query.filter(
+            TreasuryPairRevision.pair_id.in_(chunk)
+        ).delete(synchronize_session=False)
+        TreasuryOperationPair.query.filter(
+            TreasuryOperationPair.id.in_(chunk)
+        ).delete(synchronize_session=False)
+
+    for op_id in survivors:
+        op = db.session.get(TreasuryOperation, op_id)
+        if op is not None:
+            op.op_class = 'tax'
+            op.class_kind = ''
+            op.class_source = ''
+
+    data_logger.info(
+        f"[TREASURY] Purged {len(pair_ids)} pairs referencing deleted operations "
+        f"for clan {clan_id} ({len(survivors)} counterparts returned to tax)"
+    )
+    return len(pair_ids)
+
+
 def _replace_operations_in_range(clan_id, operations_data):
     """Delete the clan's operations inside the day span of an incoming batch.
 
@@ -3726,6 +3797,8 @@ def _replace_operations_in_range(clan_id, operations_data):
         for row_id, date in existing
         if low <= _date_str_to_comparable(date or "") <= high
     ]
+    # Pairs must go before the operations they point at: the FK has no cascade.
+    _purge_pairs_for_operations(clan_id, doomed)
     for start in range(0, len(doomed), 500):
         chunk = doomed[start : start + 500]
         TreasuryOperation.query.filter(TreasuryOperation.id.in_(chunk)).delete(
@@ -3769,6 +3842,9 @@ def import_treasury_operations(clan_id):
     )
 
     if replace:
+        # Clear the classification first: pairs and their revision log point at the
+        # operations via FK without cascade, so deleting operations first fails.
+        _purge_pairs_for_operations(clan_id)
         TreasuryOperation.query.filter_by(clan_id=clan_id).delete()
         data_logger.info(f"[TREASURY] Cleared existing operations for clan {clan_id}")
     elif replace_range:
@@ -4070,6 +4146,8 @@ def fetch_treasury_operations(clan_id):
         data_logger.info(f"[TREASURY] Parsed {len(operations)} operations from page")
 
         old_count = TreasuryOperation.query.filter_by(clan_id=clan_id).count()
+        # FK order: pairs (and revisions) reference the operations.
+        _purge_pairs_for_operations(clan_id)
         TreasuryOperation.query.filter_by(clan_id=clan_id).delete()
 
         for op in operations:
