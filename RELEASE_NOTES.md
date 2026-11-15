@@ -1,5 +1,5 @@
-# v2.36.65
+# v2.36.66
 
-## Прочее
-- docs(techdebt): схема номеров TD/A и таблица связи A ↔ TD из ветки docs/techdebt-id-schemes [bump:patch]
+## Исправления
+- fix(treasury): импорт казны падал на FK пар, а сбор рвался таймаутом nginx [bump:patch]
 
