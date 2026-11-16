@@ -109,7 +109,9 @@ export function UserTable() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const res = await apiClient.post('/api/admin/users/sync');
+      // Тело обязательно: POST без Content-Type: application/json получает 415
+      // от глобального security_checks (app.py). TD-13.
+      const res = await apiClient.post('/api/admin/users/sync', {});
       setSyncResult(res.data);
       showToast('Синхронизация завершена', 'success');
       fetchUsers();

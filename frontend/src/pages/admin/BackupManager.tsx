@@ -47,7 +47,9 @@ export function BackupManager() {
     setCreating(true);
     setError('');
     try {
-      await apiClient.post('/api/admin/backups');
+      // Тело обязательно: POST без Content-Type: application/json получает 415
+      // от глобального security_checks (app.py). TD-13.
+      await apiClient.post('/api/admin/backups', {});
       showToast('Бэкап создан', 'success');
       fetchBackups();
     } catch (e: unknown) {
@@ -80,7 +82,9 @@ export function BackupManager() {
     setRestoring(filename);
     setError('');
     try {
-      await apiClient.post(`/api/admin/backups/${filename}/restore`);
+      // Тело обязательно: POST без Content-Type: application/json получает 415
+      // от глобального security_checks (app.py). TD-13.
+      await apiClient.post(`/api/admin/backups/${filename}/restore`, {});
       showToast('Бэкап успешно восстановлен', 'success');
     } catch (e: unknown) {
       setError((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Ошибка восстановления');
