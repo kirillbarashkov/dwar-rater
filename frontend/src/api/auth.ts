@@ -69,7 +69,11 @@ export async function changePassword(
 
 /** A37: короткоживущий билет для EventSource — вместо токена сессии в URL. */
 export async function sseTicket(): Promise<string> {
-  const response = await apiClient.post<{ ticket: string }>('/api/auth/sse-ticket');
+  // Пустое тело обязательно: глобальный middleware (app.py, security_checks)
+  // отвечает 415 на POST без Content-Type: application/json. Без `{}` запрос
+  // билета падал 415, `await sseTicket()` в компоненте обрывался, и поток не
+  // начинался вовсе (прод 16.11.2026: импорт состава и истории уровней).
+  const response = await apiClient.post<{ ticket: string }>('/api/auth/sse-ticket', {});
   return response.data.ticket;
 }
 

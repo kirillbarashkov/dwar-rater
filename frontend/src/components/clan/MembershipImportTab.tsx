@@ -106,10 +106,25 @@ export function MembershipImportTab({ clanId, onImportComplete }: MembershipImpo
     setFetchProgress({ phase: 'counting', totalPages: 0, currentPage: 0, totalEvents: 0, elapsed: 0, message: 'Подключение...' });
 
     // A37: в URL идёт минутный билет, а не токен сессии (8–24 часа жизни).
-    const ticket = await sseTicket();
-    const url = apiUrl(`/api/clan/${clanId}/members/auto-fetch-stream?ticket=${encodeURIComponent(ticket)}`);
-
-    const es = new EventSource(url);
+    let es: EventSource;
+    try {
+      const ticket = await sseTicket();
+      es = new EventSource(apiUrl(`/api/clan/${clanId}/members/auto-fetch-stream?ticket=${encodeURIComponent(ticket)}`));
+    } catch (err) {
+      // Билет не выдан — поток не начинается. Без этой ветки индикатор
+      // «Подключение...» висел вечно, а причина не показывалась: `await` без
+      // try/catch оставлял необработанный reject и уже включённый isFetching.
+      setFetchProgress({
+        phase: 'error',
+        totalPages: 0,
+        currentPage: 0,
+        totalEvents: 0,
+        elapsed: 0,
+        message: `Не удалось получить билет для потока: ${err instanceof Error ? err.message : String(err)}`,
+      });
+      setIsFetching(false);
+      return;
+    }
     streamRef.current = es;
 
     es.onmessage = (e) => {
@@ -567,10 +582,16 @@ function LevelEventsImport({ clanId }: { clanId: number }) {
     setFetchProgress({ totalPages: 0, currentPage: 0, totalEvents: 0, message: 'Загрузка...' });
 
     // A37: билет вместо токена сессии.
-    const ticket = await sseTicket();
-    const url = apiUrl(`/api/clan/${clanId}/level-events/import-stream?ticket=${encodeURIComponent(ticket)}`);
-
-    const es = new EventSource(url);
+    let es: EventSource;
+    try {
+      const ticket = await sseTicket();
+      es = new EventSource(apiUrl(`/api/clan/${clanId}/level-events/import-stream?ticket=${encodeURIComponent(ticket)}`));
+    } catch (err) {
+      setMessage({ type: 'error', text: `Не удалось получить билет для потока: ${err instanceof Error ? err.message : String(err)}` });
+      setFetchProgress({ totalPages: 0, currentPage: 0, totalEvents: 0, message: '' });
+      setIsFetching(false);
+      return;
+    }
     streamRef.current = es;
 
     es.onmessage = (e) => {

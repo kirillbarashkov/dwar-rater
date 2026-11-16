@@ -100,3 +100,40 @@ def test_frontend_uses_the_ticket_in_event_source_urls():
     assert 'sseTicket()' in source
     assert '?ticket=' in source
     assert '?token=' not in source, 'токен сессии снова уходит в адрес потока'
+
+
+def test_frontend_sends_a_body_when_asking_for_the_ticket():
+    """Пустой POST даёт 415, и поток не начинается вовсе.
+
+    Глобальный `security_checks` (app.py) отвечает 415 на POST без
+    `Content-Type: application/json`. Клиент вызывал `apiClient.post(url)` без
+    тела — билет не выдавался, `await sseTicket()` обрывался, SSE не стартовал
+    (прод 16.11.2026: «Импорт / экспорт → Состав клана» не работал при живых
+    cookies; в логах nginx `POST /api/auth/sse-ticket` 415 и ни одного запроса
+    потока). Тест статический: живой POST проверяется ниже.
+    """
+    source = open(
+        os.path.join(ROOT, 'frontend', 'src', 'api', 'auth.ts'),
+        encoding='utf-8',
+    ).read()
+    assert "apiClient.post<{ ticket: string }>('/api/auth/sse-ticket', {})" in source, (
+        'запрос билета снова уходит без тела — сервер ответит 415'
+    )
+
+
+def test_ticket_endpoint_answers_a_post_with_an_empty_json_body(client, admin_headers):
+    resp = client.post('/api/auth/sse-ticket', headers=admin_headers, json={})
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    body = resp.get_json()
+    assert body and body.get('ticket'), 'билет не выдан'
+    assert verify_ticket(body['ticket']) is not None
+
+
+def test_bodyless_post_is_rejected_by_the_middleware(client, admin_headers):
+    """Контракт платформы, из-за которого падал запрос билета.
+
+    Не «ожидаемое поведение фичи», а документирование ловушки: тело обязательно.
+    """
+    resp = client.post('/api/auth/sse-ticket', headers=admin_headers)
+    assert resp.status_code == 415
+
