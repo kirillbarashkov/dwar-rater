@@ -10,12 +10,19 @@
 Проверяются только вызовы `apiClient.post(...)` (axios-клиент проекта); пути,
 которые middleware пропускает по белому списку (логин, logout), исключены —
 список читается из `app.py`, чтобы не расходиться с кодом.
+
+Живая часть намеренно работает через заглушки view-функций: реальный
+`users/sync` создал бы пользователей из состава клана, а `backups` запустил бы
+pg_dump. Тест не имеет права писать в общую тестовую БД — иначе он роняет чужой
+модуль при другом порядке запуска (поллюция между модулями: зелёный локально и
+красный в CI).
 """
 
 import os
 import re
 
 import pytest
+from flask import jsonify
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SRC = os.path.join(ROOT, 'frontend', 'src')
@@ -31,6 +38,14 @@ BODYLESS_POST = re.compile(
 
 # Путь внутри литерала: `...${expr}...` → шаблон, сравнивать с белым списком нельзя.
 TEMPLATE_EXPR = re.compile(r"\$\{[^}]*\}")
+
+RESTORE_URL = '/api/admin/backups/dwar_rater_backup_20260101_000000.sql.gz/restore'
+
+TARGETS = (
+    ('admin.sync_users_from_clan', '/api/admin/users/sync', lambda: jsonify({'status': 'stub'})),
+    ('admin.create_backup', '/api/admin/backups', lambda: jsonify({'status': 'stub'})),
+    ('admin.restore_backup', RESTORE_URL, lambda filename: jsonify({'status': 'stub'})),
+)
 
 
 def _middleware_whitelist():
@@ -70,24 +85,20 @@ def test_no_bodyless_post_calls():
     )
 
 
-@pytest.mark.parametrize(
-    'url',
-    [
-        '/api/admin/users/sync',
-        '/api/admin/backups',
-        '/api/admin/backups/dwar_rater_backup_20260101_000000.sql.gz/restore',
-    ],
-)
-def test_admin_post_is_not_rejected_by_the_middleware(client, admin_headers, url):
-    """С `{}` запрос доходит до обработчика; без тела — 415 от middleware.
-
-    Статус обработчика здесь не проверяется (pg_dump в тестовом контейнере может
-    отсутствовать, а восстановление вообще деструктивно) — важно только, что
-    гейт тела больше не мешает.
-    """
+@pytest.mark.parametrize('url', [url for _, url, _ in TARGETS])
+def test_bodyless_post_is_rejected_by_the_middleware(client, admin_headers, url):
+    """Без тела запрос отбивается до обработчика — белый список его не спасает."""
     assert client.post(url, headers=admin_headers).status_code == 415
 
-    resp = client.post(url, headers=admin_headers, json={})
-    assert resp.status_code != 415, (
-        f'{url}: с телом запрос всё равно отбит middleware — {resp.get_data(as_text=True)}'
-    )
+
+@pytest.mark.parametrize('endpoint,url,stub', TARGETS)
+def test_json_body_reaches_the_handler(app, client, admin_headers, endpoint, url, stub):
+    """С `{}` запрос проходит middleware и доходит до обработчика (заглушки)."""
+    original = app.view_functions.get(endpoint)
+    app.view_functions[endpoint] = stub
+    try:
+        resp = client.post(url, headers=admin_headers, json={})
+    finally:
+        if original is not None:
+            app.view_functions[endpoint] = original
+    assert resp.status_code == 200, f'{url}: {resp.get_data(as_text=True)}'
